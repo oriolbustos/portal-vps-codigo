@@ -7,38 +7,96 @@
 <link rel="stylesheet" href="/estatico/estilo.css">
 <link rel="icon" href="/estatico/iconos/fav-tareas.svg" type="image/svg+xml">
 <style>
-.filtros { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 24px 0 16px; }
+.filtros { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; padding: 24px 0 16px; }
 .filtros > div { display: flex; flex-direction: column; gap: 6px; }
 .filtros > div[hidden] { display: none; }
 .segmentos { flex-wrap: wrap; }
-.matriz { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* añadir */
+.anadir { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 24px; border: 1px solid var(--linea); background: var(--fondo-alto); }
+.anadir input, .anadir select { font: inherit; font-size: 16px; color: var(--tinta-alta); background: transparent; border: 0; padding: 10px 12px; min-width: 0; }
+.anadir input { flex: 1 1 260px; }
+.anadir input:focus, .anadir select:focus { outline: none; }
+.anadir:focus-within { border-color: var(--linea-alta); }
+.anadir select { border-left: 1px solid var(--linea); cursor: pointer; }
+.anadir .boton { margin: 6px; }
+
+/* gráfico */
+.grafico { padding: 16px; }
+@media (min-width: 768px) { .grafico { padding: 20px 24px; } }
+.grafico .que { color: var(--tinta-2); font-size: var(--t-xs); margin: 4px 0 16px; }
+.plano { display: grid; grid-template-columns: 18px 22px repeat(6, minmax(0, 1fr)); grid-template-rows: auto repeat(6, minmax(56px, auto)) auto auto auto; }
+.plano .cuad-et { grid-row: 1; padding-bottom: 6px; }
+.plano .cuad-et.abajo { grid-row: 9; padding: 6px 0 0; }
+.plano .celda { border-right: 1px solid var(--linea); border-bottom: 1px solid var(--linea); padding: 4px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; min-width: 0; }
+.plano .celda.izq { border-left: 1px solid var(--linea); }
+.plano .celda.arr { border-top: 1px solid var(--linea); }
+.plano .celda.mitad-x { border-right-color: var(--tinta-2); }
+.plano .celda.mitad-y { border-bottom-color: var(--tinta-2); }
+.plano .eje-y { grid-column: 2; font-family: var(--mono); font-weight: 300; font-size: var(--t-xs); color: var(--tinta-2); display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+.plano .eje-x { grid-row: 8; font-family: var(--mono); font-weight: 300; font-size: var(--t-xs); color: var(--tinta-2); text-align: center; padding-top: 4px; }
+.plano .nombre-x { grid-row: 10; grid-column: 3 / 9; text-align: center; padding-top: 2px; }
+.plano .nombre-y { grid-row: 2 / 8; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; justify-self: start; }
+.punto-t { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font: inherit; font-size: var(--t-xs); line-height: 1.2; padding: 2px 5px 2px 4px; border: 1px dotted var(--tinta-2); border-radius: 4px;
+  background: var(--fondo-alto); color: var(--tinta); cursor: pointer; text-align: left; }
+.punto-t::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--tinta-alta); }
+.punto-t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.punto-t:hover { border-style: solid; color: var(--tinta-alta); }
+.punto-t.sel { border: 1px solid var(--tinta-alta); }
+.punto-t.sel::before { background: var(--acento); }
+@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t span { display: none; } .punto-t::before { width: 9px; height: 9px; } }
+
+/* cuadrantes y listas */
+.matriz { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 32px; }
 @media (max-width: 760px) { .matriz { grid-template-columns: 1fr; } }
-.cuadrante { padding: 16px; min-height: 160px; }
-@media (min-width: 768px) { .cuadrante { padding: 20px 24px; } }
-.cuadrante header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-.cuadrante h2 { font-family: var(--serif); font-size: var(--t-2xl); line-height: 1.1; }
+.cuadrante, .grupo-amb { padding: 16px; min-height: 120px; }
+@media (min-width: 768px) { .cuadrante, .grupo-amb { padding: 20px 24px; } }
+.cuadrante header, .grupo-amb header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.cuadrante h2, .grupo-amb h2 { font-family: var(--serif); font-size: var(--t-2xl); line-height: 1.1; }
 .cuadrante .que { color: var(--tinta-2); font-size: var(--t-xs); margin-bottom: 8px; }
 .cuenta { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2); }
 ul.tareas { list-style: none; margin: 0; padding: 0; }
-ul.tareas > li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--linea); align-items: start; }
-ul.tareas > li:first-child { border-top: 0; }
+ul.tareas > li > button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; width: 100%; padding: 10px 0; border-top: 1px solid var(--linea); cursor: pointer; }
+ul.tareas > li:first-child > button { border-top: 0; }
+ul.tareas > li > button:hover .t-texto { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--tinta-2); }
+ul.tareas > li > button:focus-visible { outline: 2px solid var(--linea-alta); outline-offset: 2px; }
+ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--acento); margin-right: 8px; vertical-align: 2px; }
 .t-texto { color: var(--tinta-alta); }
 .t-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .t-meta .insignia { font-size: var(--t-xs); padding: 2px 5px; }
-.t-sub { margin: 4px 0 0; padding-left: 16px; list-style: disc; color: var(--tinta-2); font-size: var(--t-xs); }
-.t-acc { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-.t-acc button { font: inherit; font-size: var(--t-xs); font-weight: 500; font-variation-settings: "wdth" 90; padding: 2px 8px; border-radius: 4px; cursor: pointer;
-  border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta-2); }
-.t-acc button:hover { color: var(--tinta-alta); border-color: var(--tinta-2); }
-.t-acc button[aria-pressed="true"] { background: var(--tinta-alta); color: var(--fondo); border-color: var(--tinta-alta); }
-.t-acc button.quitar { border: 0; background: none; text-decoration: underline; text-underline-offset: 2px; }
-.grupo-amb { padding: 16px; }
-@media (min-width: 768px) { .grupo-amb { padding: 20px 24px; } }
-.grupo-amb h2 { font-family: var(--serif); font-size: var(--t-2xl); }
+.t-extra { font-size: var(--t-xs); color: var(--tinta-2); }
+.t-pts { font-family: var(--mono); font-weight: 300; font-size: var(--t-xs); color: var(--tinta-2); white-space: nowrap; text-align: right; }
 .vista[hidden] { display: none; }
 .pie-panel { margin-top: 32px; font-size: var(--t-xs); color: var(--tinta-2); }
-.toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--tinta-alta); color: var(--fondo); padding: 8px 14px; font-size: var(--t-sm); display: none; z-index: 20; }
-@media (max-width: 600px) { ul.tareas > li { grid-template-columns: 1fr; } .t-acc { justify-content: flex-start; } }
+
+/* detalle */
+.velo { position: fixed; inset: 0; background: rgb(0 0 0 / 0.25); z-index: 10; }
+.velo[hidden], .detalle[hidden] { display: none; }
+.detalle { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw); background: var(--fondo); border-left: 1px solid var(--linea); z-index: 11; display: flex; flex-direction: column; }
+.d-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--linea); }
+.d-cuerpo { flex: 1; overflow-y: auto; padding: 8px 20px 24px; }
+.d-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--linea); font-size: var(--t-xs); color: var(--tinta-2); }
+.d-titulo { width: 100%; font-family: var(--serif); font-size: var(--t-2xl); line-height: 1.15; color: var(--tinta-alta); background: transparent; border: 0; border-bottom: 1px solid transparent; padding: 8px 0; resize: none; overflow: hidden; }
+.d-titulo:focus { outline: none; border-bottom-color: var(--linea-alta); }
+.d-bloque { padding: 14px 0; border-top: 1px solid var(--linea); }
+.d-bloque > .etiqueta { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.d-bloque .segmentos button { min-width: 36px; }
+.d-cuadrante { font-family: var(--serif); font-size: var(--t-xl); color: var(--tinta-alta); }
+.d-subs { list-style: none; margin: 0; padding: 0; }
+.d-subs li { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--linea); }
+.d-subs li::before { content: ""; flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--tinta-2); }
+.d-subs input, .d-nuevo-sub { flex: 1; min-width: 0; font: inherit; font-size: var(--t-sm); color: var(--tinta-alta); background: transparent; border: 0; padding: 8px 0; }
+.d-subs input:focus, .d-nuevo-sub:focus { outline: none; }
+.d-nuevo-sub { width: 100%; border-bottom: 1px solid var(--linea); }
+.d-nuevo-sub:focus { border-bottom-color: var(--linea-alta); }
+.d-subs button { font: inherit; font-size: var(--t-xs); color: var(--tinta-2); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.d-subs button:hover { color: var(--tinta-alta); }
+.d-notas { width: 100%; min-height: 140px; font: inherit; font-size: var(--t-sm); line-height: 1.5; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); padding: 10px 12px; resize: vertical; }
+.d-notas:focus { outline: none; border-color: var(--linea-alta); }
+.d-estado-guardado { font-family: var(--mono); font-weight: 300; }
+.boton.peligro:hover { color: var(--acento); border-color: var(--acento); }
+.toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--tinta-alta); color: var(--fondo); padding: 8px 14px; font-size: var(--t-sm); display: none; z-index: 20; max-width: calc(100vw - 32px); }
+@media (max-width: 600px) { .detalle { border-left: 0; } }
 </style>
 </head>
 <body>
@@ -51,12 +109,24 @@ ul.tareas > li:first-child { border-top: 0; }
 <div class="filtros">
   <div><span class="etiqueta">Ámbito</span><div class="segmentos" id="f-ambito"></div></div>
   <div><span class="etiqueta">Estado</span><div class="segmentos" id="f-estado"></div></div>
-  <div id="f-prio-caja"><span class="etiqueta">Prioridad</span><div class="segmentos" id="f-prio"></div></div>
+  <div id="f-prio-caja"><span class="etiqueta">Puntuación</span><div class="segmentos" id="f-prio"></div></div>
 </div>
 
+<form class="anadir" id="anadir" autocomplete="off">
+  <input id="a-texto" placeholder="Añadir una tarea" maxlength="500" aria-label="Nueva tarea">
+  <select id="a-ambito" aria-label="Ámbito"></select>
+  <select id="a-estado" aria-label="Estado"><option value="todo">To Do</option><option value="doing">Doing</option><option value="seguimiento">Monitoring</option></select>
+  <button class="boton" type="submit">Añadir</button>
+</form>
+
 <section class="vista" id="v-matriz">
+  <div class="rejilla"><div class="grafico">
+    <h2 class="titulo-3">Matriz</h2>
+    <p class="que">Cada tarea según su urgencia (horizontal) e importancia (vertical), de 0 a 5. De 3 para arriba cuenta como alta. Toca una para abrirla.</p>
+    <div class="plano" id="plano"></div>
+  </div></div>
   <div class="rejilla matriz" id="matriz"></div>
-  <div class="rejilla" style="margin-top:32px"><div class="cuadrante" id="sin"></div></div>
+  <div class="rejilla"><div class="cuadrante" id="sin"></div></div>
 </section>
 
 <section class="vista" id="v-lista" hidden>
@@ -65,89 +135,134 @@ ul.tareas > li:first-child { border-top: 0; }
 
 <p class="pie-panel" id="pie"></p>
 </div>
+
+<div class="velo" id="velo" hidden></div>
+<aside class="detalle" id="detalle" hidden aria-label="Detalle de la tarea">
+  <div class="d-cab"><span class="etiqueta" id="d-donde"></span><button class="boton" id="d-cerrar" type="button">Cerrar</button></div>
+  <div class="d-cuerpo">
+    <textarea class="d-titulo" id="d-titulo" rows="1" maxlength="500" aria-label="Tarea"></textarea>
+    <div class="d-bloque"><div class="etiqueta"><span>Importancia</span></div><div class="segmentos" id="d-imp"></div></div>
+    <div class="d-bloque"><div class="etiqueta"><span>Urgencia</span></div><div class="segmentos" id="d-urg"></div></div>
+    <div class="d-bloque"><div class="etiqueta"><span>Cuadrante</span></div><div class="d-cuadrante" id="d-cuad"></div></div>
+    <div class="d-bloque"><div class="etiqueta"><span>Estado</span></div><div class="segmentos" id="d-estado"></div></div>
+    <div class="d-bloque"><div class="etiqueta"><span>Ámbito</span></div><div class="segmentos" id="d-ambito"></div></div>
+    <div class="d-bloque"><div class="etiqueta"><span>Subtareas</span></div><ul class="d-subs" id="d-subs"></ul>
+      <input class="d-nuevo-sub" id="d-nuevo-sub" placeholder="Añadir subtarea" maxlength="500"></div>
+    <div class="d-bloque"><div class="etiqueta"><span>Notas</span></div><textarea class="d-notas" id="d-notas" placeholder="Detalles, enlaces, lo que haga falta"></textarea></div>
+  </div>
+  <div class="d-pie"><span class="d-estado-guardado" id="d-guardado"></span><button class="boton peligro" id="d-borrar" type="button">Eliminar</button></div>
+</aside>
 <div class="toast" id="toast"></div>
 <script id="datos" type="application/json">/*__DATOS__*/null</script>
 <script>
 "use strict";
-const D = JSON.parse(document.getElementById("datos").textContent);
-const EST = { doing: "En curso", todo: "Pendiente", seguimiento: "Seguimiento" };
+let D = JSON.parse(document.getElementById("datos").textContent);
+const EST = { doing: "Doing", todo: "To Do", seguimiento: "Monitoring" };
+const ALTO = 3;
 const CUAD = [
-  { id: "hacer", t: "Hacer ya", q: "Urgente e importante", f: x => x.u && x.i },
-  { id: "planificar", t: "Planificar", q: "Importante, no urgente", f: x => !x.u && x.i },
-  { id: "rapido", t: "Resolver rápido", q: "Urgente, no importante", f: x => x.u && !x.i },
-  { id: "despues", t: "Más adelante", q: "Ni urgente ni importante", f: x => !x.u && !x.i },
+  { id: "hacer", t: "Hacer ya", q: "Urgente e importante", f: x => x.urg >= ALTO && x.imp >= ALTO },
+  { id: "planificar", t: "Planificar", q: "Importante, no urgente", f: x => x.urg < ALTO && x.imp >= ALTO },
+  { id: "rapido", t: "Resolver rápido", q: "Urgente, no importante", f: x => x.urg >= ALTO && x.imp < ALTO },
+  { id: "despues", t: "Más adelante", q: "Ni urgente ni importante", f: x => x.urg < ALTO && x.imp < ALTO },
 ];
-const PRIO = { todas: "Todas", urg: "Urgentes", imp: "Importantes", sin: "Sin clasificar" };
+const PRIO = { todas: "Todas", puntuadas: "Puntuadas", sin: "Sin puntuar" };
 const F = { ambito: "", estado: "", prio: "todas" };
 try { Object.assign(F, JSON.parse(localStorage.getItem("tareas.filtros") || "{}")); } catch (e) {}
+if (!PRIO[F.prio]) F.prio = "todas";
+let sel = null;          // id de la tarea abierta
+let pendientes = 0;
+const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, txt) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; };
-const clasificada = x => x.u !== null && x.u !== undefined;
+const puntuada = x => x.imp != null && x.urg != null;
+const cuadrante = x => puntuada(x) ? CUAD.find(c => c.f(x)) : null;
+const peso = x => (x.imp ?? -1) * 10 + (x.urg ?? -1);
+const tarea = id => D.tareas.find(x => x.id === id);
 
-function segmentos(id, opciones, clave) {
-  const c = document.getElementById(id); c.replaceChildren();
+function segmentos(c, opciones, actual, fn) {
+  c.replaceChildren();
   for (const [v, t] of opciones) {
-    const b = el("button", v === F[clave] ? { class: "on" } : {}, t);
-    b.onclick = () => { F[clave] = v; try { localStorage.setItem("tareas.filtros", JSON.stringify(F)); } catch (e) {} pintar(); };
+    const b = el("button", { type: "button", ...(v === actual ? { class: "on" } : {}) }, t);
+    b.onclick = () => fn(v);
     c.append(b);
   }
 }
+const filtro = (clave, v) => { F[clave] = v; try { localStorage.setItem("tareas.filtros", JSON.stringify(F)); } catch (e) {} pintar(); };
 
 function filtradas(conPrio) {
   return D.tareas.filter(x => (!F.ambito || x.ambito === F.ambito) && (!F.estado || x.estado === F.estado) &&
-    (!conPrio || F.prio === "todas" || (F.prio === "urg" && x.u) || (F.prio === "imp" && x.i) || (F.prio === "sin" && !clasificada(x))));
+    (!conPrio || F.prio === "todas" || (F.prio === "puntuadas" && puntuada(x)) || (F.prio === "sin" && !puntuada(x))));
 }
 
 function item(x, conAmbito = true) {
-  const li = el("li"), izq = el("div");
+  const li = el("li", x.id === sel ? { class: "sel" } : {}), b = el("button", { type: "button" }), izq = el("div");
   izq.append(el("div", { class: "t-texto" }, x.texto));
   const meta = el("div", { class: "t-meta" });
   if (conAmbito) meta.append(el("span", { class: "insignia" }, x.ambito));
   meta.append(el("span", { class: "insignia" + (x.estado === "doing" ? " punto" : "") }, EST[x.estado]));
+  const extra = [];
+  if (x.sub.length) extra.push(x.sub.length === 1 ? "1 subtarea" : `${x.sub.length} subtareas`);
+  if (x.notas.length) extra.push("nota");
+  if (extra.length) meta.append(el("span", { class: "t-extra" }, extra.join(", ")));
   izq.append(meta);
-  if (x.sub.length) { const u = el("ul", { class: "t-sub" }); for (const s of x.sub) u.append(el("li", {}, s)); izq.append(u); }
-  const acc = el("div", { class: "t-acc" });
-  const boton = (txt, pulsado, fn, extra) => { const b = el("button", { "aria-pressed": String(!!pulsado), ...(extra || {}) }, txt); b.onclick = fn; acc.append(b); };
-  if (clasificada(x)) {
-    boton("Urgente", x.u, () => guardar(x, !x.u, x.i));
-    boton("Importante", x.i, () => guardar(x, x.u, !x.i));
-    if (!x.tag_u && !x.tag_i) boton("Quitar", false, () => guardar(x, null, null), { class: "quitar", title: "Dejar sin clasificar" });
-  } else {
-    boton("Urgente", false, () => guardar(x, true, false));
-    boton("Importante", false, () => guardar(x, false, true));
-    boton("Ninguna", false, () => guardar(x, false, false));
-  }
-  li.append(izq, acc);
+  b.append(izq, el("span", { class: "t-pts", title: "Importancia, urgencia" }, `I ${x.imp ?? "-"}  U ${x.urg ?? "-"}`));
+  b.onclick = () => abrir(x.id);
+  li.append(b);
   return li;
 }
 
 function lista(ul, xs, conAmbito) {
-  if (!xs.length) { ul.append(el("li", { class: "vacio", style: "display:block;padding:12px 0;text-align:left" }, "Nada aquí")); return; }
+  if (!xs.length) { ul.append(el("li", { class: "vacio", style: "padding:12px 0;text-align:left" }, "Nada aquí")); return; }
   const orden = { doing: 0, todo: 1, seguimiento: 2 };
-  for (const x of xs.slice().sort((a, b) => orden[a.estado] - orden[b.estado])) ul.append(item(x, conAmbito));
+  for (const x of xs.slice().sort((a, b) => peso(b) - peso(a) || orden[a.estado] - orden[b.estado])) ul.append(item(x, conAmbito));
+}
+
+function plano(xs) {
+  const p = $("plano"); p.replaceChildren();
+  const et = (txt, col, abajo) => { const e = el("span", { class: "etiqueta cuad-et" + (abajo ? " abajo" : ""), style: `grid-column:${col}` }, txt); p.append(e); };
+  et("Planificar", "3 / 6"); et("Hacer ya", "6 / 9");
+  for (let i = 5; i >= 0; i--) {
+    const fila = 7 - i;
+    p.append(el("span", { class: "eje-y", style: `grid-row:${fila}` }, String(i)));
+    for (let u = 0; u <= 5; u++) {
+      const cls = ["celda"]; if (u === 0) cls.push("izq"); if (i === 5) cls.push("arr");
+      if (u === ALTO - 1) cls.push("mitad-x"); if (i === ALTO) cls.push("mitad-y");
+      const c = el("div", { class: cls.join(" "), style: `grid-row:${fila};grid-column:${u + 3}` });
+      for (const x of xs.filter(x => x.imp === i && x.urg === u).sort((a, b) => a.texto.localeCompare(b.texto))) {
+        const b = el("button", { type: "button", class: "punto-t" + (x.id === sel ? " sel" : ""), title: `${x.texto} (${x.ambito}, I ${x.imp} U ${x.urg})` });
+        b.append(el("span", {}, x.texto)); b.onclick = () => abrir(x.id); c.append(b);
+      }
+      p.append(c);
+    }
+  }
+  for (let u = 0; u <= 5; u++) p.append(el("span", { class: "eje-x", style: `grid-column:${u + 3}` }, String(u)));
+  et("Más adelante", "3 / 6", true); et("Resolver rápido", "6 / 9", true);
+  p.append(el("span", { class: "etiqueta nombre-x" }, "Urgencia"), el("span", { class: "etiqueta nombre-y" }, "Importancia"));
 }
 
 function matriz() {
-  const xs = filtradas(false), m = document.getElementById("matriz"); m.replaceChildren();
+  const xs = filtradas(false);
+  plano(xs.filter(puntuada));
+  const m = $("matriz"); m.replaceChildren();
   for (const c of CUAD) {
-    const caja = el("div", { class: "cuadrante" }), h = el("header"), sel = xs.filter(x => clasificada(x) && c.f(x));
-    h.append(el("h2", {}, c.t), el("span", { class: "cuenta" }, String(sel.length)));
+    const caja = el("div", { class: "cuadrante" }), h = el("header"), s = xs.filter(x => puntuada(x) && c.f(x));
+    h.append(el("h2", {}, c.t), el("span", { class: "cuenta" }, String(s.length)));
     caja.append(h, el("p", { class: "que" }, c.q));
-    const ul = el("ul", { class: "tareas" }); lista(ul, sel, !F.ambito); caja.append(ul); m.append(caja);
+    const ul = el("ul", { class: "tareas" }); lista(ul, s, !F.ambito); caja.append(ul); m.append(caja);
   }
-  const sin = xs.filter(x => !clasificada(x)), s = document.getElementById("sin"); s.replaceChildren();
-  const h = el("header"); h.append(el("h2", {}, "Sin clasificar"), el("span", { class: "cuenta" }, String(sin.length)));
-  s.append(h, el("p", { class: "que" }, "Marca si es urgente, importante o ninguna de las dos para colocarla en la matriz."));
+  const sin = xs.filter(x => !puntuada(x)), s = $("sin"); s.replaceChildren();
+  const h = el("header"); h.append(el("h2", {}, "Sin puntuar"), el("span", { class: "cuenta" }, String(sin.length)));
+  s.append(h, el("p", { class: "que" }, "Ábrela y ponle importancia y urgencia para colocarla en la matriz."));
   const ul = el("ul", { class: "tareas" }); lista(ul, sin, !F.ambito); s.append(ul);
 }
 
 function porAmbito() {
-  const xs = filtradas(true), c = document.getElementById("lista"); c.replaceChildren();
+  const xs = filtradas(true), c = $("lista"); c.replaceChildren();
   for (const a of D.ambitos.filter(a => !F.ambito || a === F.ambito)) {
-    const sel = xs.filter(x => x.ambito === a);
-    if (!sel.length && F.ambito !== a) continue;
-    const g = el("div", { class: "grupo-amb" }), h = el("header", { class: "ej-top", style: "display:flex;justify-content:space-between;align-items:baseline" });
-    h.append(el("h2", {}, a), el("span", { class: "cuenta" }, String(sel.length)));
-    const ul = el("ul", { class: "tareas" }); lista(ul, sel, false); g.append(h, ul); c.append(g);
+    const s = xs.filter(x => x.ambito === a);
+    if (!s.length && F.ambito !== a) continue;
+    const g = el("div", { class: "grupo-amb" }), h = el("header");
+    h.append(el("h2", {}, a), el("span", { class: "cuenta" }, String(s.length)));
+    const ul = el("ul", { class: "tareas" }); lista(ul, s, false); g.append(h, ul); c.append(g);
   }
   if (!c.children.length) c.append(el("div", { class: "vacio" }, "Nada con estos filtros"));
 }
@@ -155,29 +270,127 @@ function porAmbito() {
 const vistaActual = () => location.hash === "#lista" ? "lista" : "matriz";
 function pintar() {
   const v = vistaActual();
-  document.getElementById("v-matriz").hidden = v !== "matriz";
-  document.getElementById("v-lista").hidden = v !== "lista";
-  document.getElementById("f-prio-caja").hidden = v !== "lista";
+  $("v-matriz").hidden = v !== "matriz";
+  $("v-lista").hidden = v !== "lista";
+  $("f-prio-caja").hidden = v !== "lista";
   for (const a of document.querySelectorAll("#nav a")) a.classList.toggle("aqui", a.getAttribute("href") === "#" + v);
-  segmentos("f-ambito", [["", "Todos"], ...D.ambitos.map(a => [a, a])], "ambito");
-  segmentos("f-estado", [["", "Todos"], ["doing", "En curso"], ["todo", "Pendiente"], ["seguimiento", "Seguimiento"]], "estado");
-  segmentos("f-prio", Object.entries(PRIO), "prio");
+  segmentos($("f-ambito"), [["", "Todos"], ...D.ambitos.map(a => [a, a])], F.ambito, v => filtro("ambito", v));
+  segmentos($("f-estado"), [["", "Todos"], ...Object.entries(EST)], F.estado, v => filtro("estado", v));
+  segmentos($("f-prio"), Object.entries(PRIO), F.prio, v => filtro("prio", v));
+  const sa = $("a-ambito"), previo = sa.value;
+  sa.replaceChildren(...D.ambitos.map(a => el("option", { value: a }, a)));
+  sa.value = F.ambito || (D.ambitos.includes(previo) ? previo : D.ambitos[0]);
   v === "matriz" ? matriz() : porAmbito();
+  $("pie").textContent = `${D.tareas.length} tareas de ${D.ambitos.length} ámbitos, leídas de 30 - Plan a las ${D.generado.slice(11)}` + (D.avisos.length ? `. Avisos: ${D.avisos.join(", ")}` : "");
+  rellenar();
 }
+
+/* ---------- detalle ---------- */
+function abrir(id) { sel = id; $("detalle").hidden = false; $("velo").hidden = false; pintar(); $("d-cerrar").focus({ preventScroll: true }); }
+function cerrar() {
+  const a = document.activeElement; if (a && a.closest("#detalle")) a.blur();
+  sel = null; $("detalle").hidden = true; $("velo").hidden = true; pintar();
+}
+const enFoco = e => document.activeElement === e;
+function ajustarTitulo() { const t = $("d-titulo"); t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+
+function rellenar() {
+  if (sel === null) return;
+  const x = tarea(sel);
+  if (!x) { cerrar(); return; }
+  $("d-donde").textContent = `${x.ambito} · ${EST[x.estado]}`;
+  if (!enFoco($("d-titulo"))) { $("d-titulo").value = x.crudo; ajustarTitulo(); }
+  const pts = [["", "-"], ...[0, 1, 2, 3, 4, 5].map(n => [n, String(n)])];
+  segmentos($("d-imp"), pts, x.imp ?? "", v => editar(x, { imp: v === "" ? null : v }));
+  segmentos($("d-urg"), pts, x.urg ?? "", v => editar(x, { urg: v === "" ? null : v }));
+  const c = cuadrante(x);
+  $("d-cuad").textContent = c ? `${c.t}. ${c.q}` : "-";
+  segmentos($("d-estado"), Object.entries(EST), x.estado, v => v !== x.estado && editar(x, { estado: v }));
+  segmentos($("d-ambito"), D.ambitos.map(a => [a, a]), x.ambito, v => v !== x.ambito && editar(x, { ambito_nuevo: v }));
+  const subs = $("d-subs");
+  if (!subs.contains(document.activeElement)) {
+    subs.replaceChildren();
+    x.sub.forEach((s, i) => {
+      const li = el("li"), inp = el("input", { value: s, maxlength: "500", "aria-label": "Subtarea" }), q = el("button", { type: "button" }, "Quitar");
+      inp.onkeydown = e => { if (e.key === "Enter") inp.blur(); };
+      inp.onchange = () => { const n = x.sub.slice(); n[i] = inp.value.trim(); editar(x, { sub: n.filter(Boolean) }); };
+      q.onclick = () => editar(x, { sub: x.sub.filter((_, j) => j !== i) });
+      li.append(inp, q); subs.append(li);
+    });
+  }
+  if (!enFoco($("d-notas"))) $("d-notas").value = x.notas.join("\n");
+  $("d-guardado").textContent = pendientes ? "Guardando" : "Guardado en la nota";
+}
+
+$("d-titulo").addEventListener("input", ajustarTitulo);
+$("d-titulo").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
+$("d-titulo").addEventListener("change", e => { const x = tarea(sel), v = e.target.value.trim(); if (x && v && v !== x.crudo) editar(x, { texto: v }); else if (x) e.target.value = x.crudo; });
+$("d-notas").addEventListener("change", e => { const x = tarea(sel); if (x && e.target.value.trim() !== x.notas.join("\n").trim()) editar(x, { notas: e.target.value }); });
+$("d-nuevo-sub").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const x = tarea(sel), v = e.target.value.trim();
+  if (x && v) { editar(x, { sub: [...x.sub, v] }); e.target.value = ""; }
+});
+$("d-borrar").onclick = () => {
+  const x = tarea(sel); if (!x) return;
+  if (!confirm(`Eliminar "${x.texto}"? Se mueve a Eliminadas, al final de la nota de ${x.ambito}.`)) return;
+  operar({ op: "borrar", ambito: x.ambito, base: D.bases[x.ambito], id: x.id }, "Eliminada");
+};
+$("d-cerrar").onclick = cerrar;
+$("velo").onclick = cerrar;
+addEventListener("keydown", e => { if (e.key === "Escape" && sel !== null) cerrar(); });
+
+/* ---------- guardar ---------- */
+let cola = Promise.resolve();
+function editar(x, cambios) {
+  const id = x.id;
+  // la base y el id se leen al salir de la cola: si un cambio anterior renombró la tarea, es la abierta (sel)
+  return encolar(() => { const t = tarea(id) || tarea(sel); return t ? { op: "editar", ambito: t.ambito, base: D.bases[t.ambito], id: t.id, ...cambios } : null; });
+}
+function operar(cuerpo, ok) { return encolar(() => cuerpo, ok); }
+function encolar(hacer, okTxt) {
+  pendientes++; rellenar();
+  cola = cola.then(async () => {
+    const cuerpo = hacer();
+    if (!cuerpo) return;
+    try {
+      const r = await fetch("/tareas/operar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+      const j = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta rara del servidor. Recarga la página." }));
+      if (j.datos) D = j.datos;
+      if (j.ok) {
+        if (cuerpo.op === "borrar") { sel = null; $("detalle").hidden = true; $("velo").hidden = true; }
+        else if (sel !== null && cuerpo.op === "editar" && sel === cuerpo.id) sel = j.id;
+        if (okTxt) aviso(okTxt);
+      } else aviso(j.mensaje || "No se ha guardado.");
+      if (r.status === 401) setTimeout(() => location.reload(), 1500);
+    } catch (e) { aviso("No hay conexión con el portal. No se ha guardado."); }
+  }).finally(() => { pendientes--; pintar(); });
+  return cola;
+}
+
+$("anadir").addEventListener("submit", e => {
+  e.preventDefault();
+  const t = $("a-texto"), texto = t.value.trim(), ambito = $("a-ambito").value, estado = $("a-estado").value;
+  if (!texto) return;
+  t.value = "";
+  encolar(() => ({ op: "crear", ambito, estado, texto, base: D.bases[ambito] }), `Añadida a ${ambito}`);
+  t.focus();
+});
 
 let avisoT;
-function aviso(txt) { const t = document.getElementById("toast"); t.textContent = txt; t.style.display = "block"; clearTimeout(avisoT); avisoT = setTimeout(() => t.style.display = "none", 2500); }
-async function guardar(x, u, i) {
-  const antes = [x.u, x.i];
-  x.u = u; x.i = i; pintar();
-  try {
-    const r = await fetch("/tareas/clasificar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: x.id, u, i }) });
-    if (!r.ok) throw new Error(await r.text());
-  } catch (e) { [x.u, x.i] = antes; pintar(); aviso("No se ha guardado. Recarga la página y prueba otra vez."); }
-}
+function aviso(txt) { const t = $("toast"); t.textContent = txt; t.style.display = "block"; clearTimeout(avisoT); avisoT = setTimeout(() => t.style.display = "none", 3000); }
 
+async function refrescar() {
+  try {
+    const r = await fetch("/tareas/datos", { cache: "no-store" });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (JSON.stringify(j.bases) !== JSON.stringify(D.bases) && !pendientes) { D = j; pintar(); }
+  } catch (e) {}
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !pendientes) refrescar(); });
+setInterval(() => { if (!document.hidden && !pendientes && !(document.activeElement && document.activeElement.closest("#detalle, #anadir"))) refrescar(); }, 30000);
 addEventListener("hashchange", pintar);
-document.getElementById("pie").textContent = `${D.tareas.length} tareas de ${D.ambitos.length} ámbitos, leídas de 30 - Plan a las ${D.generado.slice(11)}` + (D.avisos.length ? `. Avisos: ${D.avisos.join(", ")}` : "");
 pintar();
 </script>
 </body>

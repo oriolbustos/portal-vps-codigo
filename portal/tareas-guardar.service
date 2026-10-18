@@ -1,0 +1,6 @@
+[Unit]
+Description=Escribe en el vault la nota de ámbito editada desde el panel Tareas del portal
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/portal/tareas-guardar.py

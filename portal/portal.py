@@ -493,8 +493,8 @@ class Manejador(BaseHTTPRequestHandler):
             return self.redirigir("/todo/", codigo=301)
         if ruta == "/todo/":
             return self.enviar(todo.html(AQUI / "todo.html"), renovado=renovado)
-        if ruta == "/todo/datos":
-            datos = json.dumps(todo.datos(), ensure_ascii=False).encode()
+        if ruta in ("/todo/datos", "/tareas/datos"):
+            datos = json.dumps((todo if ruta == "/todo/datos" else tareas).datos(), ensure_ascii=False).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(datos)))
@@ -539,8 +539,8 @@ class Manejador(BaseHTTPRequestHandler):
         origen = self.headers.get("Origin") or self.headers.get("Referer") or ""
         if origen and urlsplit(origen).hostname != DOMINIO:
             return self.enviar("Origen no permitido", 403)
-        if urlsplit(self.path).path == "/tareas/clasificar":
-            return self.api_clasificar()
+        if urlsplit(self.path).path == "/tareas/operar":
+            return self.api_tareas()
         if urlsplit(self.path).path == "/listas/operar":
             return self.api_listas()
         if urlsplit(self.path).path == "/todo/operar":
@@ -569,29 +569,27 @@ class Manejador(BaseHTTPRequestHandler):
             return self.redirigir("/login", borrar=True)
         self.enviar("No encontrado", 404)
 
-    def api_clasificar(self):
-        """Guarda urgente / importante de una tarea. Cuerpo JSON {id, u, i}; u e i a null = sin clasificar."""
-        def texto(cuerpo, codigo):
-            d = cuerpo.encode()
+    def api_tareas(self):
+        """Panel Tareas: {op: crear|editar|borrar, ambito, base, ...} → se aplica en la nota del ámbito vía tareas-guardar."""
+        def responder(codigo, d):
+            datos = json.dumps(d, ensure_ascii=False).encode()
             self.send_response(codigo)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.send_header("Content-Length", str(len(d)))
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(datos)))
             self.cabeceras_comunes()
             self.end_headers()
-            self.wfile.write(d)
+            self.wfile.write(datos)
         if not sesion_valida(self.token(), renovar=False)[0]:
-            return texto("sin sesión", 401)
-        largo = min(int(self.headers.get("Content-Length") or 0), 2048)
+            return responder(401, {"ok": False, "mensaje": "Sesión caducada. Vuelve a entrar."})
+        largo = min(int(self.headers.get("Content-Length") or 0), 16384)
         try:
             d = json.loads(self.rfile.read(largo))
-            u, i = d.get("u"), d.get("i")
-            if not all(v is None or isinstance(v, bool) for v in (u, i)) or (u is None) != (i is None):
-                raise ValueError
-        except (ValueError, AttributeError):
-            return texto("petición no válida", 400)
-        if not tareas.clasificar(d.get("id"), u, i):
-            return texto("no encuentro esa tarea en el vault", 404)
-        texto("ok", 200)
+        except ValueError:
+            return responder(400, {"ok": False, "mensaje": "Petición no válida."})
+        codigo, r = tareas.operar(d)
+        if r.get("ok"):
+            log(f"portal: tareas: {d.get('op')} en {d.get('ambito')}")
+        responder(codigo, r)
 
     def api_listas(self):
         """Panel Listas: {archivo, op: anadir|marcar|archivar, ...} → se aplica en el vault vía listas-guardar."""

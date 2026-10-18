@@ -1,0 +1,9 @@
+[Unit]
+Description=Guarda en el vault la nota de ámbito editada en el panel Tareas en cuanto llega
+
+[Path]
+DirectoryNotEmpty=/var/lib/portal/tareas-pendiente
+Unit=tareas-guardar.service
+
+[Install]
+WantedBy=paths.target
