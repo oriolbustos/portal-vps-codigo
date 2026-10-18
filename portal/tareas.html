@@ -19,20 +19,27 @@
 .anadir input:focus, .anadir select:focus { outline: none; }
 .anadir:focus-within { border-color: var(--linea-alta); }
 .anadir select { border-left: 1px solid var(--linea); cursor: pointer; }
+.anadir select.pt { padding: 10px 8px; font-family: var(--mono); font-weight: 300; font-size: 14px; color: var(--tinta-2); }
+.anadir select.pt.puesto { color: var(--tinta-alta); }
 /* la lista que abre el desplegable la pinta el sistema: sin esto, en modo oscuro sale texto claro sobre blanco */
 .anadir select option { background: var(--fondo-alto); color: var(--tinta-alta); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .anadir select { color-scheme: dark; } }
 :root[data-theme="dark"] .anadir select { color-scheme: dark; }
 .anadir .boton { margin: 6px; }
+@media (max-width: 600px) { .anadir select { flex: 1 1 auto; } }
 
 /* gráfico */
 .grafico { padding: 16px; }
 @media (min-width: 768px) { .grafico { padding: 20px 24px; } }
 .grafico .que { color: var(--tinta-2); font-size: var(--t-xs); margin: 4px 0 16px; }
+.cabeza-graf { display: flex; flex-direction: column; gap: 12px; }
+.mandos { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.mandos > div { display: flex; flex-direction: column; gap: 6px; }
+.mandos > div[hidden] { display: none; }
 .plano { display: grid; grid-template-columns: 18px 22px repeat(6, minmax(0, 1fr)); grid-template-rows: auto repeat(6, minmax(56px, auto)) auto auto auto; }
 .plano .cuad-et { grid-row: 1; padding-bottom: 6px; }
 .plano .cuad-et.abajo { grid-row: 9; padding: 6px 0 0; }
-.plano .celda { border-right: 1px solid var(--linea); border-bottom: 1px solid var(--linea); padding: 4px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; min-width: 0; }
+.plano .celda { border-right: 1px solid var(--linea); border-bottom: 1px solid var(--linea); padding: 4px; display: flex; flex-wrap: wrap; align-content: flex-start; align-items: center; gap: 3px; min-width: 0; }
 .plano .celda.izq { border-left: 1px solid var(--linea); }
 .plano .celda.arr { border-top: 1px solid var(--linea); }
 .plano .celda.mitad-x { border-right-color: var(--tinta-2); }
@@ -41,8 +48,15 @@
 .plano .eje-x { grid-row: 8; font-family: var(--mono); font-weight: 300; font-size: var(--t-xs); color: var(--tinta-2); text-align: center; padding-top: 4px; }
 .plano .nombre-x { grid-row: 10; grid-column: 3 / 9; text-align: center; padding-top: 2px; }
 .plano .nombre-y { grid-row: 2 / 8; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; justify-self: start; }
+/* 1D: una columna de 5 (arriba) a 0, con las tareas de cada valor en su fila */
+.plano.uno { grid-template-columns: 22px minmax(0, 1fr); grid-template-rows: none; grid-auto-rows: minmax(48px, auto); }
+.plano.uno .nombre-uno { grid-column: 1 / 3; padding-bottom: 6px; min-height: 0; }
+.plano.uno .eje-y { grid-column: 1; }
+.plano.uno .celda { grid-column: 2; border-left: 1px solid var(--linea); }
 .punto-t { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font: inherit; font-size: var(--t-xs); line-height: 1.2; padding: 2px 5px 2px 4px; border: 1px dotted var(--tinta-2); border-radius: 4px;
-  background: var(--fondo-alto); color: var(--tinta); cursor: pointer; text-align: left; }
+  background: var(--fondo-alto); color: var(--tinta); cursor: grab; text-align: left;
+  /* el arrastre con el dedo empieza con pulsación larga: sin menú ni selección de texto del sistema */
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 /* una marca por tarea: el color dice el ámbito y la forma el estado.
    To Do = anillo hueco (pendiente), Doing = círculo relleno, Monitoring = triángulo.
    Ámbitos, en el orden de Panel.md y sin rojo (en el portal marca "aquí" o un aviso): azul, verde azulado y ocre
@@ -50,15 +64,17 @@
 :root { --a1: var(--c1); --a2: var(--c3); --a3: var(--c4); --a4: #7a5ea8; --a5: #8a5a3c; --a6: #6f7f22; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; } }
 :root[data-theme="dark"] { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; }
-.mks { display: inline-flex; align-items: center; flex: none; }
+.mks { display: inline-flex; align-items: center; justify-content: center; flex: none; }
 .mk { --k: var(--tinta-alta); display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
 .mk.todo { width: 9px; height: 9px; background: transparent; box-shadow: inset 0 0 0 2px var(--k); }
 .mk.seguimiento { width: 10px; height: 9px; border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+/* tamaño = tercera puntuación (2D): --s va de 6 px (0) a 16 px (5); sin puntuar, pequeña y tenue */
+.mk.tam { width: var(--s); height: var(--s); }
+.mk.tam.seguimiento { width: calc(var(--s) + 2px); }
+.mk.tam.sin { opacity: 0.45; }
+.mks.tam { min-width: 16px; min-height: 16px; }
 .t-texto .mks { margin-right: 8px; vertical-align: 1px; }
-.cabeza-graf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
-.cabeza-graf > div { display: flex; flex-direction: column; gap: 6px; }
 .leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: var(--t-xs); color: var(--tinta-2); margin: -8px 0 12px; }
-.leyenda[hidden] { display: none; }
 .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
 .leyenda .grupo { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .leyenda .grupo + .grupo { padding-left: 16px; border-left: 1px solid var(--linea); }
@@ -66,18 +82,30 @@
 .punto-t .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .punto-t:hover { border-style: solid; color: var(--tinta-alta); }
 .punto-t.sel { border: 1px solid var(--tinta-alta); box-shadow: 0 0 0 1px var(--tinta-alta); }
-@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .mk { width: 10px; height: 10px; } .punto-t .mk.seguimiento { width: 12px; height: 11px; }
-  .punto-t.sel { border: 1px solid var(--tinta-alta); } }
+/* móvil: la etiqueta ocupa la casilla y el nombre va en dos líneas, recortado */
+@media (max-width: 760px) {
+  .grafico { padding: 12px 8px; }
+  .grafico > .cabeza-graf, .grafico > .que, .grafico > .leyenda, .grafico > .pie-graf { padding: 0 8px; }
+  .plano { grid-template-columns: 12px 16px repeat(6, minmax(0, 1fr)); }
+  .plano .eje-y { padding-right: 4px; }
+  .plano .celda { padding: 2px; gap: 2px; }
+  .punto-t { width: 100%; align-items: flex-start; font-size: 10.5px; line-height: 1.15; padding: 2px; gap: 2px; border-radius: 3px; }
+  .punto-t .mks { margin-top: 1px; }
+  .punto-t .txt { white-space: normal; overflow-wrap: anywhere; hyphens: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .plano.uno .punto-t { width: auto; align-items: center; font-size: var(--t-xs); padding: 3px 5px 3px 4px; }
+  .plano.uno .punto-t .txt { white-space: nowrap; display: block; }
+  /* nombres de eje cortos en los mandos */
+  .mandos .largo { display: none; }
+}
+@media (min-width: 761px) { .mandos .corto { display: none; } }
 
-/* mover en el gráfico: solo con el modo activado (botón discreto bajo el gráfico) */
-.pie-graf { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; margin-top: 10px; font-size: var(--t-xs); color: var(--tinta-2); }
-.pie-graf button { font: inherit; color: var(--tinta-2); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--linea); }
-.pie-graf button:hover { color: var(--tinta-alta); }
-.plano.moviendo .celda { background: var(--fondo-2); }
-.plano.moviendo .punto-t { cursor: grab; touch-action: none; border-style: solid; }
-.plano.moviendo .celda.destino { background: var(--fondo-alto); box-shadow: inset 0 0 0 1px var(--linea-alta); }
+/* arrastrar en el gráfico: con el ratón, directamente; con el dedo, tras una pulsación larga */
+.pie-graf { margin-top: 10px; font-size: var(--t-xs); color: var(--tinta-2); }
+.plano.arrastre .celda { background: var(--fondo-2); }
+.plano.arrastre .celda.destino { background: var(--fondo-alto); box-shadow: inset 0 0 0 1px var(--linea-alta); }
 .punto-t.arrastrando { opacity: 0.35; }
-.fantasma { position: fixed; z-index: 30; pointer-events: none; transform: translate(-50%, -50%); }
+.punto-t.agarrado { border-style: solid; box-shadow: 0 0 0 1px var(--tinta-alta); }
+.fantasma { position: fixed; z-index: 30; pointer-events: none; transform: translate(-50%, -120%); width: auto !important; max-width: 60vw; border-style: solid; box-shadow: 0 0 0 1px var(--tinta-alta); }
 
 /* cuadrantes y listas */
 .matriz { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 32px; }
@@ -98,20 +126,29 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 .t-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .t-meta .insignia { font-size: var(--t-xs); padding: 2px 5px; }
 .t-extra { font-size: var(--t-xs); color: var(--tinta-2); }
-.t-pts { font-family: var(--mono); font-weight: 300; font-size: var(--t-xs); color: var(--tinta-2); white-space: nowrap; text-align: right; }
+.t-pts { font-family: var(--mono); font-weight: 300; font-size: var(--t-xs); color: var(--tinta-2); white-space: pre; text-align: right; }
 .vista[hidden] { display: none; }
 .pie-panel { margin-top: 32px; font-size: var(--t-xs); color: var(--tinta-2); }
 
-/* detalle */
+/* detalle, como el de Microsoft To Do: círculo para marcar hecha junto al título, cruz arriba y "Hecho" abajo */
 .velo { position: fixed; inset: 0; background: rgb(0 0 0 / 0.25); z-index: 10; }
 .velo[hidden], .detalle[hidden] { display: none; }
 .detalle { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw); background: var(--fondo); border-left: 1px solid var(--linea); z-index: 11; display: flex; flex-direction: column; }
-.d-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--linea); }
+.d-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px 10px 20px; border-bottom: 1px solid var(--linea); }
+.d-x { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; background: none; border: 0; border-radius: 6px; color: var(--tinta-2); cursor: pointer; }
+.d-x:hover { color: var(--tinta-alta); background: var(--fondo-2); }
+.d-x svg, .d-check svg { display: block; }
 .d-cuerpo { flex: 1; overflow-y: auto; padding: 8px 20px 24px; }
 .d-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--linea); font-size: var(--t-xs); color: var(--tinta-2); }
-.d-titulo { width: 100%; font-family: var(--serif); font-size: var(--t-2xl); line-height: 1.15; color: var(--tinta-alta); background: transparent; border: 0; border-bottom: 1px solid transparent; padding: 8px 0; resize: none; overflow: hidden; }
+.d-cabeza { display: flex; align-items: flex-start; gap: 12px; }
+.d-check { flex: none; width: 24px; height: 24px; margin-top: 0.62em; padding: 0; border: 1.5px solid var(--tinta-2); border-radius: 50%; background: none; color: var(--tinta-alta); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.d-check svg { opacity: 0; }
+.d-check:hover { border-color: var(--tinta-alta); }
+.d-check:hover svg, .d-check:focus-visible svg { opacity: 0.8; }
+.d-titulo { flex: 1; min-width: 0; width: 100%; font-family: var(--serif); font-size: var(--t-2xl); line-height: 1.15; color: var(--tinta-alta); background: transparent; border: 0; border-bottom: 1px solid transparent; padding: 8px 0; resize: none; overflow: hidden; }
 .d-titulo:focus { outline: none; border-bottom-color: var(--linea-alta); }
 .d-bloque { padding: 14px 0; border-top: 1px solid var(--linea); }
+.d-cabeza + .d-bloque { margin-top: 8px; }
 .d-bloque > .etiqueta { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .d-bloque .segmentos button { min-width: 36px; }
 .d-cuadrante { font-family: var(--serif); font-size: var(--t-xl); color: var(--tinta-alta); }
@@ -122,13 +159,15 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 .d-subs input:focus, .d-nuevo-sub:focus { outline: none; }
 .d-nuevo-sub { width: 100%; border-bottom: 1px solid var(--linea); }
 .d-nuevo-sub:focus { border-bottom-color: var(--linea-alta); }
-.d-subs button { font: inherit; font-size: var(--t-xs); color: var(--tinta-2); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.d-subs button, .d-eliminar { font: inherit; font-size: var(--t-xs); color: var(--tinta-2); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--linea); }
 .d-subs button:hover { color: var(--tinta-alta); }
+.d-eliminar { padding: 4px 6px; }
+.d-eliminar:hover { color: var(--acento); text-decoration-color: var(--acento); }
 .d-notas { width: 100%; min-height: 140px; font: inherit; font-size: var(--t-sm); line-height: 1.5; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); padding: 10px 12px; resize: vertical; }
 .d-notas:focus { outline: none; border-color: var(--linea-alta); }
 .d-estado-guardado { font-family: var(--mono); font-weight: 300; }
-.d-acciones { display: flex; gap: 8px; }
-.boton.peligro:hover { color: var(--acento); border-color: var(--acento); }
+.d-acciones { display: flex; align-items: center; gap: 12px; }
+.d-acciones .boton { padding: 4px 18px; }
 .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--tinta-alta); color: var(--fondo); padding: 8px 14px; font-size: var(--t-sm); display: none; z-index: 20; max-width: calc(100vw - 32px); }
 @media (max-width: 600px) { .detalle { border-left: 0; } }
 </style>
@@ -150,17 +189,26 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
   <input id="a-texto" placeholder="Añadir una tarea" maxlength="500" aria-label="Nueva tarea">
   <select id="a-ambito" aria-label="Ámbito"></select>
   <select id="a-estado" aria-label="Estado"><option value="todo">To Do</option><option value="doing">Doing</option><option value="seguimiento">Monitoring</option></select>
+  <select class="pt" id="a-imp" aria-label="Importancia"></select>
+  <select class="pt" id="a-urg" aria-label="Urgencia"></select>
+  <select class="pt" id="a-esf" aria-label="Esfuerzo"></select>
   <button class="boton" type="submit">Añadir</button>
 </form>
 
 <section class="vista" id="v-matriz">
   <div class="rejilla"><div class="grafico">
     <div class="cabeza-graf"><h2 class="titulo-3">Matriz</h2>
-      <div><span class="etiqueta">Marcar</span><div class="segmentos" id="f-color"></div></div></div>
-    <p class="que">Cada tarea según su urgencia (horizontal) e importancia (vertical), de 0 a 5. De 3 para arriba cuenta como alta. Toca una para abrirla.</p>
-    <div class="leyenda" id="leyenda" hidden></div>
+      <div class="mandos">
+        <div><span class="etiqueta">Vista</span><div class="segmentos" id="g-dim"></div></div>
+        <div id="g-x-caja"><span class="etiqueta">Horizontal</span><div class="segmentos" id="g-x"></div></div>
+        <div id="g-y-caja"><span class="etiqueta">Vertical</span><div class="segmentos" id="g-y"></div></div>
+        <div id="g-tam-caja"><span class="etiqueta">Tamaño</span><div class="segmentos" id="g-tam"></div></div>
+        <div id="g-uno-caja"><span class="etiqueta">Eje</span><div class="segmentos" id="g-uno"></div></div>
+      </div></div>
+    <p class="que" id="g-que"></p>
+    <div class="leyenda" id="leyenda"></div>
     <div class="plano" id="plano"></div>
-    <div class="pie-graf"><span id="mover-ayuda" hidden>Arrastra una tarea a otra casilla para cambiar su importancia y urgencia.</span><button type="button" id="mover">Mover tareas</button></div>
+    <p class="pie-graf" id="g-pie"></p>
   </div></div>
   <div class="rejilla matriz" id="matriz"></div>
   <div class="rejilla"><div class="cuadrante" id="sin"></div></div>
@@ -175,11 +223,16 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 
 <div class="velo" id="velo" hidden></div>
 <aside class="detalle" id="detalle" hidden aria-label="Detalle de la tarea">
-  <div class="d-cab"><span class="etiqueta" id="d-donde"></span><button class="boton" id="d-cerrar" type="button">Cerrar</button></div>
+  <div class="d-cab"><span class="etiqueta" id="d-donde"></span>
+    <button class="d-x" id="d-cerrar" type="button" aria-label="Cerrar" title="Cerrar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="d-cuerpo">
-    <textarea class="d-titulo" id="d-titulo" rows="1" maxlength="500" aria-label="Tarea"></textarea>
+    <div class="d-cabeza">
+      <button class="d-check" id="d-hecha" type="button" aria-label="Marcar hecha" title="Marcar hecha"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+      <textarea class="d-titulo" id="d-titulo" rows="1" maxlength="500" aria-label="Tarea"></textarea>
+    </div>
     <div class="d-bloque"><div class="etiqueta"><span>Importancia</span></div><div class="segmentos" id="d-imp"></div></div>
     <div class="d-bloque"><div class="etiqueta"><span>Urgencia</span></div><div class="segmentos" id="d-urg"></div></div>
+    <div class="d-bloque"><div class="etiqueta"><span>Esfuerzo</span></div><div class="segmentos" id="d-esf"></div></div>
     <div class="d-bloque"><div class="etiqueta"><span>Cuadrante</span></div><div class="d-cuadrante" id="d-cuad"></div></div>
     <div class="d-bloque"><div class="etiqueta"><span>Estado</span></div><div class="segmentos" id="d-estado"></div></div>
     <div class="d-bloque"><div class="etiqueta"><span>Ámbito</span></div><div class="segmentos" id="d-ambito"></div></div>
@@ -187,7 +240,7 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
       <input class="d-nuevo-sub" id="d-nuevo-sub" placeholder="Añadir subtarea" maxlength="500"></div>
     <div class="d-bloque"><div class="etiqueta"><span>Notas</span></div><textarea class="d-notas" id="d-notas" placeholder="Detalles, enlaces, lo que haga falta"></textarea></div>
   </div>
-  <div class="d-pie"><span class="d-estado-guardado" id="d-guardado"></span><span class="d-acciones"><button class="boton fuerte" id="d-hecha" type="button">Marcar hecha</button><button class="boton peligro" id="d-borrar" type="button">Eliminar</button></span></div>
+  <div class="d-pie"><span class="d-estado-guardado" id="d-guardado"></span><span class="d-acciones"><button class="d-eliminar" id="d-borrar" type="button">Eliminar</button><button class="boton fuerte" id="d-hecho" type="button">Hecho</button></span></div>
 </aside>
 <div class="toast" id="toast"></div>
 <script id="datos" type="application/json">/*__DATOS__*/null</script>
@@ -195,6 +248,8 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 "use strict";
 let D = JSON.parse(document.getElementById("datos").textContent);
 const EST = { doing: "Doing", todo: "To Do", seguimiento: "Monitoring" };
+const EJES = { imp: "Importancia", urg: "Urgencia", esf: "Esfuerzo" };
+const CORTO = { imp: "I", urg: "U", esf: "E" };
 const ALTO = 3;
 const CUAD = [
   { id: "hacer", t: "Hacer ya", q: "Urgente e importante", f: x => x.urg >= ALTO && x.imp >= ALTO },
@@ -203,18 +258,22 @@ const CUAD = [
   { id: "despues", t: "Más adelante", q: "Ni urgente ni importante", f: x => x.urg < ALTO && x.imp < ALTO },
 ];
 const PRIO = { todas: "Todas", puntuadas: "Puntuadas", sin: "Sin puntuar" };
-// ambitos / estados: los elegidos (vacío = todos); colores: [] o "ambito" y/o "estado"
-const F = { ambitos: [], estados: [], prio: "todas", colores: [] };
+// ambitos / estados: los elegidos (vacío = todos)
+const F = { ambitos: [], estados: [], prio: "todas" };
 try { Object.assign(F, JSON.parse(localStorage.getItem("tareas.filtros") || "{}")); } catch (e) {}
 if (!Array.isArray(F.ambitos)) F.ambitos = [];
 if (!Array.isArray(F.estados)) F.estados = [];
 F.ambitos = F.ambitos.filter(a => D.ambitos.includes(a)); F.estados = F.estados.filter(e => EST[e]);
-if (typeof F.color === "string") F.colores = F.color ? [F.color] : [];  // antes: un solo color
-if (!Array.isArray(F.colores)) F.colores = [];
-delete F.ambito; delete F.estado; delete F.color;  // filtros de antes, de una sola opción
+delete F.ambito; delete F.estado; delete F.color; delete F.colores;  // filtros de antes
 if (!PRIO[F.prio]) F.prio = "todas";
+// gráfico: 1D (un eje) o 2D (dos ejes, y la tercera puntuación como tamaño si se pide)
+const G = { dim: 2, x: "urg", y: "imp", uno: "imp", tam: false };
+try { Object.assign(G, JSON.parse(localStorage.getItem("tareas.grafico") || "{}")); } catch (e) {}
+if (G.dim !== 1 && G.dim !== 2) G.dim = 2;
+if (!EJES[G.x] || !EJES[G.y] || G.x === G.y) { G.x = "urg"; G.y = "imp"; }
+if (!EJES[G.uno]) G.uno = "imp";
+G.tam = G.tam === true;
 let sel = null;          // id de la tarea abierta
-let moviendo = false;    // modo mover del gráfico
 let arrastre = null, movido = false;
 let pendientes = 0;
 const $ = id => document.getElementById(id);
@@ -223,16 +282,27 @@ const puntuada = x => x.imp != null && x.urg != null;
 const cuadrante = x => puntuada(x) ? CUAD.find(c => c.f(x)) : null;
 const peso = x => (x.imp ?? -1) * 10 + (x.urg ?? -1);
 const tarea = id => D.tareas.find(x => x.id === id);
+const tercero = () => Object.keys(EJES).find(k => k !== G.x && k !== G.y);
+const eisenhower = () => G.dim === 2 && [G.x, G.y].sort().join() === "imp,urg";
 
 function segmentos(c, opciones, actual, fn) {
   c.replaceChildren();
   for (const [v, t] of opciones) {
-    const b = el("button", { type: "button", ...(v === actual ? { class: "on" } : {}) }, t);
+    const b = el("button", { type: "button", ...(v === actual ? { class: "on" } : {}) });
+    b.append(t);
     b.onclick = () => fn(v);
     c.append(b);
   }
 }
 const filtro = (clave, v) => { F[clave] = v; try { localStorage.setItem("tareas.filtros", JSON.stringify(F)); } catch (e) {} pintar(); };
+function grafico(cambios) {
+  // elegir en un eje el que ya está en el otro los intercambia
+  if (cambios.x && cambios.x === G.y) cambios.y = G.x;
+  if (cambios.y && cambios.y === G.x) cambios.x = G.y;
+  Object.assign(G, cambios);
+  try { localStorage.setItem("tareas.grafico", JSON.stringify(G)); } catch (e) {}
+  pintar();
+}
 // "Todos" vacía la selección; cada opción se añade o se quita (se pueden elegir varias)
 function multiple(c, opciones, clave) {
   c.replaceChildren();
@@ -249,37 +319,27 @@ function multiple(c, opciones, clave) {
 }
 const unAmbito = () => F.ambitos.length === 1;
 
-// marca de una tarea: color = ámbito (en el orden de Panel.md), forma = estado. Sin nada elegido, punto en tinta
+// marca de una tarea, siempre igual: color = ámbito (en el orden de Panel.md), forma = estado
 const colAmbito = a => `var(--a${D.ambitos.indexOf(a) % 6 + 1})`;
-const conColor = () => F.colores.length > 0;
-function marca(ambito, estado, titulo) {
+function marca(ambito, estado, titulo, tam) {
   const i = el("i", { class: "mk" + (estado ? " " + estado : ""), title: titulo || "" });
   if (ambito) i.style.setProperty("--k", colAmbito(ambito));
+  if (tam !== undefined) { i.classList.add("tam"); if (tam == null) i.classList.add("sin"); i.style.setProperty("--s", (tam == null ? 5 : 6 + 2 * tam) + "px"); }
   return i;
 }
-function marcas(x, conPunto) {
-  const m = el("span", { class: "mks" }), a = F.colores.includes("ambito"), e = F.colores.includes("estado");
-  if (a || e || conPunto) m.append(marca(a && x.ambito, e && x.estado, [a && x.ambito, e && EST[x.estado]].filter(Boolean).join(", ")));
+function marcas(x, tam) {
+  const m = el("span", { class: "mks" + (tam ? " tam" : "") });
+  m.append(marca(x.ambito, x.estado, `${x.ambito}, ${EST[x.estado]}`, tam ? x[tam] : undefined));
   return m;
 }
-// "Nada" quita las marcas; Ámbito (color) y Estado (forma) se encienden y apagan por separado
-function colorPor() {
-  const c = $("f-color"); c.replaceChildren();
-  const nada = el("button", { type: "button", ...(conColor() ? {} : { class: "on" }) }, "Nada");
-  nada.onclick = () => filtro("colores", []);
-  c.append(nada);
-  for (const [v, t] of [["ambito", "Ámbito"], ["estado", "Estado"]]) {
-    const on = F.colores.includes(v);
-    const b = el("button", { type: "button", "aria-pressed": String(on), ...(on ? { class: "on" } : {}) }, t);
-    b.onclick = () => filtro("colores", on ? F.colores.filter(x => x !== v) : [...F.colores, v]);
-    c.append(b);
-  }
-}
 function leyenda() {
-  const l = $("leyenda"); l.replaceChildren(); l.hidden = !conColor();
-  const grupo = (titulo, items) => { const g = el("span", { class: "grupo" }); g.append(el("b", {}, titulo)); for (const [t, m] of items) { const s = el("span"); s.append(m, t); g.append(s); } l.append(g); };
-  if (F.colores.includes("ambito")) grupo("Color", D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a)).map(a => [a, marca(a, "", a)]));
-  if (F.colores.includes("estado")) grupo("Forma", Object.entries(EST).filter(([k]) => !F.estados.length || F.estados.includes(k)).map(([k, t]) => [t, marca("", k, t)]));
+  const l = $("leyenda"); l.replaceChildren();
+  const grupo = (titulo, items) => { const g = el("span", { class: "grupo" }); g.append(el("b", {}, titulo)); for (const [t, m] of items) { const s = el("span"); s.append(...m, t); g.append(s); } l.append(g); };
+  grupo("Color", D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a)).map(a => [a, [marca(a, "", a)]]));
+  grupo("Forma", Object.entries(EST).filter(([k]) => !F.estados.length || F.estados.includes(k)).map(([k, t]) => [t, [marca("", k, t)]]));
+  if ($("v-matriz").hidden || G.dim !== 2 || !G.tam) return;
+  const z = tercero();
+  grupo("Tamaño", [[`${EJES[z]} 0 a 5`, [marca("", "doing", "0", 0), marca("", "doing", "5", 5)]]]);
 }
 
 function filtradas(conPrio) {
@@ -290,17 +350,16 @@ function filtradas(conPrio) {
 function item(x, conAmbito = true) {
   const li = el("li", x.id === sel ? { class: "sel" } : {}), b = el("button", { type: "button" }), izq = el("div");
   const tx = el("div", { class: "t-texto" });
-  if (conColor()) tx.append(marcas(x, false));
-  tx.append(x.texto); izq.append(tx);
+  tx.append(marcas(x), x.texto); izq.append(tx);
   const meta = el("div", { class: "t-meta" });
   if (conAmbito) meta.append(el("span", { class: "insignia" }, x.ambito));
-  meta.append(el("span", { class: "insignia" + (x.estado === "todo" && !conColor() ? " punto" : "") }, EST[x.estado]));
+  meta.append(el("span", { class: "insignia" }, EST[x.estado]));
   const extra = [];
   if (x.sub.length) extra.push(x.sub.length === 1 ? "1 subtarea" : `${x.sub.length} subtareas`);
   if (x.notas.length) extra.push("nota");
   if (extra.length) meta.append(el("span", { class: "t-extra" }, extra.join(", ")));
   izq.append(meta);
-  b.append(izq, el("span", { class: "t-pts", title: "Importancia, urgencia" }, `I ${x.imp ?? "-"}  U ${x.urg ?? "-"}`));
+  b.append(izq, el("span", { class: "t-pts", title: "Importancia, urgencia, esfuerzo" }, `I ${x.imp ?? "-"}  U ${x.urg ?? "-"}  E ${x.esf ?? "-"}`));
   b.onclick = () => abrir(x.id);
   li.append(b);
   return li;
@@ -312,32 +371,64 @@ function lista(ul, xs, conAmbito) {
   for (const x of xs.slice().sort((a, b) => peso(b) - peso(a) || orden[a.estado] - orden[b.estado])) ul.append(item(x, conAmbito));
 }
 
-function plano(xs) {
-  const p = $("plano"); p.replaceChildren();
-  const et = (txt, col, abajo) => { const e = el("span", { class: "etiqueta cuad-et" + (abajo ? " abajo" : ""), style: `grid-column:${col}` }, txt); p.append(e); };
-  et("Planificar", "3 / 6"); et("Hacer ya", "6 / 9");
-  for (let i = 5; i >= 0; i--) {
-    const fila = 7 - i;
-    p.append(el("span", { class: "eje-y", style: `grid-row:${fila}` }, String(i)));
-    for (let u = 0; u <= 5; u++) {
-      const cls = ["celda"]; if (u === 0) cls.push("izq"); if (i === 5) cls.push("arr");
-      if (u === ALTO - 1) cls.push("mitad-x"); if (i === ALTO) cls.push("mitad-y");
-      const c = el("div", { class: cls.join(" "), style: `grid-row:${fila};grid-column:${u + 3}`, "data-u": u, "data-i": i });
-      for (const x of xs.filter(x => x.imp === i && x.urg === u).sort((a, b) => a.texto.localeCompare(b.texto))) {
-        const b = el("button", { type: "button", class: "punto-t" + (x.id === sel ? " sel" : ""), title: `${x.texto} (${x.ambito}, I ${x.imp} U ${x.urg})` });
-        b.dataset.id = x.id; b.append(marcas(x, true), el("span", { class: "txt" }, x.texto)); b.onclick = () => { if (!movido) abrir(x.id); }; c.append(b);
-      }
+// etiqueta de una tarea en el gráfico; pts = las puntuaciones que fija su casilla (las que cambia al arrastrarla)
+function chip(x, tam) {
+  const b = el("button", { type: "button", class: "punto-t" + (x.id === sel ? " sel" : ""),
+    title: `${x.texto} (${x.ambito}, I ${x.imp ?? "-"} U ${x.urg ?? "-"} E ${x.esf ?? "-"})` });
+  b.dataset.id = x.id; b.append(marcas(x, tam), el("span", { class: "txt" }, x.texto));
+  b.onclick = () => { if (!movido) abrir(x.id); };
+  return b;
+}
+const porTexto = (a, b) => a.texto.localeCompare(b.texto);
+
+function plano2(xs) {
+  const X = G.x, Y = G.y, Z = G.tam ? tercero() : null, p = $("plano");
+  p.className = "plano"; p.replaceChildren();
+  const et = (txt, col, abajo) => p.append(el("span", { class: "etiqueta cuad-et" + (abajo ? " abajo" : ""), style: `grid-column:${col}` }, txt));
+  // nombres de cuadrante solo con urgencia × importancia (en cualquier orden)
+  const nombre = (altoX, altoY) => CUAD.find(c => c.f({ [X]: altoX ? ALTO : 0, [Y]: altoY ? ALTO : 0 })).t;
+  if (eisenhower()) { et(nombre(false, true), "3 / 6"); et(nombre(true, true), "6 / 9"); }
+  for (let vy = 5; vy >= 0; vy--) {
+    const fila = 7 - vy;
+    p.append(el("span", { class: "eje-y", style: `grid-row:${fila}` }, String(vy)));
+    for (let vx = 0; vx <= 5; vx++) {
+      const cls = ["celda"]; if (vx === 0) cls.push("izq"); if (vy === 5) cls.push("arr");
+      if (vx === ALTO - 1) cls.push("mitad-x"); if (vy === ALTO) cls.push("mitad-y");
+      const c = el("div", { class: cls.join(" "), style: `grid-row:${fila};grid-column:${vx + 3}` });
+      c.pts = { [X]: vx, [Y]: vy };
+      for (const x of xs.filter(x => x[X] === vx && x[Y] === vy).sort(porTexto)) c.append(chip(x, Z));
       p.append(c);
     }
   }
-  for (let u = 0; u <= 5; u++) p.append(el("span", { class: "eje-x", style: `grid-column:${u + 3}` }, String(u)));
-  et("Más adelante", "3 / 6", true); et("Resolver rápido", "6 / 9", true);
-  p.append(el("span", { class: "etiqueta nombre-x" }, "Urgencia"), el("span", { class: "etiqueta nombre-y" }, "Importancia"));
+  for (let vx = 0; vx <= 5; vx++) p.append(el("span", { class: "eje-x", style: `grid-column:${vx + 3}` }, String(vx)));
+  if (eisenhower()) { et(nombre(false, false), "3 / 6", true); et(nombre(true, false), "6 / 9", true); }
+  p.append(el("span", { class: "etiqueta nombre-x" }, EJES[X]), el("span", { class: "etiqueta nombre-y" }, EJES[Y]));
+}
+
+function plano1(xs) {
+  const E = G.uno, p = $("plano");
+  p.className = "plano uno"; p.replaceChildren(el("span", { class: "etiqueta nombre-uno" }, EJES[E]));
+  for (let v = 5; v >= 0; v--) {
+    p.append(el("span", { class: "eje-y" }, String(v)));
+    const c = el("div", { class: "celda" + (v === 5 ? " arr" : "") + (v === ALTO ? " mitad-y" : "") });
+    c.pts = { [E]: v };
+    for (const x of xs.filter(x => x[E] === v).sort((a, b) => peso(b) - peso(a) || porTexto(a, b))) c.append(chip(x));
+    p.append(c);
+  }
 }
 
 function matriz() {
   const xs = filtradas(false);
-  plano(xs.filter(puntuada));
+  const ejes = G.dim === 2 ? [G.x, G.y] : [G.uno];
+  const dentro = xs.filter(x => ejes.every(k => x[k] != null));
+  G.dim === 2 ? plano2(dentro) : plano1(dentro);
+  const fuera = xs.length - dentro.length;
+  const nombres = ejes.map(k => EJES[k].toLowerCase());
+  $("g-que").textContent = (G.dim === 2
+    ? `Cada tarea según su ${nombres[0]} (horizontal) y ${nombres[1]} (vertical), de 0 a 5.`
+    : `Cada tarea según su ${nombres[0]}, de 0 a 5.`) +
+    " Arrastra una tarea a otra casilla para cambiar su puntuación (con el dedo, mantenla pulsada un momento). Tócala para abrirla.";
+  $("g-pie").textContent = fuera ? `${fuera === 1 ? "1 tarea" : fuera + " tareas"} sin ${nombres.join(" o ")} no ${fuera === 1 ? "sale" : "salen"} en el gráfico.` : "";
   const m = $("matriz"); m.replaceChildren();
   for (const c of CUAD) {
     const caja = el("div", { class: "cuadrante" }), h = el("header"), s = xs.filter(x => puntuada(x) && c.f(x));
@@ -347,8 +438,21 @@ function matriz() {
   }
   const sin = xs.filter(x => !puntuada(x)), s = $("sin"); s.replaceChildren();
   const h = el("header"); h.append(el("h2", {}, "Sin puntuar"), el("span", { class: "cuenta" }, String(sin.length)));
-  s.append(h, el("p", { class: "que" }, "Ábrela y ponle importancia y urgencia para colocarla en la matriz."));
+  s.append(h, el("p", { class: "que" }, "Ábrela y ponle importancia y urgencia para colocarla en los cuadrantes."));
   const ul = el("ul", { class: "tareas" }); lista(ul, sin, !unAmbito()); s.append(ul);
+}
+
+// en el móvil, "Imp.", "Urg.", "Esf." para que cada eje quepa en una línea
+const nombreEje = k => { const f = document.createDocumentFragment(); f.append(el("span", { class: "largo" }, EJES[k]), el("span", { class: "corto" }, EJES[k].slice(0, 3) + ".")); return f; };
+function mandos() {
+  const ejes = () => Object.keys(EJES).map(k => [k, nombreEje(k)]);
+  segmentos($("g-dim"), [[1, "1D"], [2, "2D"]], G.dim, v => grafico({ dim: v }));
+  segmentos($("g-x"), ejes(), G.x, v => grafico({ x: v }));
+  segmentos($("g-y"), ejes(), G.y, v => grafico({ y: v }));
+  segmentos($("g-tam"), [[false, "Nada"], [true, EJES[tercero()]]], G.tam, v => grafico({ tam: v }));
+  segmentos($("g-uno"), ejes(), G.uno, v => grafico({ uno: v }));
+  for (const id of ["g-x-caja", "g-y-caja", "g-tam-caja"]) $(id).hidden = G.dim !== 2;
+  $("g-uno-caja").hidden = G.dim !== 1;
 }
 
 function porAmbito() {
@@ -373,7 +477,7 @@ function pintar() {
   multiple($("f-ambito"), D.ambitos.map(a => [a, a]), "ambitos");
   multiple($("f-estado"), Object.entries(EST), "estados");
   segmentos($("f-prio"), Object.entries(PRIO), F.prio, v => filtro("prio", v));
-  colorPor();
+  mandos();
   leyenda();
   const sa = $("a-ambito"), previo = sa.value;
   sa.replaceChildren(...D.ambitos.map(a => el("option", { value: a }, a)));
@@ -385,8 +489,13 @@ function pintar() {
 
 /* ---------- detalle ---------- */
 function abrir(id) { sel = id; $("detalle").hidden = false; $("velo").hidden = false; pintar(); $("d-cerrar").focus({ preventScroll: true }); }
+// cerrar (cruz, Hecho, Esc o fuera) guarda lo que esté a medio escribir: el campo con foco al perder el foco
+// y una subtarea escrita sin Enter
 function cerrar() {
   const a = document.activeElement; if (a && a.closest("#detalle")) a.blur();
+  const n = $("d-nuevo-sub"), x = tarea(sel), v = n.value.trim();
+  if (x && v) editar(x, { sub: [...x.sub, v] });
+  n.value = "";
   sel = null; $("detalle").hidden = true; $("velo").hidden = true; pintar();
 }
 const enFoco = e => document.activeElement === e;
@@ -399,8 +508,7 @@ function rellenar() {
   $("d-donde").textContent = `${x.ambito} · ${EST[x.estado]}`;
   if (!enFoco($("d-titulo"))) { $("d-titulo").value = x.crudo; ajustarTitulo(); }
   const pts = [["", "-"], ...[0, 1, 2, 3, 4, 5].map(n => [n, String(n)])];
-  segmentos($("d-imp"), pts, x.imp ?? "", v => editar(x, { imp: v === "" ? null : v }));
-  segmentos($("d-urg"), pts, x.urg ?? "", v => editar(x, { urg: v === "" ? null : v }));
+  for (const k of Object.keys(EJES)) segmentos($("d-" + k), pts, x[k] ?? "", v => editar(x, { [k]: v === "" ? null : v }));
   const c = cuadrante(x);
   $("d-cuad").textContent = c ? `${c.t}. ${c.q}` : "-";
   segmentos($("d-estado"), Object.entries(EST), x.estado, v => v !== x.estado && editar(x, { estado: v }));
@@ -434,13 +542,16 @@ $("d-borrar").onclick = () => {
   if (!confirm(`Eliminar "${x.texto}"? Se mueve a Eliminadas, al final de la nota de ${x.ambito}.`)) return;
   operar({ op: "borrar", ambito: x.ambito, base: D.bases[x.ambito], id: x.id }, "Eliminada");
 };
+// el círculo junto al título: la mueve a Done de su nota (como en To Do)
 $("d-hecha").onclick = () => {
   const x = tarea(sel); if (!x) return;
+  const a = document.activeElement; if (a && a.closest("#detalle")) a.blur();  // guarda antes lo que esté a medio escribir
   operar({ op: "completar", ambito: x.ambito, base: D.bases[x.ambito], id: x.id }, `Hecha. Movida a Done de ${x.ambito}`);
 };
+$("d-hecho").onclick = cerrar;
 $("d-cerrar").onclick = cerrar;
 $("velo").onclick = cerrar;
-addEventListener("keydown", e => { if (e.key === "Escape" && sel !== null) cerrar(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && sel !== null && !arrastre) cerrar(); });
 
 /* ---------- guardar ---------- */
 let cola = Promise.resolve();
@@ -449,7 +560,8 @@ function editar(x, cambios) {
   // la base y el id se leen al salir de la cola: si un cambio anterior renombró la tarea, es la abierta (sel)
   return encolar(() => { const t = tarea(id) || tarea(sel); return t ? { op: "editar", ambito: t.ambito, base: D.bases[t.ambito], id: t.id, ...cambios } : null; });
 }
-function operar(cuerpo, ok) { return encolar(() => cuerpo, ok); }
+// completar: la operación se arma al salir de la cola, con el id y la base que dejen los cambios anteriores
+function operar(cuerpo, ok) { const id = cuerpo.id; return encolar(() => { if (!id) return cuerpo; const t = tarea(id) || tarea(sel); return t ? { ...cuerpo, ambito: t.ambito, base: D.bases[t.ambito], id: t.id } : null; }, ok); }
 function encolar(hacer, okTxt) {
   pendientes++; rellenar();
   cola = cola.then(async () => {
@@ -460,7 +572,7 @@ function encolar(hacer, okTxt) {
       const j = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta rara del servidor. Recarga la página." }));
       if (j.datos) D = j.datos;
       if (j.ok) {
-        if (cuerpo.op === "borrar" || cuerpo.op === "completar") { sel = null; $("detalle").hidden = true; $("velo").hidden = true; }
+        if (cuerpo.op === "borrar" || cuerpo.op === "completar") { if (sel === cuerpo.id) { sel = null; $("detalle").hidden = true; $("velo").hidden = true; } }
         else if (sel !== null && cuerpo.op === "editar" && sel === cuerpo.id) sel = j.id;
         if (okTxt) aviso(okTxt);
       } else aviso(j.mensaje || "No se ha guardado.");
@@ -470,12 +582,22 @@ function encolar(hacer, okTxt) {
   return cola;
 }
 
+/* ---------- añadir ---------- */
+// importancia, urgencia y esfuerzo opcionales al crear; Enter crea igual sin tocarlos
+for (const k of Object.keys(EJES)) {
+  const s = $("a-" + k);
+  s.replaceChildren(el("option", { value: "" }, `${CORTO[k]} -`), ...[0, 1, 2, 3, 4, 5].map(n => el("option", { value: String(n) }, `${CORTO[k]} ${n}`)));
+  s.title = EJES[k];
+  s.onchange = () => s.classList.toggle("puesto", s.value !== "");
+}
 $("anadir").addEventListener("submit", e => {
   e.preventDefault();
   const t = $("a-texto"), texto = t.value.trim(), ambito = $("a-ambito").value, estado = $("a-estado").value;
   if (!texto) return;
+  const pts = {};
+  for (const k of Object.keys(EJES)) { const s = $("a-" + k); if (s.value !== "") pts[k] = +s.value; s.value = ""; s.classList.remove("puesto"); }
   t.value = "";
-  encolar(() => ({ op: "crear", ambito, estado, texto, base: D.bases[ambito] }), `Añadida a ${ambito}`);
+  encolar(() => ({ op: "crear", ambito, estado, texto, ...pts, base: D.bases[ambito] }), `Añadida a ${ambito}`);
   t.focus();
 });
 
@@ -487,52 +609,76 @@ async function refrescar() {
     const r = await fetch("/tareas/datos", { cache: "no-store" });
     if (!r.ok) return;
     const j = await r.json();
-    if (JSON.stringify(j.bases) !== JSON.stringify(D.bases) && !pendientes) { D = j; pintar(); }
+    if (JSON.stringify(j.bases) !== JSON.stringify(D.bases) && !pendientes && !arrastre) { D = j; pintar(); }
   } catch (e) {}
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !pendientes) refrescar(); });
 setInterval(() => { if (!document.hidden && !pendientes && !arrastre && !(document.activeElement && document.activeElement.closest("#detalle, #anadir"))) refrescar(); }, 30000);
-/* ---------- mover en el gráfico ---------- */
-// Con el modo activado, una tarea se arrastra (ratón o dedo) a otra casilla: guarda su nueva importancia y urgencia.
-function modoMover(on) {
-  moviendo = on;
-  $("plano").classList.toggle("moviendo", on);
-  $("mover").textContent = on ? "Terminar" : "Mover tareas";
-  $("mover-ayuda").hidden = !on;
-}
-$("mover").onclick = () => modoMover(!moviendo);
-$("plano").addEventListener("pointerdown", e => {
+
+/* ---------- arrastrar en el gráfico ---------- */
+// Siempre activo. Ratón: se arrastra a partir de 5 px; un clic sin mover abre la tarea.
+// Dedo: pulsación larga (300 ms) para cogerla; si el dedo se mueve antes, es scroll de la página.
+// Al soltar en otra casilla se guardan solo las puntuaciones de los ejes que se ven.
+const plano = $("plano");
+plano.addEventListener("pointerdown", e => {
   const b = e.target.closest(".punto-t");
   movido = false;
-  if (!moviendo || !b || e.button > 0) return;
-  arrastre = { b, id: b.dataset.id, x0: e.clientX, y0: e.clientY, fantasma: null, destino: null };
-  b.setPointerCapture(e.pointerId);
+  if (!b || e.button > 0 || arrastre) return;
+  const a = arrastre = { b, id: b.dataset.id, pid: e.pointerId, x0: e.clientX, y0: e.clientY, listo: e.pointerType !== "touch", fantasma: null, destino: null, t: null };
+  if (a.listo) { b.setPointerCapture(e.pointerId); return; }
+  a.t = setTimeout(() => {
+    if (arrastre !== a) return;
+    a.listo = true; movido = true;  // tras la pulsación larga, soltar sin mover no abre la tarea
+    b.classList.add("agarrado");
+    try { navigator.vibrate?.(15); } catch (e) {}
+    empezar(a, a.x0, a.y0);
+  }, 300);
 });
-$("plano").addEventListener("pointermove", e => {
-  const a = arrastre; if (!a) return;
-  if (!a.fantasma) {
-    if (Math.hypot(e.clientX - a.x0, e.clientY - a.y0) < 5) return;
-    movido = true;
-    a.fantasma = a.b.cloneNode(true); a.fantasma.classList.add("fantasma"); document.body.append(a.fantasma);
-    a.b.classList.add("arrastrando");
-  }
-  a.fantasma.style.left = e.clientX + "px"; a.fantasma.style.top = e.clientY + "px";
-  const c = document.elementFromPoint(e.clientX, e.clientY)?.closest(".celda");
-  if (c !== a.destino) { a.destino?.classList.remove("destino"); a.destino = c && $("plano").contains(c) ? c : null; a.destino?.classList.add("destino"); }
+function empezar(a, x, y) {
+  a.fantasma = a.b.cloneNode(true); a.fantasma.classList.add("fantasma"); a.fantasma.classList.remove("sel", "agarrado");
+  document.body.append(a.fantasma);
+  a.b.classList.add("arrastrando"); plano.classList.add("arrastre");
+  mover(a, x, y);
+  a.auto = setInterval(desplazar, 16);
+}
+// cerca del borde de arriba o de abajo la página se desplaza sola (en el móvil el gráfico no cabe entero)
+function desplazar() {
+  const a = arrastre; if (!a || !a.fantasma) return;
+  const m = 60, y = a.y;
+  const d = y < m ? -Math.ceil((m - y) / 3) : y > innerHeight - m ? Math.ceil((y - innerHeight + m) / 3) : 0;
+  if (d) { scrollBy({ top: d, behavior: "instant" }); mover(a, a.x, a.y); }  // instant: estilo.css pone scroll suave
+}
+function mover(a, x, y) {
+  a.x = x; a.y = y;
+  a.fantasma.style.left = x + "px"; a.fantasma.style.top = y + "px";
+  const c = document.elementFromPoint(x, y)?.closest(".celda");
+  const d = c && plano.contains(c) ? c : null;
+  if (d !== a.destino) { a.destino?.classList.remove("destino"); a.destino = d; d?.classList.add("destino"); }
+}
+plano.addEventListener("pointermove", e => {
+  const a = arrastre; if (!a || e.pointerId !== a.pid) return;
+  const lejos = Math.hypot(e.clientX - a.x0, e.clientY - a.y0);
+  if (!a.listo) { if (lejos > 10) { clearTimeout(a.t); arrastre = null; } return; }  // el dedo se movió antes: scroll
+  if (!a.fantasma) { if (lejos < 5) return; movido = true; empezar(a, e.clientX, e.clientY); }
+  mover(a, e.clientX, e.clientY);
 });
+// con la tarea cogida, el dedo no desplaza la página
+plano.addEventListener("touchmove", e => { if (arrastre && arrastre.listo) e.preventDefault(); }, { passive: false });
+plano.addEventListener("contextmenu", e => { if (e.target.closest(".punto-t")) e.preventDefault(); });
 function soltar(cancelar) {
   const a = arrastre; if (!a) return;
-  arrastre = null;
-  a.fantasma?.remove(); a.b.classList.remove("arrastrando"); a.destino?.classList.remove("destino");
+  arrastre = null; clearTimeout(a.t); clearInterval(a.auto);
+  a.fantasma?.remove(); a.b.classList.remove("arrastrando", "agarrado"); a.destino?.classList.remove("destino"); plano.classList.remove("arrastre");
   const x = tarea(a.id);
   if (cancelar || !a.destino || !x) return;
-  const u = +a.destino.dataset.u, i = +a.destino.dataset.i;
-  if (x.urg === u && x.imp === i) return;
-  x.imp = i; x.urg = u; pintar();  // se ve ya; si no se guarda, vuelve con los datos del servidor
-  editar(x, { imp: i, urg: u });
+  const cambios = {};
+  for (const [k, v] of Object.entries(a.destino.pts)) if (x[k] !== v) cambios[k] = v;
+  if (!Object.keys(cambios).length) return;
+  Object.assign(x, cambios); pintar();  // se ve ya; si no se guarda, vuelve con los datos del servidor
+  editar(x, cambios);
 }
-$("plano").addEventListener("pointerup", () => soltar(false));
-$("plano").addEventListener("pointercancel", () => soltar(true));
+plano.addEventListener("pointerup", e => { if (arrastre && e.pointerId === arrastre.pid) soltar(false); });
+plano.addEventListener("pointercancel", e => { if (arrastre && e.pointerId === arrastre.pid) soltar(true); });
 addEventListener("keydown", e => { if (e.key === "Escape" && arrastre) soltar(true); });
 
 addEventListener("hashchange", pintar);

@@ -4,7 +4,7 @@
 Fuente: "30 - Personal/30 - Plan/Panel.md" da los ámbitos ([[Identity]], [[Work]]...); de cada nota de
 ámbito se usa la sección "## Plan": "### Doing", "### To Do" y "### Monitoring", una tarea por viñeta.
 Formato de una tarea (se puede escribir a mano en Obsidian):
-  - Certi AWS [imp:: 4] [urg:: 2]      importancia y urgencia de 0 a 5 (sin ellas = sin puntuar)
+  - Certi AWS [imp:: 4] [urg:: 2] [esf:: 3]   importancia, urgencia y esfuerzo de 0 a 5 (sin ellas = sin puntuar)
   	- paso                              subtareas: viñetas con sangría (o "- - paso", formato antiguo)
   	> nota                              notas: líneas con sangría que empiezan por "> "
   ## Done                               "Marcar hecha" la mueve aquí, arriba del todo: "- [x] ... ✅ AAAA-MM-DD"
@@ -27,7 +27,7 @@ PENDIENTE = ESTADO / "tareas-pendiente"
 RESULTADO = ESTADO / "tareas-resultado.json"
 ESTADOS = {"doing": "doing", "to do": "todo", "todo": "todo", "monitoring": "seguimiento", "monitorizando": "seguimiento"}
 TITULOS = {"doing": "Doing", "todo": "To Do", "seguimiento": "Monitoring"}
-CAMPO = re.compile(r"\s*\[(imp|urg)::\s*([0-5])\s*\]", re.I)
+CAMPO = re.compile(r"\s*\[(imp|urg|esf)::\s*([0-5])\s*\]", re.I)
 TITULO = re.compile(r"^#{1,6}\s")
 CASILLA = re.compile(r"^\[[ /-]\]\s*")
 ELIMINADAS = "Eliminadas"
@@ -147,6 +147,7 @@ def analizar(nombre: str, lineas: list) -> list:
         actual = {"id": clave if vistas[clave] == 1 else f"{clave}-{vistas[clave]}", "texto": visible, "crudo": crudo,
                   "ambito": nombre, "estado": estado, "sub": [], "notas": [],
                   "imp": campos.get("imp", 4 if tag_i else None), "urg": campos.get("urg", 4 if tag_u else None),
+                  "esf": campos.get("esf"),
                   "n": n, "fin": n + 1, "casilla": casilla.group(0) if casilla else ""}
         tareas.append(actual)
     return tareas
@@ -195,17 +196,17 @@ def _punto(v):
     return v
 
 
-def _linea(casilla: str, crudo: str, imp, urg) -> str:
-    campos = (f" [imp:: {imp}]" if imp is not None else "") + (f" [urg:: {urg}]" if urg is not None else "")
-    if campos:  # la puntuación sustituye a las etiquetas
+def _linea(casilla: str, crudo: str, imp, urg, esf=None) -> str:
+    campos = "".join(f" [{k}:: {v}]" for k, v in (("imp", imp), ("urg", urg), ("esf", esf)) if v is not None)
+    if imp is not None or urg is not None:  # la puntuación sustituye a las etiquetas
         crudo = re.sub(r"\s*#(urgente|importante)\b", "", crudo, flags=re.I).strip()
     return f"- {casilla}{crudo}{campos}"
 
 
-def _bloque(t: dict, crudo, imp, urg, sub, notas, original: list) -> list:
+def _bloque(t: dict, crudo, imp, urg, esf, sub, notas, original: list) -> list:
     hijas = original[1:] if (sub == t["sub"] and notas == t["notas"]) else \
         [f"\t- {s}" for s in sub] + [f"\t> {x}" if x else "\t>" for x in notas]
-    return [_linea(t["casilla"], crudo, imp, urg)] + hijas
+    return [_linea(t["casilla"], crudo, imp, urg, esf)] + hijas
 
 
 def _seccion(lineas: list, estado: str) -> int:
@@ -298,7 +299,7 @@ def aplicar(d: dict):
         if not texto:
             raise Error("Escribe la tarea.")
         pos = _seccion(lineas, estado)
-        lineas[pos:pos] = [_linea("", texto, _punto(d.get("imp")), _punto(d.get("urg")))]
+        lineas[pos:pos] = [_linea("", texto, _punto(d.get("imp")), _punto(d.get("urg")), _punto(d.get("esf")))]
         _escribir(ruta, base, lineas, nl, final)
         return _id_en(ambito, lineas, pos)
 
@@ -320,6 +321,7 @@ def aplicar(d: dict):
         raise Error("La tarea no puede quedar vacía. Para quitarla, elimínala.")
     imp = _punto(d["imp"]) if "imp" in d else t["imp"]
     urg = _punto(d["urg"]) if "urg" in d else t["urg"]
+    esf = _punto(d["esf"]) if "esf" in d else t["esf"]
     if "sub" in d:
         if not isinstance(d["sub"], list) or len(d["sub"]) > 100:
             raise Error("Subtareas no válidas.")
@@ -331,7 +333,7 @@ def aplicar(d: dict):
     if estado not in TITULOS:
         raise Error("Estado no válido.")
     destino = d.get("ambito_nuevo") or ambito
-    bloque = _bloque(t, crudo, imp, urg, sub, notas, original)
+    bloque = _bloque(t, crudo, imp, urg, esf, sub, notas, original)
 
     if destino != ambito:  # a otra nota: primero se añade allí, luego se quita de aquí (si falla, queda repetida, no perdida)
         ruta2 = ruta_de(destino)
