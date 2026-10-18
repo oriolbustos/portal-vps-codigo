@@ -1,0 +1,8 @@
+[Unit]
+# Sin límite de arranques: cada serie apuntada lo lanza, a veces varias en pocos segundos
+StartLimitIntervalSec=0
+Description=Escribe en el vault la tabla Entreno de la nota diaria apuntada desde el portal (/entreno/sesion/)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/portal/entreno-sesion-guardar.py

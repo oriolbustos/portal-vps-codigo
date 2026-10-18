@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Entrenar</title>
+<link rel="stylesheet" href="/estatico/estilo.css">
+<link rel="icon" href="/estatico/iconos/fav-entreno.svg" type="image/svg+xml">
+<style>
+.pagina { padding-bottom: 160px; }
+.estado { font-size: var(--t-xs); color: var(--tinta-2); text-align: right; }
+.estado.mal { color: var(--acento); }
+.tipo-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 0 0 16px; }
+.segmentos.grande button { font-size: var(--t-base); padding: 8px 18px; min-height: 44px; }
+.notas-plan { font-size: var(--t-sm); color: var(--tinta-2); padding: 0 0 16px; }
+.notas-plan details + details, .notas-plan p + details { margin-top: 8px; }
+.notas-plan ul { margin: 8px 0 0; padding-left: 18px; }
+.notas-plan li + li { margin-top: 6px; }
+
+.ej { padding: 0; }
+.ej-cab { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; cursor: pointer; }
+.ej-cab .t { flex: 1; min-width: 0; }
+.ej-cab h3 { font-family: var(--serif); font-size: var(--t-xl); line-height: 1.15; font-weight: 400; }
+.ej-cab .res { font-size: var(--t-xs); color: var(--tinta-2); margin-top: 2px; }
+.ej-cab .n { font-family: var(--mono); font-size: var(--t-sm); color: var(--tinta-2); white-space: nowrap; padding-top: 4px; }
+.ej.hecho .ej-cab h3 { color: var(--tinta-2); }
+.ej.abierto { background: var(--fondo-alto); }
+.ej-cuerpo { padding: 0 16px 16px; }
+.dato { font-size: var(--t-sm); margin-top: 6px; }
+.dato b { font-weight: 500; color: var(--tinta-alta); }
+.dato .peq { color: var(--tinta-2); }
+.mono, .series td, .crono .t, .paso input { font-family: var(--mono); font-weight: 300; }
+.series { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: var(--t-sm); }
+.series td { padding: 8px 6px; border-top: 1px solid var(--linea); vertical-align: top; }
+.series td:first-child { color: var(--tinta-2); width: 1.5em; }
+.series td.tx { font-family: var(--sans); font-weight: 400; color: var(--tinta-2); font-size: var(--t-xs); }
+.series tr { cursor: pointer; }
+.series tr.editando td { background: var(--fondo-2); }
+.series tr.pend td:first-child::after { content: "•"; color: var(--acento); margin-left: 2px; }
+
+.form { margin-top: 14px; display: grid; gap: 12px; }
+.fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lbl { display: block; font-size: var(--t-xs); color: var(--tinta-2); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px; }
+.paso { display: flex; align-items: stretch; }
+.paso button { font: inherit; font-size: 22px; line-height: 1; width: 48px; min-height: 52px; border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta-alta); cursor: pointer; flex: none; }
+.paso button:first-child { border-radius: 6px 0 0 6px; }
+.paso button:last-child { border-radius: 0 6px 6px 0; }
+.paso input { width: 100%; min-width: 0; text-align: center; font-size: 22px; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); border-left: 0; border-right: 0; padding: 0 4px; }
+.paso input:focus, .texto-in:focus { outline: none; border-color: var(--linea-alta); }
+.texto-in { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); border-radius: 6px; }
+.chips { display: flex; flex-wrap: wrap; padding: 0 1px 1px 0; }
+.chips button { font: inherit; font-family: var(--mono); font-size: 18px; min-width: 48px; min-height: 48px; border: 1px solid var(--linea); margin: 0 -1px -1px 0; background: var(--fondo); color: var(--tinta-2); cursor: pointer; }
+.chips button.on { background: var(--tinta-alta); color: var(--fondo); }
+.chips.modo button { font-family: var(--sans); font-size: var(--t-sm); min-width: 0; padding: 0 12px; min-height: 36px; }
+.boton.grande { font-size: var(--t-base); padding: 12px 16px; min-height: 52px; width: 100%; }
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.acciones .boton { min-height: 40px; padding: 6px 14px; }
+.descanso { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--t-sm); color: var(--tinta-2); margin-top: 8px; }
+.descanso b { font-family: var(--mono); font-weight: 400; color: var(--tinta-alta); }
+.descanso .boton { min-height: 36px; }
+
+.anadir { padding: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+.anadir input { flex: 1 1 220px; }
+.anadir .boton { min-height: 46px; }
+.descartados { font-size: var(--t-sm); color: var(--tinta-2); padding: 12px 16px; }
+.descartados button { font: inherit; background: none; border: 0; color: var(--tinta-alta); text-decoration: underline; cursor: pointer; padding: 4px; }
+.fin { padding: 16px; }
+.fin p { font-size: var(--t-sm); color: var(--tinta-2); margin-top: 8px; }
+
+.crono { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--tinta-alta); color: var(--fondo);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 12px; }
+.crono[hidden] { display: none; }
+.crono .que { flex: 1; min-width: 0; font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .03em; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crono .t { font-size: 34px; line-height: 1; letter-spacing: -.02em; }
+.crono.pasado .t { color: #ff8a8a; }
+.crono button { font: inherit; font-size: var(--t-sm); min-height: 44px; min-width: 52px; padding: 0 10px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: inherit; border-radius: 6px; cursor: pointer; }
+.crono .barra { position: absolute; left: 0; top: 0; height: 3px; background: var(--acento); }
+@media (max-width: 420px) { .crono .que { display: none; } }
+@media (min-width: 900px) { .ejs { max-width: 760px; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+<header class="cabecera">
+  <div class="marca"><a class="volver" href="/entreno/#resumen">← Entreno</a><h1><span class="sello"><i class="ico ico-entreno"></i></span>Entrenar</h1></div>
+  <div class="extra"><span class="estado" id="estado"></span></div>
+</header>
+
+<div class="seccion"><span class="n" id="fecha-n"></span><h2 id="titulo">Entrenar</h2><p id="sub"></p></div>
+<div class="tipo-barra"><div class="segmentos grande" id="tipos"></div></div>
+<div class="notas-plan" id="notas"></div>
+
+<div class="ejs">
+  <div class="rejilla" id="lista"></div>
+  <div class="rejilla"><div class="anadir">
+    <input class="texto-in" id="nuevo" list="catalogo" placeholder="Añadir ejercicio" autocomplete="off" enterkeyhint="done">
+    <button class="boton" id="anadir">Añadir</button>
+    <datalist id="catalogo"></datalist>
+  </div></div>
+  <div class="rejilla" id="desc-caja" hidden><div class="descartados" id="descartados"></div></div>
+  <div class="rejilla"><div class="fin">
+    <button class="boton fuerte grande" id="terminar">Terminar sesión</button>
+    <p id="fin-txt">Cada serie se guarda en la tabla Entreno de la nota de hoy al apuntarla. Si no hay conexión, se queda en el móvil y se envía sola.</p>
+  </div></div>
+</div>
+</div>
+
+<div class="crono" id="crono" hidden>
+  <div class="barra" id="crono-barra"></div>
+  <span class="t" id="crono-t">0:00</span>
+  <span class="que" id="crono-que"></span>
+  <button id="crono-menos">−15</button><button id="crono-mas">+15</button><button id="crono-parar">Parar</button>
+</div>
+
+<script>
+const D = /*__DATOS__*/null;
+const SES = { push: "Push", pierna: "Pierna", pull: "Pull" };
+const CLAVE = "entreno-sesion:" + D.fecha, CLAVE_T = "entreno-temporizador";
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, txt) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; };
+const plano = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+const ddmm = s => s ? s.slice(8, 10) + "-" + s.slice(5, 7) : "-";
+const es = t => String(t ?? "").replace(/(\d)\.(\d)/g, "$1,$2");          // pantalla: coma decimal
+const punto = t => String(t ?? "").trim().replace(/(\d),(\d)/g, "$1.$2");  // nota: punto decimal (lo lee el panel)
+const mmss = s => { const a = Math.abs(Math.round(s)); return (s < 0 ? "+" : "") + Math.floor(a / 60) + ":" + String(a % 60).padStart(2, "0"); };
+const leer = (k, def) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } };
+const escribir = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+// ---------- ejercicios ----------
+const limpiaNombre = n => n.replace(/\s*\([^)]*kg\s*=[^)]*\)/i, "").trim();
+const infoDe = nombre => { const c = D.catalogo[nombre] || Object.entries(D.catalogo).find(([k]) => plano(k) === plano(nombre))?.[1]; return c ? { ...c, ...(D.ejercicios[c.ej] || {}) } : null; };
+let sec = 0;
+const nuevoId = () => Date.now().toString(36) + (sec++).toString(36);
+function ejercicio(p) {
+  const i = (p.ej && D.ejercicios[p.ej]) || infoDe(p.nombre) || {};
+  return { id: nuevoId(), nombre: limpiaNombre(p.nombre), ej: p.ej || i.ej || "", siguiente: p.siguiente ?? i.siguiente ?? "", carga: p.carga || "",
+           descanso: p.descanso || i.descanso || 90, modo: i.modo || "kg", descartado: false, orden: null, series: [] };
+}
+function nuevaSesion(tipo) {
+  return { fecha: D.fecha, tipo, huella: D.hoy.huella, version: 0, abierto: null, terminada: false,
+           ejs: (D.tipos[tipo]?.ejercicios || []).map(ejercicio) };
+}
+const mismoEj = (e, nombre) => plano(e.nombre) === plano(nombre) || (e.ej && infoDe(nombre)?.ej === e.ej);
+
+// Junta lo que hay en el vault con lo de la página: lo guardado manda; lo apuntado aquí y aún no enviado se añade detrás.
+function fusionar(filas) {
+  const grupos = new Map();
+  filas.forEach((f, i) => { if (!grupos.has(f.ej)) grupos.set(f.ej, { i, series: [] }); grupos.get(f.ej).series.push({ reps: f.reps, peso: f.peso, rir: f.rir, agarre: f.agarre, notas: f.notas, ok: true }); });
+  const usados = new Set();
+  for (const e of S.ejs) {
+    const nombre = [...grupos.keys()].find(n => !usados.has(n) && mismoEj(e, n));
+    const pend = e.series.filter(s => !s.ok);
+    if (nombre) { usados.add(nombre); const g = grupos.get(nombre); e.nombre = nombre; e.series = [...g.series, ...pend]; e.orden = g.i; e.descartado = false; }
+    else { e.series = pend; if (!pend.length) e.orden = null; }
+  }
+  for (const [nombre, g] of grupos) if (!usados.has(nombre)) {
+    const e = ejercicio({ nombre }); e.nombre = nombre; e.series = g.series; e.orden = g.i; S.ejs.push(e);
+  }
+}
+function filas() {
+  return S.ejs.filter(e => !e.descartado && e.series.length).sort((a, b) => a.orden - b.orden)
+    .flatMap(e => e.series.map(s => ({ ej: e.nombre, reps: s.reps, peso: s.peso, rir: s.rir, agarre: s.agarre, notas: s.notas })));
+}
+const nSeries = () => S.ejs.reduce((a, e) => a + (e.descartado ? 0 : e.series.length), 0);
+const pendientes = () => S.ejs.some(e => e.series.some(s => !s.ok)) || S.version !== S.enviada;
+
+// ---------- estado ----------
+let S = leer(CLAVE, null);
+if (!S || S.fecha !== D.fecha) { S = nuevaSesion(D.toca); S.enviada = 0; }
+fusionar(D.hoy.filas);
+S.huella = D.hoy.huella;
+const guardarLocal = () => escribir(CLAVE, S);
+guardarLocal();
+
+// ---------- guardar en el vault (serie a serie) ----------
+let enVuelo = false, reintento = null, conflictos = 0;
+function estado(txt, mal) { const e = $("estado"); e.textContent = txt; e.classList.toggle("mal", !!mal); }
+function cambiado() { S.version = (S.version || 0) + 1; guardarLocal(); enviar(); }
+async function enviar() {
+  if (enVuelo) return;
+  if (!pendientes()) return;
+  enVuelo = true; clearTimeout(reintento);
+  const v = S.version, enviadas = S.ejs.flatMap(e => e.series);
+  estado("Guardando...");
+  try {
+    const r = await fetch("/entreno/sesion/guardar", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fecha: S.fecha, huella: S.huella, filas: filas() }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { estado("Sesión caducada. Vuelve a entrar; lo apuntado sigue en el móvil.", true); enlaceLogin(); return; }
+    if (j.ok) {
+      conflictos = 0; S.huella = j.hoy.huella; S.enviada = v;
+      for (const s of enviadas) s.ok = true;
+      guardarLocal(); estado("Guardado en la nota " + new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }));
+      pintar();
+    } else if (j.hoy) {  // alguien cambió la tabla: se recarga del vault y se reenvía lo pendiente
+      fusionar(j.hoy.filas); S.huella = j.hoy.huella; guardarLocal(); pintar();
+      estado("La tabla de hoy cambió fuera de aquí. Recargada.", true);
+      if (++conflictos < 3) { enVuelo = false; return enviar(); }
+    } else {
+      estado((j.mensaje || "No se ha guardado.") + " Reintento en 15 s.", true);
+      programar();
+    }
+  } catch {
+    estado("Sin conexión. Guardado en el móvil, se enviará solo.", true);
+    programar();
+  } finally { enVuelo = false; }
+  if (pendientes() && !reintento) enviar();
+}
+function programar() { clearTimeout(reintento); reintento = setTimeout(() => { reintento = null; enviar(); }, 15000); }
+function enlaceLogin() { const a = el("a", { class: "enlace", href: "/login?next=/entreno/sesion/" }, " Entrar"); $("estado").append(a); }
+addEventListener("online", enviar);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { enviar(); pedirPantalla(); tic(); } });
+
+// ---------- temporizador de descanso ----------
+let T = leer(CLAVE_T, null), audio = null, pitidos = [], pantalla = null;
+function desbloquearAudio() {
+  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch {}
+}
+function programarPitido() {
+  for (const o of pitidos) try { o.stop(); } catch {}
+  pitidos = [];
+  if (!audio || !T) return;
+  const queda = T.dur - (Date.now() - T.ini) / 1000;
+  if (queda <= 0) return;
+  for (let k = 0; k < 3; k++) {
+    const o = audio.createOscillator(), g = audio.createGain(), t0 = audio.currentTime + queda + k * 0.35;
+    o.frequency.value = 880; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+    o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + 0.3); pitidos.push(o);
+  }
+}
+async function pedirPantalla() {  // que no se apague la pantalla mientras hay sesión
+  if (!("wakeLock" in navigator) || document.hidden || S.terminada || !nSeries()) return;
+  try { if (!pantalla || pantalla.released) pantalla = await navigator.wakeLock.request("screen"); } catch {}
+}
+function arrancar(e) {
+  desbloquearAudio();
+  T = { ini: Date.now(), dur: e.descanso, ej: e.nombre, avisado: false };
+  escribir(CLAVE_T, T); programarPitido(); pedirPantalla(); tic();
+}
+function parar() { T = null; escribir(CLAVE_T, null); programarPitido(); tic(); }
+function ajustar(s) { if (!T) return; T.dur = Math.max(0, T.dur + s); T.avisado = false; escribir(CLAVE_T, T); programarPitido(); tic(); }
+function tic() {
+  const c = $("crono");
+  if (!T || Date.now() - T.ini > (T.dur + 600) * 1000) { c.hidden = true; return; }  // a los 10 min de pasarse, se quita solo
+  c.hidden = false;
+  const pasado = (Date.now() - T.ini) / 1000, queda = T.dur - pasado;
+  $("crono-t").textContent = mmss(queda);
+  $("crono-que").textContent = "Descanso " + mmss(T.dur) + " · " + T.ej;
+  c.classList.toggle("pasado", queda < 0);
+  $("crono-barra").style.width = Math.min(100, pasado / Math.max(1, T.dur) * 100) + "%";
+  if (queda <= 0 && !T.avisado) { T.avisado = true; escribir(CLAVE_T, T); try { navigator.vibrate?.([300, 150, 300]); } catch {} }
+}
+setInterval(tic, 250);
+$("crono-menos").onclick = () => ajustar(-15);
+$("crono-mas").onclick = () => ajustar(15);
+$("crono-parar").onclick = parar;
+document.addEventListener("pointerdown", desbloquearAudio, { once: true });
+
+// ---------- pintar ----------
+const pesoNum = p => { const m = String(p || "").match(/\d+(?:[.,]\d+)?/); return m ? m[0].replace(",", ".") : ""; };
+function pesoTexto(num, modo) {
+  const n = punto(num);
+  if (modo === "corporal") return n ? n + " lastre" : "corporal";
+  if (!n) return "";
+  return modo === "mano" ? n + "/mano" : modo === "ayuda" ? n + " ayuda" : n;
+}
+const serieTxt = s => `${es(s.peso || "-")} ×${es(s.reps || "?")}` + (s.rir !== "" && s.rir != null ? ` @${es(s.rir)}` : "");
+function ultimaTxt(e) {
+  const i = (e.ej && D.ejercicios[e.ej]) || infoDe(e.nombre);
+  const u = i && i.ultima;
+  if (!u) return null;
+  const ser = u.series.map(([reps, kg, notas]) => { const m = /RIR\s*(\d+(?:[.,]\d)?)/i.exec(notas || ""); return `${es(kg)} ×${es(reps)}` + (m ? ` @${es(m[1])}` : ""); });
+  return { txt: ser.join(", "), fecha: ddmm(u.fecha), primera: u.series[0] };
+}
+
+let edit = null;  // {id, i} serie en edición
+let borrador = {}; // valores del formulario por ejercicio (no se pierden al repintar)
+
+function valoresIniciales(e) {
+  if (borrador[e.id]) return borrador[e.id];
+  const ult = e.series[e.series.length - 1];
+  if (ult) return { peso: pesoNum(ult.peso), reps: ult.reps, rir: "", agarre: ult.agarre || "", notas: "" };
+  const u = ultimaTxt(e);
+  return { peso: u ? pesoNum(u.primera[1]) : "", reps: u ? String(u.primera[0]).replace(/[^\d.,]/g, "") : "", rir: "", agarre: "", notas: "" };
+}
+
+function paso(valor, inc, attrs) {
+  const caja = el("div", { class: "paso" }), menos = el("button", { type: "button", "aria-label": "Restar" }, "−"), mas = el("button", { type: "button", "aria-label": "Sumar" }, "+");
+  const inp = el("input", { type: "text", inputmode: "decimal", autocomplete: "off", ...attrs }); inp.value = es(valor);
+  const mover = k => { const v = parseFloat(punto(inp.value)) || 0; inp.value = es(Math.max(0, Math.round((v + k * inc()) * 100) / 100)); inp.dispatchEvent(new Event("input")); };
+  menos.onclick = () => mover(-1); mas.onclick = () => mover(1);
+  caja.append(menos, inp, mas);
+  return [caja, inp];
+}
+
+function formulario(e) {
+  const editando = edit && edit.id === e.id ? e.series[edit.i] : null;
+  const v = editando ? { peso: pesoNum(editando.peso), reps: editando.reps, rir: editando.rir, agarre: editando.agarre, notas: editando.notas } : valoresIniciales(e);
+  const f = el("div", { class: "form" });
+  const recordar = () => { if (!editando) borrador[e.id] = leerForm(); };
+
+  // modo de peso
+  const modos = el("div", { class: "chips modo" });
+  for (const [m, t] of [["kg", "kg"], ["mano", "kg/mano"], ["ayuda", "kg ayuda"], ["corporal", "corporal"]]) {
+    const b = el("button", { type: "button", class: e.modo === m ? "on" : "" }, t);
+    b.onclick = () => { e.modo = m; guardarLocal(); recordar(); pintar(); };
+    modos.append(b);
+  }
+  const fila = el("div", { class: "fila2" });
+  const cPeso = el("div"), cReps = el("div");
+  const [pPeso, iPeso] = paso(v.peso, () => e.modo === "mano" ? 1 : e.modo === "ayuda" ? 4.5 : 2.5, { "aria-label": "Peso" });
+  const [pReps, iReps] = paso(v.reps, () => 1, { "aria-label": "Repeticiones" });
+  cPeso.append(el("span", { class: "lbl" }, e.modo === "ayuda" ? "Ayuda (kg)" : e.modo === "corporal" ? "Lastre (kg, opcional)" : e.modo === "mano" ? "Peso por mano (kg)" : "Peso (kg)"), pPeso);
+  cReps.append(el("span", { class: "lbl" }, "Reps"), pReps);
+  fila.append(cPeso, cReps);
+
+  const cRir = el("div"); cRir.append(el("span", { class: "lbl" }, "RIR (@)"));
+  const chips = el("div", { class: "chips" });
+  let rir = v.rir ?? "";
+  for (const r of ["0", "1", "2", "3", "4", "5"]) {
+    const b = el("button", { type: "button", class: String(rir) === r ? "on" : "" }, r);
+    b.onclick = () => { rir = String(rir) === r ? "" : r; for (const x of chips.children) x.classList.toggle("on", x.textContent === rir); recordar(); };
+    chips.append(b);
+  }
+  cRir.append(chips);
+
+  const usados = [...new Set(e.series.map(s => s.agarre).filter(Boolean))];
+  const lista = el("datalist", { id: "ag-" + e.id }); for (const a of usados) lista.append(el("option", { value: a }));
+  const cAg = el("div"); cAg.append(el("span", { class: "lbl" }, "Agarre / altura"));
+  const iAg = el("input", { class: "texto-in", list: "ag-" + e.id, placeholder: "si aplica: neutro, altura 3...", autocomplete: "off" }); iAg.value = v.agarre || "";
+  cAg.append(iAg, lista);
+  const cNo = el("div"); cNo.append(el("span", { class: "lbl" }, "Observaciones"));
+  const iNo = el("input", { class: "texto-in", placeholder: "con straps, molestia hombro...", autocomplete: "off" }); iNo.value = v.notas || "";
+  cNo.append(iNo);
+  for (const i of [iPeso, iReps, iAg, iNo]) i.addEventListener("input", recordar);
+
+  function leerForm() { return { peso: punto(iPeso.value), reps: punto(iReps.value), rir, agarre: iAg.value.trim(), notas: iNo.value.trim() }; }
+
+  const err = el("p", { class: "error" });
+  const bot = el("button", { type: "button", class: "boton fuerte grande" }, editando ? "Guardar cambios" : `Apuntar serie ${e.series.length + 1}`);
+  bot.onclick = () => {
+    const x = leerForm();
+    if (!x.reps) { err.textContent = "Faltan las reps."; iReps.focus(); return; }
+    if (!x.peso && e.modo !== "corporal") { err.textContent = "Falta el peso. Si es sin carga, elige corporal."; iPeso.focus(); return; }
+    const serie = { reps: x.reps, peso: pesoTexto(x.peso, e.modo), rir: x.rir, agarre: x.agarre, notas: x.notas, ok: false };
+    if (editando) { e.series[edit.i] = serie; edit = null; }
+    else {
+      if (e.orden == null) e.orden = Math.max(-1, ...S.ejs.map(y => y.orden ?? -1)) + 1;
+      e.series.push(serie); delete borrador[e.id]; borrador[e.id] = { ...x, rir: "", notas: "" };
+      arrancar(e);
+    }
+    cambiado(); pintar();
+  };
+  f.append(modos, fila, cRir, cAg, cNo, err, bot);
+  if (editando) {
+    const acc = el("div", { class: "acciones" });
+    const quitar = el("button", { type: "button", class: "boton" }, "Quitar serie");
+    quitar.onclick = () => { if (!confirm("¿Quitar esta serie de la nota de hoy?")) return; e.series.splice(edit.i, 1); edit = null; cambiado(); pintar(); };
+    const cancelar = el("button", { type: "button", class: "boton" }, "Cancelar");
+    cancelar.onclick = () => { edit = null; pintar(); };
+    acc.append(quitar, cancelar); f.append(acc);
+  }
+  return f;
+}
+
+function tarjeta(e, n) {
+  const abierto = S.abierto === e.id;
+  const c = el("div", { class: "ej" + (abierto ? " abierto" : "") + (e.series.length ? " hecho" : "") });
+  const cab = el("div", { class: "ej-cab" }), t = el("div", { class: "t" });
+  t.append(el("h3", {}, e.nombre));
+  const u = ultimaTxt(e);
+  t.append(el("div", { class: "res" }, e.series.length ? e.series.map(serieTxt).join(", ") : (e.siguiente ? "Qué hacer: " + es(e.siguiente) : u ? "Última vez: " + u.txt : "Sin histórico")));
+  cab.append(el("span", { class: "n" }, String(n).padStart(2, "0")), t, el("span", { class: "n" }, e.series.length ? e.series.length + (e.series.length === 1 ? " serie" : " series") : ""));
+  cab.onclick = () => { S.abierto = abierto ? null : e.id; edit = null; guardarLocal(); pintar(); if (!abierto) c.scrollIntoView({ block: "start", behavior: "smooth" }); };
+  c.append(cab);
+  if (!abierto) return c;
+
+  const cu = el("div", { class: "ej-cuerpo" });
+  if (e.siguiente) { const p = el("p", { class: "dato" }); p.append(el("b", {}, "Qué hacer "), es(e.siguiente)); cu.append(p); }
+  if (u) { const p = el("p", { class: "dato" }); p.append(el("b", {}, "Última vez "), u.txt + " ", el("span", { class: "peq" }, "(" + u.fecha + ")")); cu.append(p); }
+  if (e.carga) { const p = el("p", { class: "dato" }); p.append(el("span", { class: "peq" }, "Estado actual: " + es(e.carga))); cu.append(p); }
+  const i = (e.ej && D.ejercicios[e.ej]) || infoDe(e.nombre);
+  if (i && i.asistido) cu.append(el("p", { class: "dato peq" }, "Asistida: kg de ayuda, menos es mejor."));
+
+  const des = el("div", { class: "descanso" });
+  des.append("Descanso recomendado ", el("b", {}, mmss(e.descanso)));
+  for (const [t2, k] of [["−15", -15], ["+15", 15]]) { const b = el("button", { type: "button", class: "boton" }, t2); b.onclick = () => { e.descanso = Math.max(15, e.descanso + k); guardarLocal(); pintar(); }; des.append(b); }
+  const ya = el("button", { type: "button", class: "boton" }, "Iniciar"); ya.onclick = () => arrancar(e); des.append(ya);
+  cu.append(des);
+
+  if (e.series.length) {
+    const tb = el("table", { class: "series" });
+    e.series.forEach((s, k) => {
+      const tr = el("tr", { class: (edit && edit.id === e.id && edit.i === k ? "editando" : "") + (s.ok ? "" : " pend") });
+      tr.append(el("td", {}, String(k + 1)), el("td", {}, serieTxt(s)), el("td", { class: "tx" }, [s.agarre, s.notas].filter(Boolean).join(", ")));
+      tr.onclick = () => { edit = edit && edit.id === e.id && edit.i === k ? null : { id: e.id, i: k }; pintar(); };
+      tb.append(tr);
+    });
+    cu.append(tb);
+  }
+  cu.append(formulario(e));
+  const acc = el("div", { class: "acciones" });
+  const sig = S.ejs.filter(x => !x.descartado);
+  const pos = sig.indexOf(e);
+  if (pos < sig.length - 1) {
+    const b = el("button", { type: "button", class: "boton" }, "Siguiente ejercicio");
+    b.onclick = () => { S.abierto = sig[pos + 1].id; edit = null; guardarLocal(); pintar(); document.querySelector(".ej.abierto")?.scrollIntoView({ block: "start", behavior: "smooth" }); };
+    acc.append(b);
+  }
+  if (!e.series.length) {
+    const b = el("button", { type: "button", class: "boton" }, "Descartar");
+    b.onclick = () => { e.descartado = true; S.abierto = null; guardarLocal(); pintar(); };
+    acc.append(b);
+  }
+  cu.append(acc);
+  c.append(cu);
+  return c;
+}
+
+function pintar() {
+  const tipo = S.tipo;
+  $("fecha-n").textContent = ddmm(D.fecha);
+  const n = nSeries();
+  $("titulo").textContent = (n ? "" : "Toca ") + SES[tipo];
+  const ult = D.ultima ? `Último entreno: ${D.ultima.sesiones.map(s => SES[s] || s).join(" + ").toLowerCase()} el ${ddmm(D.ultima.fecha)}. ` : "";
+  const ultTipo = D.tipos[tipo]?.ultima ? `Último ${SES[tipo].toLowerCase()}: ${ddmm(D.tipos[tipo].ultima)}. ` : "";
+  $("sub").textContent = (n ? `${n} series apuntadas hoy. ` : tipo === D.toca ? "Por la rotación push → pierna → pull. " + ult : ult) + ultTipo +
+    (tipo === "pull" ? "No hagas pull el día antes o después de escalar." : "");
+
+  const tipos = $("tipos"); tipos.replaceChildren();
+  for (const t of Object.keys(SES)) {
+    const b = el("button", { type: "button", class: t === tipo ? "on" : "" }, SES[t] + (t === D.toca ? "" : ""));
+    b.onclick = () => cambiarTipo(t);
+    tipos.append(b);
+  }
+
+  const P = D.tipos[tipo] || {}, notas = $("notas"); notas.replaceChildren();
+  if (P.orden) notas.append(el("p", {}, "Orden fijo: " + P.orden));
+  for (const t of P.notas || []) notas.append(el("p", {}, t));
+  if ((P.avisos || []).length) {
+    const det = el("details"); det.append(el("summary", {}, `Avisos de ${SES[tipo].toLowerCase()} (${P.avisos.length})`));
+    const ul = el("ul"); for (const a of P.avisos) ul.append(el("li", {}, a)); det.append(ul); notas.append(det);
+  }
+
+  const lista = $("lista"); lista.replaceChildren();
+  const activos = S.ejs.filter(e => !e.descartado);
+  if (!S.abierto && !S.terminada) S.abierto = (activos.find(e => !e.series.length) || activos[0])?.id || null;
+  activos.forEach((e, k) => lista.append(tarjeta(e, k + 1)));
+  if (!activos.length) lista.append(el("div", { class: "celda vacio" }, "Sin ejercicios. Añade uno abajo."));
+
+  const des = S.ejs.filter(e => e.descartado);
+  $("desc-caja").hidden = !des.length;
+  const dc = $("descartados"); dc.replaceChildren("Descartados: ");
+  des.forEach((e, k) => {
+    if (k) dc.append(", ");
+    dc.append(e.nombre + " ");
+    const b = el("button", { type: "button" }, "Recuperar"); b.onclick = () => { e.descartado = false; S.abierto = e.id; guardarLocal(); pintar(); };
+    dc.append(b);
+  });
+
+  const cat = $("catalogo"); if (!cat.children.length) for (const k of Object.keys(D.catalogo).sort((a, b) => a.localeCompare(b, "es"))) cat.append(el("option", { value: k }));
+  $("terminar").textContent = S.terminada ? "Sesión terminada" : "Terminar sesión";
+  if (!pendientes() && !$("estado").textContent) estado(D.hoy.existe ? (n ? "Todo guardado en la nota de hoy" : "") : "La nota de hoy se creará con la primera serie");
+}
+
+function cambiarTipo(t) {
+  if (t === S.tipo) return;
+  if (!nSeries()) {
+    const extra = S.ejs.filter(e => e.series.length || (!D.tipos[S.tipo]?.ejercicios.some(p => mismoEj(e, p.nombre))));
+    S = { ...nuevaSesion(t), huella: S.huella, version: S.version, enviada: S.enviada };
+    for (const e of extra) if (!S.ejs.some(x => mismoEj(x, e.nombre))) S.ejs.push(e);
+  } else {
+    if (!confirm(`Ya hay series apuntadas. ¿Añadir los ejercicios de ${SES[t].toLowerCase()} al final?`)) return;
+    S.tipo = t;
+    for (const p of D.tipos[t]?.ejercicios || []) if (!S.ejs.some(x => mismoEj(x, p.nombre))) S.ejs.push(ejercicio(p));
+  }
+  S.abierto = null; guardarLocal(); pintar();
+}
+
+function anadir() {
+  const nombre = $("nuevo").value.trim();
+  if (!nombre) return;
+  const ya = S.ejs.find(e => plano(e.nombre) === plano(nombre));
+  if (ya) { ya.descartado = false; S.abierto = ya.id; }
+  else {
+    const c = Object.keys(D.catalogo).find(k => plano(k) === plano(nombre));
+    const e = ejercicio({ nombre: c || nombre }); S.ejs.push(e); S.abierto = e.id;
+  }
+  $("nuevo").value = ""; $("nuevo").blur(); guardarLocal(); pintar();
+  document.querySelector(".ej.abierto")?.scrollIntoView({ block: "start", behavior: "smooth" });
+}
+$("anadir").onclick = anadir;
+$("nuevo").addEventListener("keydown", ev => { if (ev.key === "Enter") anadir(); });
+$("terminar").onclick = () => {
+  S.terminada = !S.terminada; if (S.terminada) { S.abierto = null; parar(); try { pantalla?.release(); } catch {} }
+  guardarLocal(); pintar(); enviar();
+  $("fin-txt").textContent = S.terminada ? `${nSeries()} series en la tabla Entreno de la nota de hoy. El cierre diario actualiza el histórico.` : "Sesión abierta otra vez.";
+};
+
+pintar(); tic(); programarPitido(); enviar();
+</script>
+</body>
+</html>

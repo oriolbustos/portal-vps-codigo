@@ -1,0 +1,10 @@
+[Unit]
+StartLimitIntervalSec=0
+Description=Guarda en el vault la serie apuntada en Entreno en directo en cuanto llega
+
+[Path]
+DirectoryNotEmpty=/var/lib/portal/entreno-sesion-pendiente
+Unit=entreno-sesion-guardar.service
+
+[Install]
+WantedBy=paths.target

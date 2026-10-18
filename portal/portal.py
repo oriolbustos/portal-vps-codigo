@@ -19,6 +19,7 @@ import bcrypt
 
 sys.path.insert(0, str(Path(__file__).parent))
 import entreno, listas, tareas, todo, trabajo  # noqa: E402
+import entreno_sesion  # noqa: E402  (Entreno en directo, /entreno/sesion/)
 import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
 
 USUARIO = "oriol"
@@ -469,6 +470,10 @@ class Manejador(BaseHTTPRequestHandler):
             return self.enviar(pagina_portada(), renovado=renovado)
         if ruta.startswith(("/entreno/medidas/", "/entreno/fotos/")) and medidas.get(self, ruta):
             return
+        if ruta == "/entreno/sesion":
+            return self.redirigir("/entreno/sesion/", codigo=301)
+        if ruta == "/entreno/sesion/":
+            return self.enviar(entreno_sesion.html(AQUI / "entreno-sesion.html"), renovado=renovado)
         if ruta == "/entreno":
             return self.redirigir("/entreno/", codigo=301)
         if ruta in ("/entreno/", "/entreno/index.html"):
@@ -544,6 +549,8 @@ class Manejador(BaseHTTPRequestHandler):
             return self.enviar("Origen no permitido", 403)
         if medidas.post(self, urlsplit(self.path).path, lambda: sesion_valida(self.token(), renovar=False)[0]):
             return
+        if urlsplit(self.path).path == "/entreno/sesion/guardar":
+            return self.api_entreno_sesion()
         if urlsplit(self.path).path == "/tareas/operar":
             return self.api_tareas()
         if urlsplit(self.path).path == "/listas/operar":
@@ -573,6 +580,28 @@ class Manejador(BaseHTTPRequestHandler):
             borrar_sesion(self.token())
             return self.redirigir("/login", borrar=True)
         self.enviar("No encontrado", 404)
+
+    def api_entreno_sesion(self):
+        """Entreno en directo: {fecha, huella, filas} → tabla Entreno de la nota del día vía entreno-sesion-guardar."""
+        def responder(codigo, d):
+            datos = json.dumps(d, ensure_ascii=False).encode()
+            self.send_response(codigo)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(datos)))
+            self.cabeceras_comunes()
+            self.end_headers()
+            self.wfile.write(datos)
+        if not sesion_valida(self.token(), renovar=False)[0]:
+            return responder(401, {"ok": False, "mensaje": "Sesión caducada. Vuelve a entrar."})
+        largo = min(int(self.headers.get("Content-Length") or 0), 131072)
+        try:
+            d = json.loads(self.rfile.read(largo))
+        except ValueError:
+            return responder(400, {"ok": False, "mensaje": "Petición no válida."})
+        codigo, r = entreno_sesion.operar(d)
+        if r.get("ok"):
+            log(f"portal: entreno en directo: {len(d.get('filas') or [])} series en {d.get('fecha')}")
+        responder(codigo, r)
 
     def api_tareas(self):
         """Panel Tareas: {op: crear|editar|borrar, ambito, base, ...} → se aplica en la nota del ámbito vía tareas-guardar."""
