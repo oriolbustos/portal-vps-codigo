@@ -7,7 +7,7 @@
 - Finanzas (misma estructura, cifras como •••): /_auth manda a Caddy la cabecera X-Portal-Censura (1/0), Caddy la pasa a la llave
   (/opt/finanzas/llave.py) y la llave lee la clave "finanzas" de este mismo json.
 """
-import html, json, os
+import hashlib, html, json, os, secrets
 from pathlib import Path
 
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
@@ -52,29 +52,40 @@ def panel_oculto(ruta: str, c: dict) -> bool:
 
 
 # ---------- Tareas: sobre lo que devuelve tareas.datos() ----------
-def _nombre(a):
-    return a.get("nombre") if isinstance(a, dict) else a
+SAL = secrets.token_hex(16)  # cambia en cada arranque: los id tapados no dejan adivinar el texto
+
+
+def _tapa(id_real: str) -> tuple:
+    """→ (id falso estable mientras el portal siga encendido, texto "•••" de largo fijo según ese id)."""
+    h = hashlib.sha256((SAL + id_real).encode()).hexdigest()
+    return "x" + h[:11], "•" * (5 + int(h[12], 16) % 10)
 
 
 def tareas(d: dict, c: dict) -> dict:
+    """Los ámbitos ocultos siguen saliendo, pero sus tareas van redactadas: texto, subtareas y notas como
+    "•••" e id falso (el de verdad es una huella del texto). Importancia, urgencia, esfuerzo y estado se ven.
+    Como el id es falso, cualquier cambio sobre ellas falla solo en tareas.operar ("No encuentro esa tarea")."""
     fuera = set(c["ambitos_ocultos"])
     if not isinstance(d, dict) or not fuera:
         return d
     d = dict(d)
-    if isinstance(d.get("ambitos"), list):
-        d["ambitos"] = [a for a in d["ambitos"] if _nombre(a) not in fuera]
     if isinstance(d.get("tareas"), list):
-        d["tareas"] = [t for t in d["tareas"] if not (isinstance(t, dict) and t.get("ambito") in fuera)]
-    if isinstance(d.get("bases"), dict):
-        d["bases"] = {k: v for k, v in d["bases"].items() if k not in fuera}
+        lista = []
+        for x in d["tareas"]:
+            if isinstance(x, dict) and x.get("ambito") in fuera:
+                x = dict(x)
+                x["id"], tapado = _tapa(str(x.get("id", "")))
+                for k in ("texto", "crudo"):
+                    if k in x:
+                        x[k] = tapado
+                for k in ("sub", "notas"):
+                    if isinstance(x.get(k), list):
+                        x[k] = [_tapa(x["id"] + k + str(i))[1] for i in range(len(x[k]))]
+            lista.append(x)
+        d["tareas"] = lista
     if isinstance(d.get("avisos"), list):
         d["avisos"] = [x for x in d["avisos"] if not any(str(x).startswith(f"{a}:") for a in fuera)]
     return d
-
-
-def tareas_permitida(op: dict, c: dict) -> bool:
-    fuera = set(c["ambitos_ocultos"])
-    return not any(isinstance(op.get(k), str) and op[k] in fuera for k in ("ambito", "ambito_nuevo"))
 
 
 # ---------- To Do: sobre lo que devuelve todo.datos() ----------
@@ -165,7 +176,7 @@ def pagina(c: dict, paneles: list, ambitos: list, todo_datos: dict, nombres_list
 <p class="peq secundario" style="max-width:68ch;padding-top:24px">Modo censurado: para enseñar el portal sin lo personal. Se activa con <b>Censurar</b> en la portada y solo afecta a este dispositivo. Lo oculto desaparece sin dejar rastro, y esta página tampoco existe. Para volver al modo completo, cierra sesión y entra con tu contraseña.</p>
 <form method="post" action="/config/">
 {_seccion(1, "Paneles", "Paneles que desaparecen enteros en modo censurado.", s1)}
-{_seccion(2, "Ámbitos", "Ámbitos que se ocultan en Tareas: sus tareas no salen y no se puede mover nada a ellos.", s2)}
+{_seccion(2, "Ámbitos", "Ámbitos cuyas tareas salen redactadas en Tareas: el ámbito se ve, pero el texto, las subtareas y las notas de sus tareas salen como ••• y no se pueden cambiar.", s2)}
 {_seccion(3, "Finanzas", "Cifras que se tapan con ••• en Finanzas (sus gráficas, borrosas). El panel no cambia de forma y gastos, categorías, viajes y suscripciones se ven normal.", s3)}
 {_seccion(4, "To Do", "Grupos y listas que se ocultan.", s4)}
 {_seccion(5, "Listas", "Pestañas de Listas que se ocultan.", s5)}

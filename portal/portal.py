@@ -722,11 +722,8 @@ class Manejador(BaseHTTPRequestHandler):
             d = json.loads(self.rfile.read(largo))
         except ValueError:
             return responder(400, {"ok": False, "mensaje": "Petición no válida."})
-        if censurado(self.token()):
+        if censurado(self.token()):  # las tareas redactadas llevan id falso: tareas.operar no las encuentra
             conf = censura.leer()
-            if not isinstance(d, dict) or not censura.tareas_permitida(d, conf):
-                # mismo mensaje que un ámbito que no existe: nada delata que esté oculto
-                return responder(409, {"ok": False, "mensaje": "Ese ámbito ya no está en Panel.md.", "datos": censura.tareas(tareas.datos(), conf)})
             codigo, r = tareas.operar(d)
             if isinstance(r.get("datos"), dict):
                 r["datos"] = censura.tareas(r["datos"], conf)
