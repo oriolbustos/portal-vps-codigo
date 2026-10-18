@@ -128,13 +128,22 @@ ul.tareas > li.fila:first-child { border-top: 0; }
 ul.tareas .t-abrir { all: unset; box-sizing: border-box; flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; cursor: pointer; }
 ul.tareas .t-abrir:hover .t-texto { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--tinta-2); }
 ul.tareas .t-abrir:focus-visible { outline: 2px solid var(--linea-alta); outline-offset: 2px; }
-/* a la altura de la letra (0,8 em) y centrado en la primera línea: 10px de relleno + media línea (1,5 de interlineado) - medio círculo */
-.t-check { flex: none; font-size: var(--t-base); width: 0.8em; height: 0.8em; margin-top: calc(10px + 0.75em - 0.4em + 1px); padding: 0; border: 1.25px solid var(--tinta-2); border-radius: 50%; background: none; color: var(--tinta-alta); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+/* pequeño (0,66 em) y centrado en la primera línea: 10px de relleno + media línea (1,5 de interlineado) - medio círculo */
+.t-check { flex: none; font-size: var(--t-base); width: 0.66em; height: 0.66em; margin-top: calc(10px + 0.75em - 0.33em + 1px); padding: 0; border: 1.25px solid var(--tinta-2); border-radius: 50%; background: none; color: var(--tinta-alta); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .t-check svg { display: block; opacity: 0; }
 .t-check:hover { border-color: var(--tinta-alta); }
 .t-check:hover svg, .t-check:focus-visible svg { opacity: 0.8; }
 .t-check.marcada { background: var(--tinta-alta); border-color: var(--tinta-alta); color: var(--fondo); }
 .t-check.marcada svg { opacity: 1; }
+/* hechas: al final de cada ámbito en la vista Lista, plegadas como "Completadas" en To Do */
+details.hechas { margin-top: 8px; border-top: 1px solid var(--linea); }
+details.hechas > summary { display: flex; align-items: center; gap: 8px; padding: 10px 0 6px; cursor: pointer; list-style: none; color: var(--tinta-2); }
+details.hechas > summary::-webkit-details-marker { display: none; }
+details.hechas > summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; margin: 0 2px; }
+details.hechas[open] > summary::before { transform: rotate(45deg); }
+details.hechas > summary:hover { color: var(--tinta-alta); }
+ul.tareas.hechas-lista .t-fila { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; }
+ul.tareas.hechas-lista .t-texto { color: var(--tinta-2); text-decoration: line-through; text-decoration-color: var(--linea); }
 ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--acento); margin-right: 8px; vertical-align: 2px; }
 .t-texto { color: var(--tinta-alta); }
 .t-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
@@ -484,14 +493,38 @@ $("g-editar").onclick = () => {
   $("g-editar").setAttribute("aria-expanded", String(abrir));
 };
 
+// hechas de un ámbito (de "## Done", la más reciente arriba): círculo relleno, tocarlo la devuelve a To Do
+const abiertas = new Set();  // ámbitos con "Hechas" desplegado (al cargar, todas plegadas)
+function hechas(a) {
+  const hs = (D.hechas || []).filter(x => x.ambito === a);
+  if (!hs.length) return null;
+  const d = el("details", { class: "hechas" }); d.open = abiertas.has(a);
+  d.ontoggle = () => d.open ? abiertas.add(a) : abiertas.delete(a);
+  d.append(el("summary"));
+  d.firstChild.append(el("span", { class: "etiqueta" }, "Hechas"), el("span", { class: "cuenta" }, String(hs.length)));
+  const ul = el("ul", { class: "tareas hechas-lista" });
+  for (const x of hs) {
+    const li = el("li", { class: "fila" }), ok = el("button", { type: "button", class: "t-check marcada", "aria-label": `Volver a To Do: ${x.texto}`, title: "Volver a To Do" });
+    ok.innerHTML = CHECK;
+    ok.onclick = () => { ok.classList.remove("marcada"); ok.disabled = true; operar({ op: "reabrir", ambito: x.ambito, base: D.bases[x.ambito], id: x.id }, `Vuelve a To Do de ${x.ambito}`); };
+    const f = el("div", { class: "t-fila" }), izq = el("div");
+    izq.append(el("div", { class: "t-texto" }, x.texto));
+    if (x.sub.length || x.notas.length) izq.append(el("div", { class: "t-extra" }, [x.sub.length ? (x.sub.length === 1 ? "1 subtarea" : `${x.sub.length} subtareas`) : "", x.notas.length ? "nota" : ""].filter(Boolean).join(", ")));
+    f.append(izq, el("span", { class: "t-pts" }, x.fecha ? `${x.fecha.slice(8)}-${x.fecha.slice(5, 7)}` : ""));
+    li.append(ok, f); ul.append(li);
+  }
+  d.append(ul);
+  return d;
+}
+
 function porAmbito() {
   const xs = filtradas(true), c = $("lista"); c.replaceChildren();
   for (const a of D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a))) {
-    const s = xs.filter(x => x.ambito === a);
-    if (!s.length && !F.ambitos.includes(a)) continue;
+    const s = xs.filter(x => x.ambito === a), hs = hechas(a);
+    if (!s.length && !hs && !F.ambitos.includes(a)) continue;
     const g = el("div", { class: "grupo-amb" }), h = el("header");
     h.append(el("h2", {}, a), el("span", { class: "cuenta" }, String(s.length)));
-    const ul = el("ul", { class: "tareas" }); lista(ul, s, false); g.append(h, ul); c.append(g);
+    const ul = el("ul", { class: "tareas" }); lista(ul, s, false); g.append(h, ul); if (hs) g.append(hs); c.append(g);
   }
   if (!c.children.length) c.append(el("div", { class: "vacio" }, "Nada con estos filtros"));
 }
@@ -590,7 +623,7 @@ function editar(x, cambios) {
 }
 // completar: la operación se arma al salir de la cola, con el id y la base que dejen los cambios anteriores
 // (el recambio por la abierta, sel, solo si la operación era sobre la abierta: desde una lista podría ser otra)
-function operar(cuerpo, ok) { const id = cuerpo.id, abierta = id === sel; return encolar(() => { if (!id) return cuerpo; const t = tarea(id) || (abierta ? tarea(sel) : null); return t ? { ...cuerpo, ambito: t.ambito, base: D.bases[t.ambito], id: t.id } : null; }, ok); }
+function operar(cuerpo, ok) { const id = cuerpo.id, abierta = id === sel; return encolar(() => { if (!id) return cuerpo; const t = tarea(id) || (D.hechas || []).find(x => x.id === id) || (abierta ? tarea(sel) : null); return t ? { ...cuerpo, ambito: t.ambito, base: D.bases[t.ambito], id: t.id } : null; }, ok); }
 function encolar(hacer, okTxt) {
   pendientes++; rellenar();
   cola = cola.then(async () => {

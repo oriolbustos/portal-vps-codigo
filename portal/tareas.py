@@ -153,17 +153,56 @@ def analizar(nombre: str, lineas: list) -> list:
     return tareas
 
 
+FECHA_HECHA = re.compile(r"\s*✅\s*(\d{4}-\d{2}-\d{2})")
+
+
+def analizar_hechas(nombre: str, lineas: list) -> list:
+    """Tareas de "## Done" (más reciente arriba): "- [x] Texto [imp:: 4] ✅ AAAA-MM-DD" o una viñeta suelta, con sus hijas."""
+    hechas, dentro, actual, vistas = [], False, None, {}
+    for n, linea in enumerate(lineas):
+        if actual is not None:
+            h = _hija(linea)
+            if h:
+                actual["fin"] = n + 1
+                if h[1]:
+                    actual["sub" if h[0] == "sub" else "notas"].append(h[1])
+                continue
+            actual = None
+        if TITULO.match(linea):
+            nivel = len(linea) - len(linea.lstrip("#"))
+            if nivel <= 2:
+                dentro = nivel == 2 and linea[3:].strip().lower() == HECHAS.lower()
+            continue
+        m = re.match(r"^-\s+(.*)$", linea) if dentro else None
+        if not m or m.group(1).startswith("-"):
+            continue
+        crudo = re.sub(r"^\[[ xX/-]\]\s*", "", m.group(1))
+        f = FECHA_HECHA.search(crudo)
+        campos = {k.lower(): int(v) for k, v in CAMPO.findall(crudo)}
+        texto = legible(CAMPO.sub("", FECHA_HECHA.sub("", crudo)))
+        if not texto:
+            continue
+        clave = "h" + huella(nombre, texto)
+        vistas[clave] = vistas.get(clave, 0) + 1
+        actual = {"id": clave if vistas[clave] == 1 else f"{clave}-{vistas[clave]}", "texto": texto, "ambito": nombre,
+                  "fecha": f.group(1) if f else None, "imp": campos.get("imp"), "urg": campos.get("urg"), "esf": campos.get("esf"),
+                  "sub": [], "notas": [], "n": n, "fin": n + 1}
+        hechas.append(actual)
+    return hechas
+
+
 def datos() -> dict:
-    lista, avisos, nombres, bases = [], [], [], {}
+    lista, hechas, avisos, nombres, bases = [], [], [], [], {}
     for nombre, ruta in ambitos():
         nombres.append(nombre)
         try:
             lineas, _, _, base = _leer(ruta)
             bases[nombre] = base
             lista += [{k: v for k, v in t.items() if k not in ("n", "fin", "casilla")} for t in analizar(nombre, lineas)]
+            hechas += [{k: v for k, v in t.items() if k not in ("n", "fin")} for t in analizar_hechas(nombre, lineas)]
         except Exception as e:  # una nota rota no tumba el panel
             avisos.append(f"{nombre}: {e}")
-    return {"ambitos": nombres, "tareas": lista, "bases": bases, "avisos": avisos, "generado": time.strftime("%Y-%m-%d %H:%M")}
+    return {"ambitos": nombres, "tareas": lista, "hechas": hechas, "bases": bases, "avisos": avisos, "generado": time.strftime("%Y-%m-%d %H:%M")}
 
 
 # ---------- escribir ----------
@@ -303,6 +342,18 @@ def aplicar(d: dict):
         _escribir(ruta, base, lineas, nl, final)
         return _id_en(ambito, lineas, pos)
 
+    if op == "reabrir":  # una hecha vuelve al final de "### To Do", sin la casilla ni la fecha de hecha
+        h = next((x for x in analizar_hechas(ambito, lineas) if x["id"] == d.get("id")), None)
+        if not h:
+            raise Error("No encuentro esa tarea en Done; la he recargado.")
+        bloque = lineas[h["n"]:h["fin"]]
+        bloque[0] = FECHA_HECHA.sub("", re.sub(r"^-\s+\[[ xX/-]\]\s*", "- ", bloque[0])).rstrip()
+        del lineas[h["n"]:h["fin"]]
+        pos = _seccion(lineas, "todo")
+        lineas[pos:pos] = bloque
+        _escribir(ruta, base, lineas, nl, final)
+        return _id_en(ambito, lineas, pos)
+
     t = next((x for x in analizar(ambito, lineas) if x["id"] == d.get("id")), None)
     if not t:
         raise Error("No encuentro esa tarea en la nota; la he recargado.")
@@ -358,7 +409,7 @@ def aplicar(d: dict):
 
 
 def operar(d: dict):
-    """d = {op: crear|editar|completar|borrar, ambito, base, id, ...} → (código, respuesta con los datos nuevos)."""
+    """d = {op: crear|editar|completar|reabrir|borrar, ambito, base, id, ...} → (código, respuesta con los datos nuevos)."""
     if not isinstance(d, dict):
         return 400, {"ok": False, "mensaje": "Petición no válida."}
     try:
