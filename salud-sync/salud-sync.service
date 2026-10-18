@@ -1,0 +1,7 @@
+[Unit]
+Description=Sueño y constantes de Google Health (Fitbit) al diario de Entreno
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/salud-sync/sincronizar.py --dias 7

@@ -1,0 +1,93 @@
+services:
+#  mcp-judit:
+#    image: node:22-alpine
+#    user: "1000:1000"
+#    environment:
+#      - HOME=/tmp
+#    command: >
+#      npx -y supergateway
+#      --stdio "npx -y @modelcontextprotocol/server-filesystem /vault"
+#      --outputTransport streamableHttp
+#      --streamableHttpPath /mcp
+#      --port 8000
+#    volumes:
+#      - /srv/vault/entreno-judit:/vault
+#    restart: unless-stopped
+  mcp:
+    image: node:22-alpine
+    user: "1000:1000"
+    mem_limit: 2g
+    pids_limit: 1000
+    environment:
+      - HOME=/tmp
+    command: >
+      npx -y supergateway
+      --stdio "npx -y @modelcontextprotocol/server-filesystem /vault"
+      --outputTransport streamableHttp
+      --streamableHttpPath /mcp
+      --port 8000
+    volumes:
+      - /srv/vault:/vault
+    restart: unless-stopped
+
+  mcp-finanzas:
+    image: node:22-alpine
+    user: "1000:1000"
+    mem_limit: 1g
+    pids_limit: 500
+    environment:
+      - HOME=/tmp
+    command: >
+      npx -y supergateway
+      --stdio "npx -y @modelcontextprotocol/server-filesystem /finanzas/abierto"
+      --outputTransport streamableHttp
+      --streamableHttpPath /mcp
+      --port 8000
+    volumes:
+      - type: bind
+        source: /srv/finanzas
+        target: /finanzas
+        bind:
+          propagation: rslave
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:latest
+    environment:   # rutas secretas de los MCP (en .env, fuera de git)
+      - MCP_VAULT_RUTA=${MCP_VAULT_RUTA}
+      - MCP_JUDIT_RUTA=${MCP_JUDIT_RUTA}
+      - FIN_MCP_TOKEN=${FIN_MCP_TOKEN}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    restart: unless-stopped
+
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Madrid
+    volumes:
+      - ./obsidian-config:/config
+      - /srv/vault:/vault
+    mem_limit: 3g
+    ports:
+      - 127.0.0.1:3000:3000
+    shm_size: "1gb"
+    restart: unless-stopped
+
+  webdav:
+    image: rclone/rclone:latest
+    user: "1000:1000"
+    command: serve webdav /data --addr :8080 --baseurl /webdav --user oriol --pass ${WEBDAV_PASS}
+    volumes:
+      - /srv/vault:/data/vault
+    mem_limit: 256m
+    restart: unless-stopped
+
+volumes:
+  caddy_data:

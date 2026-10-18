@@ -1,0 +1,9 @@
+[Unit]
+Description=Aplica en el vault un cambio del panel Listas en cuanto llega
+
+[Path]
+DirectoryNotEmpty=/var/lib/portal/listas-pendiente
+Unit=listas-guardar.service
+
+[Install]
+WantedBy=paths.target

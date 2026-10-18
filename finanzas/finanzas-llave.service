@@ -1,0 +1,11 @@
+[Unit]
+Description=Llave de la caja de finanzas (gocryptfs, cierre a 12 h, panel)
+After=network-online.target docker.service
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/finanzas/llave.py
+ExecStopPost=-/usr/bin/umount -l /srv/finanzas/abierto
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

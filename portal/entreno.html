@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entreno</title>
+<link rel="stylesheet" href="/estatico/estilo.css">
+<link rel="icon" href="/estatico/iconos/fav-entreno.svg" type="image/svg+xml">
+<style>
+.vista[hidden] { display: none; }
+.celda h3 { font-family: var(--serif); font-size: var(--t-xl); line-height: 1.2; }
+.celda .sub { color: var(--tinta-2); font-size: var(--t-xs); margin-top: 2px; }
+.ej-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ult { font-size: var(--t-sm); margin-top: 6px; }
+.ult b { font-weight: 500; color: var(--tinta-alta); }
+.barra-grupo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 0 0 16px; }
+.pie-panel { margin-top: 32px; font-size: var(--t-xs); color: var(--tinta-2); }
+ul.avisos { margin: 0; padding-left: 18px; font-size: var(--t-sm); color: var(--tinta-2); }
+.prog { height: 4px; background: var(--linea); margin-top: 6px; position: relative; overflow: hidden; }
+.prog i { position: absolute; inset: 0 auto 0 0; background: var(--tinta-alta); }
+.prog.pasado i { background: var(--acento); }
+.cifra .nota.falta { color: var(--tinta-alta); }
+.plan td { vertical-align: top; }
+.plan .ej { color: var(--tinta-alta); font-weight: 500; }
+.plan .peq { display: block; font-size: var(--t-xs); color: var(--tinta-2); margin-top: 2px; }
+.plan .rec { color: var(--tinta-alta); }
+.tendencia { white-space: nowrap; }
+.tendencia span + span::before { content: " → "; color: var(--tinta-2); }
+.notas-plan { margin-top: 12px; font-size: var(--t-sm); color: var(--tinta-2); }
+.notas-plan p + p { margin-top: 6px; }
+details.avisos-plan { margin-top: 12px; font-size: var(--t-sm); }
+details.avisos-plan summary { cursor: pointer; color: var(--tinta-alta); }
+details.avisos-plan ul { margin: 8px 0 0; padding-left: 18px; color: var(--tinta-2); }
+details.avisos-plan li + li { margin-top: 6px; }
+tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid var(--linea-alta); }
+@media (max-width: 600px) { .cabecera .extra { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+<header class="cabecera">
+  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-entreno"></i></span>Entreno</h1></div>
+  <div class="extra"><div class="segmentos" id="filtros"><button data-d="30">30 d</button><button data-d="90">90 d</button><button data-d="0">Todo</button></div></div>
+  <nav class="nav" id="nav">
+    <a href="#resumen">Hoy</a><a href="#cuerpo">Cuerpo</a><a href="#nutricion">Nutrición</a><a href="#actividad">Actividad</a><a href="#fuerza">Fuerza</a><a href="#diario">Diario</a>
+  </nav>
+</header>
+
+<section class="vista" id="v-resumen">
+  <div class="seccion"><span class="n">01</span><h2>Hoy</h2><p id="hoy-sub"></p></div>
+  <div class="rejilla cifras" id="cifras-hoy"></div>
+  <div class="rejilla"><div class="celda"><h3>Comido hoy</h3><p class="sub" id="comidas-sub"></p>
+    <div class="tabla" id="comidas-hoy" style="margin-top:12px"></div></div></div>
+
+  <div class="seccion"><span class="n">02</span><h2 id="plan-titulo">Entreno</h2><p id="plan-sub"></p></div>
+  <div class="rejilla"><div class="celda"><h3 id="plan-h3">Qué hacer</h3><p class="sub" id="plan-h3-sub"></p>
+    <div class="tabla plan" id="plan-hoy" style="margin-top:12px"></div>
+    <div class="notas-plan" id="plan-notas"></div>
+    <div id="plan-avisos"></div></div></div>
+
+  <div class="seccion"><span class="n">03</span><h2>Resumen</h2><p>Cómo vas en el periodo elegido.</p></div>
+  <div class="rejilla cifras" id="cifras-resumen"></div>
+  <div class="rejilla c2">
+    <div class="celda"><h3>Peso</h3><p class="sub">kg, pesadas y media de 7 días</p>
+      <div class="leyenda"><span><i class="linea" style="background:var(--c1)"></i>Pesada</span><span><i class="discontinua" style="border-color:var(--c-tinta)"></i>Media 7 días</span></div>
+      <div class="grafica" id="g-peso-resumen"></div></div>
+    <div class="celda"><h3>Últimas sesiones</h3><p class="sub">Las 6 más recientes del periodo</p>
+      <div class="tabla" id="sesiones-resumen" style="margin-top:12px"></div></div>
+  </div>
+</section>
+
+<section class="vista" id="v-cuerpo" hidden>
+  <div class="seccion"><span class="n">02</span><h2>Cuerpo</h2><p>Peso de cada pesada, su media de 7 días y la media por semana.</p></div>
+  <div class="rejilla cifras" id="cifras-cuerpo"></div>
+  <div class="rejilla">
+    <div class="celda"><h3>Peso</h3><p class="sub">kg</p>
+      <div class="leyenda"><span><i class="linea" style="background:var(--c1)"></i>Pesada</span><span><i class="discontinua" style="border-color:var(--c-tinta)"></i>Media 7 días</span></div>
+      <div class="grafica" id="g-peso"></div></div>
+  </div>
+  <div class="rejilla"><div class="celda"><h3>Por semana</h3><p class="sub">media de las pesadas de cada semana (lunes a domingo)</p><div class="tabla" id="semanas" style="margin-top:12px"></div></div></div>
+</section>
+
+<section class="vista" id="v-nutricion" hidden>
+  <div class="seccion"><span class="n">03</span><h2>Nutrición</h2><p>Lo que comes frente a lo que gastas. Los días sin confirmar pueden tener comidas sin apuntar.</p></div>
+  <div class="rejilla cifras" id="cifras-nutricion"></div>
+  <div class="rejilla">
+    <div class="celda"><h3>Comidas y gasto</h3><p class="sub">kcal/día. Gastadas = basal + actividad</p>
+      <div class="leyenda"><span><i class="linea" style="background:var(--c1)"></i>Comidas</span><span><i class="linea" style="background:var(--c2)"></i>Gastadas</span><span>punto hueco = sin confirmar</span></div>
+      <div class="grafica" id="g-kcal"></div></div>
+  </div>
+  <div class="rejilla c2">
+    <div class="celda"><h3>Balance</h3><p class="sub">kcal/día, comidas menos gastadas</p>
+      <div class="leyenda"><span><i style="background:var(--c3)"></i>Déficit</span><span><i style="background:var(--c2)"></i>Superávit</span><span><i style="background:var(--tinta-2);opacity:.4"></i>Sin confirmar</span></div>
+      <div class="grafica" id="g-balance"></div></div>
+    <div class="celda"><h3>Macros</h3><p class="sub">kcal/día de cada macro (P y C ×4, G ×9)</p>
+      <div class="leyenda"><span><i style="background:var(--c1)"></i>Proteína</span><span><i style="background:var(--c3)"></i>Carbohidratos</span><span><i style="background:var(--c2)"></i>Grasa</span></div>
+      <div class="grafica" id="g-macros"></div></div>
+  </div>
+</section>
+
+<section class="vista" id="v-actividad" hidden>
+  <div class="seccion"><span class="n">04</span><h2>Actividad</h2><p>Pasos (el mayor entre iPhone y Fitbit) y sueño del Versa 4.</p></div>
+  <div class="rejilla cifras" id="cifras-actividad"></div>
+  <div class="rejilla c2">
+    <div class="celda"><h3>Pasos</h3><p class="sub">pasos/día</p><div class="grafica" id="g-pasos"></div></div>
+    <div class="celda"><h3>Sueño</h3><p class="sub">horas/noche. HRV y FC en reposo al pasar por encima</p><div class="grafica" id="g-sueno"></div></div>
+  </div>
+</section>
+
+<section class="vista" id="v-fuerza" hidden>
+  <div class="seccion"><span class="n">05</span><h2>Fuerza</h2><p>Serie top de cada sesión: la más pesada. En dips y dominadas asistidas, la de menos ayuda. Pulsa un punto para ver las series.</p></div>
+  <div class="barra-grupo"><div class="segmentos" id="grupos"></div><span class="peq secundario" id="grupo-nota"></span></div>
+  <div class="rejilla c2" id="ejercicios"></div>
+  <div class="rejilla"><div class="celda"><h3>Sesiones</h3><p class="sub">todas las del periodo</p><div class="tabla" id="sesiones" style="margin-top:12px"></div></div></div>
+</section>
+
+<section class="vista" id="v-diario" hidden>
+  <div class="seccion"><span class="n">06</span><h2>Diario</h2><p>Cada nota diaria tal como la entiende el panel. ✓ = balance confirmado.</p></div>
+  <div class="rejilla"><div class="celda"><div class="tabla" id="tabla-dias"></div></div></div>
+  <div class="rejilla"><div class="celda"><details><summary id="avisos-sum">Datos que no se han podido leer</summary><ul class="avisos" id="avisos"></ul></details></div></div>
+</section>
+
+<p class="pie-panel" id="pie"></p>
+</div>
+<div class="bocadillo" id="tip"></div>
+<script id="datos" type="application/json">/*__DATOS__*/null</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("datos").textContent);
+const SES = { push: "Push", pull: "Pull", pierna: "Pierna", otros: "Otros" };
+const VISTAS = ["resumen", "cuerpo", "nutricion", "actividad", "fuerza", "diario"];
+let dias = 90, grupo = "push";
+try { dias = +(localStorage.getItem("entreno.dias") ?? 90); grupo = localStorage.getItem("entreno.tab") || "push"; } catch (e) {}
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fecha = s => new Date(s + "T12:00:00");
+const ddmm = d => String(d.getDate()).padStart(2, "0") + "-" + String(d.getMonth() + 1).padStart(2, "0");
+const fmt = (v, dec = 0) => v == null || isNaN(v) ? "-" : v.toLocaleString("es-ES", { maximumFractionDigits: dec, minimumFractionDigits: 0 });
+const signo = (v, dec = 0) => v == null ? "-" : (v > 0 ? "+" : v < 0 ? "−" : "") + fmt(Math.abs(v), dec);
+const el = (tag, attrs = {}, txt) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; };
+const svgEl = (tag, attrs = {}) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const media = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const hm = v => v == null ? "-" : Math.floor(v) + "h" + String(Math.round((v % 1) * 60)).padStart(2, "0");
+
+function desde() {
+  const ultimo = D.dias.length ? fecha(D.dias[D.dias.length - 1].fecha) : new Date();
+  if (!dias) return new Date(0);
+  const d = new Date(Math.max(ultimo, new Date())); d.setDate(d.getDate() - dias + 1); d.setHours(0); return d;
+}
+const enRango = f => fecha(f) >= desde();
+
+// ---------- bocadillo ----------
+const tip = document.getElementById("tip");
+function mostrarTip(ev, titulo, filas, nota) {
+  tip.replaceChildren(el("b", {}, titulo));
+  for (const [color, nombre, valor] of filas) {
+    const r = el("div", { class: "fila" }); const a = el("span");
+    if (color) { const k = el("i", { class: "clave" }); k.style.background = color; a.append(k); }
+    a.append(document.createTextNode(nombre)); r.append(a, el("span", {}, valor)); tip.append(r);
+  }
+  if (nota) for (const n of [].concat(nota)) tip.append(el("div", { class: "nota" }, n));
+  tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (x < 8) x = 8;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const ocultarTip = () => { tip.style.display = "none"; };
+document.addEventListener("scroll", ocultarTip, { passive: true });
+
+// ---------- escalas ----------
+function niceTicks(min, max, n = 4) {
+  if (min === max) { min -= 1; max += 1; }
+  const paso0 = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(paso0)));
+  const paso = [1, 2, 2.5, 5, 10].map(m => m * mag).find(p => p >= paso0);
+  const t = []; for (let v = Math.floor(min / paso) * paso; v <= max + paso * 0.001; v += paso) t.push(+v.toFixed(6));
+  if (t[t.length - 1] < max) t.push(t[t.length - 1] + paso);
+  return t;
+}
+const corto = v => Math.abs(v) >= 1000 ? fmt(v / 1000, 1) + "k" : fmt(v, 1);
+function marco(cont, alto, x0, x1, yt, opts = {}) {
+  const W = Math.max(cont.clientWidth, 260), H = alto;
+  const m = { l: opts.ml ?? 40, r: opts.mr ?? 8, t: 10, b: 24 };
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, height: H });
+  const y0 = yt[0], y1 = yt[yt.length - 1];
+  const sx = v => m.l + (x1 === x0 ? (W - m.l - m.r) / 2 : (v - x0) / (x1 - x0) * (W - m.l - m.r));
+  const sy = opts.invertir ? v => m.t + (v - y0) / (y1 - y0) * (H - m.t - m.b) : v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+  for (const v of yt) {
+    const base = (v === 0 && y0 < 0) || v === (opts.invertir ? y1 : y0);
+    svg.append(svgEl("line", { x1: m.l, x2: W - m.r, y1: sy(v), y2: sy(v), stroke: css(base ? "--c-eje" : "--c-rejilla"), "stroke-width": 1 }));
+    const t = svgEl("text", { x: m.l - 8, y: sy(v) + 4, "text-anchor": "end", class: "tick" }); t.textContent = corto(v); svg.append(t);
+  }
+  const span = (x1 - x0) / 864e5, cada = span > 200 ? 60 : span > 100 ? 30 : span > 45 ? 14 : span > 20 ? 7 : span > 8 ? 3 : 1;
+  const d = new Date(x0); d.setHours(12, 0, 0, 0);
+  let ultimoX = -99;
+  for (; d <= x1; d.setDate(d.getDate() + 1)) {
+    const ok = cada >= 30 ? d.getDate() === 1 : cada === 14 ? (d.getDate() === 1 || d.getDate() === 15) : Math.round((d - x0) / 864e5) % cada === 0;
+    if (!ok || sx(+d) - ultimoX < 48) continue;
+    ultimoX = sx(+d);
+    const t = svgEl("text", { x: sx(+d), y: H - 6, "text-anchor": "middle", class: "tick" }); t.textContent = ddmm(d); svg.append(t);
+  }
+  cont.replaceChildren(svg);
+  return { svg, W, H, m, sx, sy };
+}
+function rangoX(fechas) {
+  const ts = fechas.map(f => +fecha(f));
+  let a = Math.min(...ts), b = Math.max(...ts);
+  if (dias) a = Math.min(a, +desde());
+  if (a === b) { a -= 864e5 * 3; b += 864e5 * 3; }
+  return [a, b];
+}
+
+// ---------- líneas ----------
+// series: [{nombre, color, puntos:[{f, y, info, hueco}], dash, puntosVisibles}]
+function lineas(id, series, o = {}) {
+  const cont = document.getElementById(id);
+  const todos = series.flatMap(s => s.puntos);
+  if (!todos.length) { cont.replaceChildren(el("div", { class: "vacio" }, "Sin datos en este periodo")); return; }
+  const [x0, x1] = o.x || rangoX(todos.map(p => p.f));
+  const ys = todos.map(p => p.y);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  if (o.cero) lo = Math.min(0, lo);
+  const pad = (hi - lo) * 0.08 || 1;
+  const yt = niceTicks(o.cero ? lo : lo - pad, hi + pad, o.ticks || 4);
+  const { svg, sx, sy, m, H, W } = marco(cont, o.alto || 220, x0, x1, yt, o);
+  const surf = css("--fondo");
+  for (const s of series) {
+    const col = css(s.color);
+    let d = "", prev = null;
+    for (const p of s.puntos) {
+      const t = +fecha(p.f);
+      d += (prev == null || (o.hueco && (t - prev) / 864e5 > o.hueco) ? "M" : "L") + sx(t).toFixed(1) + "," + sy(p.y).toFixed(1);
+      prev = t;
+    }
+    svg.append(svgEl("path", { d, fill: "none", stroke: col, "stroke-width": s.dash ? 1.5 : 2, "stroke-linejoin": "round", "stroke-linecap": "round", ...(s.dash ? { "stroke-dasharray": "4 4" } : {}) }));
+    if (s.puntosVisibles !== false) for (const p of s.puntos)
+      svg.append(p.hueco
+        ? svgEl("circle", { cx: sx(+fecha(p.f)), cy: sy(p.y), r: 3.5, fill: surf, stroke: col, "stroke-width": 1.5 })
+        : svgEl("circle", { cx: sx(+fecha(p.f)), cy: sy(p.y), r: s.puntos.length > 60 ? 2.5 : 3.5, fill: col, stroke: surf, "stroke-width": 2 }));
+  }
+  const s0 = series[0], ul = s0.puntos[s0.puntos.length - 1];
+  if (ul && o.etiqueta !== false) {
+    const t = svgEl("text", { x: Math.min(sx(+fecha(ul.f)), W - 4), y: sy(ul.y) - 10, "text-anchor": "end", class: "final" });
+    t.textContent = (o.fmtY || (v => fmt(v, 1)))(ul.y); svg.append(t);
+  }
+  const fechas = [...new Set(todos.map(p => p.f))].sort();
+  const cruz = svgEl("line", { y1: m.t, y2: H - m.b, stroke: css("--tinta-2"), "stroke-width": 1, "stroke-dasharray": "2 3", visibility: "hidden" });
+  svg.append(cruz);
+  const hit = svgEl("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" });
+  svg.append(hit);
+  const mover = ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+    let mejor = fechas[0], dist = 1e18;
+    for (const f of fechas) { const dd = Math.abs(sx(+fecha(f)) - px); if (dd < dist) { dist = dd; mejor = f; } }
+    cruz.setAttribute("x1", sx(+fecha(mejor))); cruz.setAttribute("x2", sx(+fecha(mejor))); cruz.setAttribute("visibility", "visible");
+    const filas = [], notas = [];
+    for (const s of series) {
+      const p = s.puntos.find(q => q.f === mejor);
+      filas.push([css(s.color), s.nombre, p ? (o.fmtY || (v => fmt(v, 1)))(p.y) : "-"]);
+      if (p && p.info) notas.push(...[].concat(p.info));
+    }
+    mostrarTip(ev, ddmm(fecha(mejor)) + "-" + mejor.slice(0, 4), filas, notas);
+  };
+  hit.addEventListener("pointermove", mover); hit.addEventListener("pointerdown", mover);
+  hit.addEventListener("pointerleave", () => { cruz.setAttribute("visibility", "hidden"); ocultarTip(); });
+}
+
+// ---------- barras ----------
+// filas: [{f, partes:[{v, color, nombre, txt}], opacidad, titulo, notas}]
+function barras(id, filas, o = {}) {
+  const cont = document.getElementById(id);
+  if (!filas.length) { cont.replaceChildren(el("div", { class: "vacio" }, "Sin datos en este periodo")); return; }
+  const [x0, x1] = rangoX(filas.map(f => f.f));
+  let lo = 0, hi = 0;
+  for (const f of filas) { let pos = 0, neg = 0; for (const p of f.partes) (p.v >= 0 ? pos += p.v : neg += p.v); hi = Math.max(hi, pos); lo = Math.min(lo, neg); }
+  const yt = niceTicks(lo, hi, 4);
+  const g = marco(cont, o.alto || 200, x0 - 864e5 * 0.6, x1 + 864e5 * 0.6, yt, o);
+  const { svg, sx, sy, m } = g;
+  const ancho = Math.max(2, Math.min(16, (sx(x0 + 864e5) - sx(x0)) - 2));
+  for (const f of filas) {
+    const cx = sx(+fecha(f.f));
+    let pos = 0, neg = 0;
+    const grupoSvg = svgEl("g", { opacity: f.opacidad ?? 1 });
+    f.partes.forEach((p, i) => {
+      if (!p.v) return;
+      const a = p.v >= 0 ? pos : neg, b = a + p.v;
+      if (p.v >= 0) pos = b; else neg = b;
+      const yA = sy(a), yB = sy(b), top = Math.min(yA, yB), h = Math.max(1, Math.abs(yA - yB) - (i ? 2 : 0));
+      const ultimo = i === f.partes.length - 1 || f.partes.slice(i + 1).every(q => !q.v);
+      const r = ultimo ? Math.min(3, ancho / 2, h) : 0;
+      const x = cx - ancho / 2, w = ancho;
+      let d;
+      if (p.v >= 0) d = `M${x},${top + h}V${top + r}Q${x},${top} ${x + r},${top}H${x + w - r}Q${x + w},${top} ${x + w},${top + r}V${top + h}Z`;
+      else d = `M${x},${top}V${top + h - r}Q${x},${top + h} ${x + r},${top + h}H${x + w - r}Q${x + w},${top + h} ${x + w},${top + h - r}V${top}Z`;
+      grupoSvg.append(svgEl("path", { d, fill: css(p.color) }));
+    });
+    svg.append(grupoSvg);
+    const hit = svgEl("rect", { x: cx - Math.max(ancho, 12) / 2 - 1, y: m.t, width: Math.max(ancho, 12) + 2, height: g.H - m.t - m.b, fill: "transparent" });
+    const mover = ev => { grupoSvg.setAttribute("opacity", Math.min(1, (f.opacidad ?? 1) + 0.25)); mostrarTip(ev, f.titulo || ddmm(fecha(f.f)), f.partes.filter(p => p.nombre).map(p => [css(p.color), p.nombre, p.txt ?? fmt(p.v)]), f.notas); };
+    hit.addEventListener("pointermove", mover); hit.addEventListener("pointerdown", mover);
+    hit.addEventListener("pointerleave", () => { grupoSvg.setAttribute("opacity", f.opacidad ?? 1); ocultarTip(); });
+    svg.append(hit);
+  }
+}
+
+// ---------- piezas ----------
+function cifras(id, lista) {
+  const c = document.getElementById(id); c.replaceChildren();
+  for (const [lbl, val, unidad, nota] of lista) {
+    const t = el("div", { class: "cifra" }), v = el("span", { class: "valor" }, val);
+    if (unidad && val !== "-") v.append(el("small", {}, unidad));
+    t.append(el("span", { class: "etiqueta" }, lbl), v, el("span", { class: "nota" }, nota || ""));
+    c.append(t);
+  }
+}
+function tabla(id, cabeceras, filas, vacio = "Sin datos en este periodo") {
+  const cont = document.getElementById(id);
+  if (!filas.length) { cont.replaceChildren(el("div", { class: "vacio" }, vacio)); return; }
+  const t = el("table"), h = el("tr");
+  for (const c of cabeceras) h.append(el("th", c.endsWith("#") ? { class: "n" } : {}, c.replace(/#$/, "")));
+  t.append(h);
+  for (const f of filas) {
+    const r = el("tr");
+    f.forEach((x, i) => {
+      const td = el("td", cabeceras[i].endsWith("#") ? { class: "n" } : {});
+      if (x instanceof Node) td.append(x); else td.textContent = x;
+      r.append(td);
+    });
+    t.append(r);
+  }
+  cont.replaceChildren(t);
+}
+const insignias = lista => { const s = el("span"); lista.forEach((x, i) => { if (i) s.append(" "); s.append(el("span", { class: "insignia" }, x)); }); return s; };
+const pesosTodos = () => D.dias.filter(d => d.peso != null).map(d => ({ f: d.fecha, y: d.peso }));
+function mediaMovil(puntos, n = 7) {
+  return puntos.map(p => {
+    const t = +fecha(p.f), win = puntos.filter(q => { const tq = +fecha(q.f); return tq <= t && tq > t - n * 864e5; });
+    return { f: p.f, y: win.reduce((a, q) => a + q.y, 0) / win.length };
+  });
+}
+function graficaPeso(id, alto) {
+  const pesos = pesosTodos();
+  lineas(id, [
+    { nombre: "Pesada", color: "--c1", puntos: pesos.filter(p => enRango(p.f)) },
+    { nombre: "Media 7 días", color: "--c-tinta", puntos: mediaMovil(pesos).filter(p => enRango(p.f)), dash: true, puntosVisibles: false },
+  ], { fmtY: v => fmt(v, 1) + " kg", alto });
+}
+const semanasPeriodo = () => Math.max(1, (dias || Math.max(7, (Date.now() - +fecha(D.dias[0].fecha)) / 864e5)) / 7);
+function datosPeso() {
+  const pesos = D.dias.filter(d => d.peso != null), ult = pesos[pesos.length - 1], enR = pesos.filter(d => enRango(d.fecha));
+  return { ult, cambio: ult && enR.length > 1 ? +(ult.peso - enR[0].peso).toFixed(1) : null, enR };
+}
+function tablaSesiones(id, ds, n) {
+  let ses = ds.filter(d => d.n_series).reverse();
+  if (n) ses = ses.slice(0, n);
+  tabla(id, ["Fecha", "Sesión", "Series#", "Peso#"], ses.map(d => [ddmm(fecha(d.fecha)), insignias((d.sesiones.length ? d.sesiones : ["otros"]).map(s => SES[s] || s)), String(d.n_series), d.peso ? fmt(d.peso, 1) : "-"]), "Sin sesiones en este periodo");
+}
+
+// ---------- hoy: comida frente al objetivo y qué entrenar ----------
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const ROTACION = ["push", "pierna", "pull"];
+const diasEntre = (a, b) => Math.round((fecha(b) - fecha(a)) / 864e5);
+
+function hoy() {
+  const f = iso(new Date()), d = D.dias.find(x => x.fecha === f), O = D.objetivos || {};
+  const entrena = !!(d && d.n_series);
+  const i = entrena ? 0 : 1;
+  document.getElementById("hoy-sub").textContent = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }) +
+    (O.kcal ? (entrena ? ". Día de entreno." : `. Día de descanso (si entrenas, ${fmt(O.kcal[0])} kcal).`) : "");
+  const cont = document.getElementById("cifras-hoy"); cont.replaceChildren();
+  const filas = [["Kcal", d && d.kcal_consumidas, O.kcal, ""], ["Proteína", d && d.prot_total, O.prot, "g"], ["Hidratos", d && d.carb_total, O.carb, "g"],
+    ["Grasa", d && d.grasa_total, O.grasa, "g"], ["Pasos", d && d.pasos, O.pasos, ""]];
+  for (const [lbl, v, obj, u] of filas) {
+    const meta = obj ? obj[i] : null, val = v || 0;
+    const t = el("div", { class: "cifra" }), valor = el("span", { class: "valor" }, fmt(val));
+    if (meta) valor.append(el("small", {}, `/ ${fmt(meta)}${u ? " " + u : ""}`));
+    let nota = "sin objetivo", cls = "nota";
+    if (meta) {
+      const resto = meta - val;
+      if (lbl === "Grasa") nota = resto >= 0 ? `margen ${fmt(resto)} ${u}` : `te pasas ${fmt(-resto)} ${u}`;
+      else if (lbl === "Pasos") nota = resto > 0 ? `faltan ${fmt(resto)}` : "hecho";
+      else nota = resto > 0 ? `faltan ${fmt(resto)}${u ? " " + u : ""}` : `te pasas ${fmt(-resto)}${u ? " " + u : ""}`;
+      if (resto > 0 && lbl !== "Grasa") cls += " falta";
+    }
+    t.append(el("span", { class: "etiqueta" }, lbl), valor, el("span", { class: cls }, nota));
+    if (meta) {
+      const b = el("div", { class: "prog" + (val > meta && lbl !== "Pasos" ? " pasado" : "") }), r = el("i");
+      r.style.width = Math.min(100, val / meta * 100) + "%"; b.append(r); t.append(b);
+    }
+    cont.append(t);
+  }
+  const com = (d && d.comidas) || [];
+  document.getElementById("comidas-sub").textContent = !d ? "Aún no hay nota de hoy." :
+    com.length ? `${com.length} cosas apuntadas` + (d.confirmado ? ", día confirmado" : ", sin confirmar que esté todo") : "Nada apuntado todavía.";
+  const sum = k => com.reduce((a, c) => a + (c[k] || 0), 0);
+  const filasC = com.map(c => [c.hora || "", c.que, fmt(c.kcal), fmt(c.p, 1), fmt(c.c, 1), fmt(c.g, 1)]);
+  tabla("comidas-hoy", ["Hora", "Qué", "kcal#", "P#", "C#", "G#"], filasC, "Sin comidas apuntadas hoy");
+  if (com.length > 1) {
+    const r = el("tr", { class: "total" });
+    for (const [x, n] of [["", 0], ["Total", 0], [fmt(sum("kcal")), 1], [fmt(sum("p"), 1), 1], [fmt(sum("c"), 1), 1], [fmt(sum("g"), 1), 1]]) r.append(el("td", n ? { class: "n" } : {}, x));
+    document.querySelector("#comidas-hoy table").append(r);
+  }
+  planEntreno(f, d);
+}
+
+function planEntreno(f, d) {
+  const ses = D.dias.filter(x => x.sesiones && x.sesiones.length && x.fecha <= f);
+  const hecho = d && d.n_series ? d : null;
+  const previas = ses.filter(x => x.fecha < f);
+  const ultima = hecho || previas[previas.length - 1];
+  const tipoUlt = ultima ? ROTACION.find(t => ultima.sesiones.includes(t)) : null;
+  const toca = tipoUlt ? ROTACION[(ROTACION.indexOf(tipoUlt) + 1) % 3] : "push";
+  const sinFuerza = ultima ? diasEntre(ultima.fecha, f) : null;
+  const tit = document.getElementById("plan-titulo"), sub = document.getElementById("plan-sub");
+  if (hecho) {
+    tit.textContent = `Hoy: ${hecho.sesiones.map(s => SES[s] || s).join(" + ")} hecho`;
+    sub.textContent = `${hecho.n_series} series. El siguiente toca ${SES[toca].toLowerCase()} (rotación push → pierna → pull).`;
+  } else {
+    tit.textContent = `Hoy toca: ${SES[toca]}`;
+    const notas = [ultima ? `Último entreno: ${SES[tipoUlt] || "otro"} el ${ddmm(fecha(ultima.fecha))} (hace ${sinFuerza} ${sinFuerza === 1 ? "día" : "días"}).` : "", "Rotación push → pierna → pull."];
+    if (toca === "pull") notas.push("No hagas pull el día antes o después de escalar.");
+    if (sinFuerza >= 5) notas.push("Llevas 5 días o más sin fuerza: no subas carga hasta ver el RIR de la primera serie.");
+    sub.textContent = notas.filter(Boolean).join(" ");
+  }
+  const E = (D.sesiones_estado || {})[toca] || { estado: [], notas: [], avisos: [] };
+  const ultTipo = ses.filter(x => x.sesiones.includes(toca)).pop();
+  document.getElementById("plan-h3").textContent = `${SES[toca]}: qué hacer`;
+  document.getElementById("plan-h3-sub").textContent = (ultTipo ? `Último ${SES[toca].toLowerCase()}: ${ddmm(fecha(ultTipo.fecha))}. ` : "") +
+    "Recomendación del histórico de la sesión (la actualiza el cierre diario); tendencia = serie top de las 3 últimas veces.";
+  const porEj = Object.fromEntries(D.ejercicios.map(e => [e.ej, e]));
+  // orden fijo si la nota lo da ("Orden fijo ...: dips → elevaciones laterales → ...")
+  const orden = ((E.notas.find(n => /^orden fijo/i.test(n)) || "").split(":").slice(1).join(":")).split("→").map(x => plano(x.replace(/\.$/, "").trim())).filter(Boolean);
+  const pos = r => { const i = orden.findIndex(o => plano(r.nombre).includes(o) || plano(r.ej).includes(o)); return i < 0 ? 99 : i; };
+  const filasE = E.estado.map((r, i) => ({ ...r, i })).sort((a, b) => pos(a) - pos(b) || a.i - b.i);
+  const vistos = new Set(filasE.map(r => r.ej));
+  if (ultTipo) for (const e of D.ejercicios) if (e.sesion === toca && !vistos.has(e.ej) && e.puntos.some(p => p.fecha === ultTipo.fecha))
+    filasE.push({ ej: e.ej, nombre: e.ej, carga: "", siguiente: "" });
+  const filas = filasE.map(r => {
+    const e = porEj[r.ej], pts = e ? e.puntos : [];
+    const ult = pts.length ? pts[pts.length - 1] : null;
+    const nombre = el("div"); nombre.append(el("span", { class: "ej" }, r.nombre));
+    const ultCel = el("div");
+    if (ult) {
+      ultCel.append(el("span", {}, ult.series.map(([reps, kg]) => `${kg} ×${reps}`).join(", ")));
+      ultCel.append(el("span", { class: "peq" }, ddmm(fecha(ult.fecha)) + (ult.rir_min != null ? `, RIR mín ${ult.rir_min}` : "")));
+    } else ultCel.textContent = "-";
+    const tend = el("div", { class: "tendencia" });
+    for (const p of pts.slice(-3)) tend.append(el("span", { title: ddmm(fecha(p.fecha)) }, p.kg != null ? fmt(p.kg, 1) + "×" + (p.reps ?? "?") : (p.reps ?? "-") + (p.seg ? " s" : "")));
+    if (!pts.length) tend.textContent = "-";
+    if (e && e.asistido && pts.length) tend.append(el("div", { class: "peq" }, "kg de ayuda: menos es mejor"));
+    const rec = el("div"); rec.append(el("span", { class: "rec" }, r.siguiente || "-"));
+    if (r.carga) rec.append(el("span", { class: "peq" }, "Ahora: " + r.carga));
+    return [nombre, ultCel, tend, rec];
+  });
+  tabla("plan-hoy", ["Ejercicio", "Última vez", "Tendencia", "Qué hacer"], filas, `No hay estado de ${SES[toca].toLowerCase()} en el histórico`);
+  const notas = document.getElementById("plan-notas"); notas.replaceChildren();
+  for (const n of E.notas.filter(n => !/^orden fijo/i.test(n))) notas.append(el("p", {}, n));
+  if (orden.length) notas.append(el("p", {}, "Orden: " + (E.notas.find(n => /^orden fijo/i.test(n)) || "").split(":").slice(1).join(":").trim()));
+  const av = document.getElementById("plan-avisos"); av.replaceChildren();
+  if (E.avisos.length) {
+    const det = el("details", { class: "avisos-plan" }); det.append(el("summary", {}, `Avisos de ${SES[toca].toLowerCase()} (${E.avisos.length})`));
+    const ul = el("ul"); for (const a of E.avisos) ul.append(el("li", {}, a)); det.append(ul); av.append(det);
+  }
+}
+const plano = s => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// ---------- secciones ----------
+const VISTA = {
+  resumen(ds) {
+    hoy();
+    const { ult, cambio } = datosPeso();
+    const bal = ds.filter(d => d.balance != null), conf = bal.filter(d => d.confirmado);
+    const pm = media(ds.filter(d => d.prot_total).map(d => d.prot_total));
+    const pasos = ds.filter(d => d.pasos), ses = ds.filter(d => d.sesiones && d.sesiones.length);
+    const sueno = ds.filter(d => d.sueno);
+    cifras("cifras-resumen", [
+      ["Último peso", ult ? fmt(ult.peso, 1) : "-", "kg", ult ? ddmm(fecha(ult.fecha)) + (cambio != null ? `, ${signo(cambio, 1)} en el periodo` : "") : ""],
+      ["Balance medio", bal.length ? signo(Math.round(media(bal.map(d => d.balance)))) : "-", "kcal", `${bal.length} días, ${conf.length} confirmados`],
+      ["Proteína media", pm ? fmt(pm) : "-", "g", pm && ult ? fmt(pm / ult.peso, 1) + " g/kg" : ""],
+      ["Pasos medios", pasos.length ? fmt(media(pasos.map(d => d.pasos))) : "-", "", `${pasos.length} días con pasos`],
+      ["Sueño medio", sueno.length ? hm(media(sueno.map(d => d.sueno))) : "-", "", `${sueno.length} noches`],
+      ["Sesiones", fmt(ses.length / semanasPeriodo(), 1), "/sem", `${ses.length} en el periodo`],
+    ]);
+    graficaPeso("g-peso-resumen", 200);
+    tablaSesiones("sesiones-resumen", ds, 6);
+  },
+  cuerpo(ds) {
+    const { ult, cambio, enR } = datosPeso();
+    const ultimos7 = enR.filter(d => fecha(d.fecha) > new Date(+fecha(ult ? ult.fecha : "2000-01-01") - 7 * 864e5));
+    cifras("cifras-cuerpo", [
+      ["Último peso", ult ? fmt(ult.peso, 1) : "-", "kg", ult ? ddmm(fecha(ult.fecha)) : ""],
+      ["Cambio en el periodo", cambio != null ? signo(cambio, 1) : "-", "kg", enR.length ? `desde ${ddmm(fecha(enR[0].fecha))}` : ""],
+      ["Media últimos 7 días", ultimos7.length ? fmt(media(ultimos7.map(d => d.peso)), 1) : "-", "kg", `${ultimos7.length} pesadas`],
+      ["Mínimo del periodo", enR.length ? fmt(Math.min(...enR.map(d => d.peso)), 1) : "-", "kg", ""],
+    ]);
+    graficaPeso("g-peso", 300);
+    // media por semana (lunes a domingo)
+    const sem = new Map();
+    for (const d of enR) {
+      const f = fecha(d.fecha), lunes = new Date(f); lunes.setDate(f.getDate() - ((f.getDay() + 6) % 7));
+      const k = lunes.toISOString().slice(0, 10);
+      (sem.get(k) || sem.set(k, []).get(k)).push(d.peso);
+    }
+    const filas = [...sem.entries()].sort().map(([k, v]) => ({ k, m: media(v), n: v.length }));
+    tabla("semanas", ["Semana del", "Pesadas#", "Media kg#", "Cambio#"], filas.map((s, i) => [ddmm(fecha(s.k)), String(s.n), fmt(s.m, 1), i ? signo(+(s.m - filas[i - 1].m).toFixed(1), 1) : "-"]).reverse());
+  },
+  nutricion(ds) {
+    const bal = ds.filter(d => d.balance != null), conf = bal.filter(d => d.confirmado);
+    const com = ds.filter(d => d.kcal_consumidas != null), gas = ds.filter(d => d.kcal_gastadas != null);
+    const pm = media(ds.filter(d => d.prot_total).map(d => d.prot_total)), { ult } = datosPeso();
+    cifras("cifras-nutricion", [
+      ["Comidas", com.length ? fmt(media(com.map(d => d.kcal_consumidas))) : "-", "kcal/día", `${com.length} días apuntados`],
+      ["Gasto", gas.length ? fmt(media(gas.map(d => d.kcal_gastadas))) : "-", "kcal/día", `${gas.length} días`],
+      ["Balance medio", bal.length ? signo(Math.round(media(bal.map(d => d.balance)))) : "-", "kcal", `${conf.length} de ${bal.length} confirmados`],
+      ["Proteína", pm ? fmt(pm) : "-", "g/día", pm && ult ? fmt(pm / ult.peso, 1) + " g/kg" : ""],
+    ]);
+    const info = d => [d.confirmado ? null : "Sin confirmar", d.cheat ? "Cheat" : null, d.hipo ? `${d.hipo} hipo` : null, d.deporte && d.deporte.length ? d.deporte.join(" · ") : null].filter(Boolean);
+    lineas("g-kcal", [
+      { nombre: "Comidas", color: "--c1", puntos: com.map(d => ({ f: d.fecha, y: d.kcal_consumidas, info: info(d), hueco: !d.confirmado })) },
+      { nombre: "Gastadas", color: "--c2", puntos: gas.map(d => ({ f: d.fecha, y: d.kcal_gastadas })) },
+    ], { cero: true, hueco: 3, fmtY: v => fmt(v) + " kcal", alto: 260 });
+    barras("g-balance", bal.map(d => ({
+      f: d.fecha, opacidad: d.confirmado ? 1 : 0.4,
+      partes: [{ v: d.balance, color: d.balance < 0 ? "--c3" : "--c2", nombre: "Balance", txt: signo(d.balance) + " kcal" }],
+      notas: [d.confirmado ? "Confirmado" : "Sin confirmar", `Comidas ${fmt(d.kcal_consumidas)} · gastadas ${fmt(d.kcal_gastadas)}`],
+    })));
+    barras("g-macros", ds.filter(d => d.prot_total || d.carb_total || d.grasa_total).map(d => ({
+      f: d.fecha, opacidad: d.confirmado ? 1 : 0.6,
+      partes: [
+        { v: (d.prot_total || 0) * 4, color: "--c1", nombre: "Proteína", txt: fmt(d.prot_total, 1) + " g" },
+        { v: (d.carb_total || 0) * 4, color: "--c3", nombre: "Carbohidratos", txt: fmt(d.carb_total, 1) + " g" },
+        { v: (d.grasa_total || 0) * 9, color: "--c2", nombre: "Grasa", txt: fmt(d.grasa_total, 1) + " g" },
+      ],
+      notas: [`${fmt(d.kcal_consumidas)} kcal apuntadas`].concat(d.confirmado ? [] : ["Sin confirmar"]),
+    })));
+  },
+  actividad(ds) {
+    const pasos = ds.filter(d => d.pasos), sueno = ds.filter(d => d.sueno);
+    const hrv = ds.filter(d => d.hrv), fc = ds.filter(d => d.fc_reposo);
+    cifras("cifras-actividad", [
+      ["Pasos medios", pasos.length ? fmt(media(pasos.map(d => d.pasos))) : "-", "", `${pasos.length} días`],
+      ["Días de 10.000 o más", String(pasos.filter(d => d.pasos >= 10000).length), "", pasos.length ? `de ${pasos.length}` : ""],
+      ["Sueño medio", sueno.length ? hm(media(sueno.map(d => d.sueno))) : "-", "", `${sueno.length} noches`],
+      ["HRV media", hrv.length ? fmt(media(hrv.map(d => d.hrv))) : "-", "ms", fc.length ? `FC reposo ${fmt(media(fc.map(d => d.fc_reposo)))}` : ""],
+    ]);
+    barras("g-pasos", pasos.map(d => ({ f: d.fecha, partes: [{ v: d.pasos, color: "--c-tinta", nombre: "Pasos" }] })));
+    lineas("g-sueno", [{ nombre: "Sueño", color: "--c-tinta", puntos: sueno.map(d => ({ f: d.fecha, y: d.sueno,
+      info: [d.hrv ? "HRV " + fmt(d.hrv) : null, d.fc_reposo ? "FC reposo " + fmt(d.fc_reposo) : null].filter(Boolean) })) }],
+      { hueco: 3, fmtY: hm });
+  },
+  fuerza(ds) {
+    ejercicios();
+    tablaSesiones("sesiones", ds);
+  },
+  diario(ds) {
+    const cols = [["Peso", "peso", 1], ["Comidas", "kcal_consumidas"], ["Gastadas", "kcal_gastadas"], ["Balance", "balance"], ["P", "prot_total"], ["C", "carb_total"], ["G", "grasa_total"], ["Pasos", "pasos"]];
+    tabla("tabla-dias", ["Fecha", ...cols.map(c => c[0] + "#"), "Sueño#", "Fuerza"], ds.slice().reverse().map(d => [
+      ddmm(fecha(d.fecha)) + (d.confirmado ? " ✓" : ""),
+      ...cols.map(c => c[1] === "balance" ? signo(d.balance) : fmt(d[c[1]], c[2] || 0)),
+      d.sueno ? hm(d.sueno) : "-",
+      d.n_series ? `${d.sesiones.map(s => SES[s]).join(" + ")} (${d.n_series})` : "",
+    ]));
+  },
+};
+
+function cargaTxt(p, asistido) {
+  if (p.kg == null) return p.reps != null ? p.reps + (p.seg ? " s" : " reps") + " (sin carga)" : "sin datos";
+  return fmt(p.kg, 1) + " kg" + (asistido ? " ayuda" : "") + (p.nota_kg ? ` (${p.nota_kg})` : "") + (p.reps != null ? " × " + p.reps + (p.seg ? " s" : "") : "");
+}
+
+function ejercicios() {
+  const segs = document.getElementById("grupos"), cont = document.getElementById("ejercicios");
+  const conDatos = D.ejercicios.map(e => ({ ...e, pr: e.puntos.filter(p => enRango(p.fecha)) })).filter(e => e.pr.length);
+  const grupos = ["push", "pull", "pierna", "otros"].filter(s => conDatos.some(e => e.sesion === s));
+  if (!grupos.includes(grupo)) grupo = grupos[0] || "push";
+  segs.replaceChildren();
+  for (const s of grupos) {
+    const b = el("button", s === grupo ? { class: "on" } : {}, SES[s]);
+    b.onclick = () => { grupo = s; try { localStorage.setItem("entreno.tab", s); } catch (e) {} ejercicios(); };
+    segs.append(b);
+  }
+  const lista = conDatos.filter(e => e.sesion === grupo)
+    .sort((a, b) => b.pr[b.pr.length - 1].fecha.localeCompare(a.pr[a.pr.length - 1].fecha) || b.pr.length - a.pr.length);
+  document.getElementById("grupo-nota").textContent = lista.length ? `${lista.length} ejercicios, los más recientes primero` : "";
+  cont.replaceChildren();
+  if (!lista.length) { cont.append(el("div", { class: "celda vacio" }, "Sin sesiones en este periodo")); return; }
+  lista.forEach((e, i) => {
+    const card = el("div", { class: "celda" });
+    const top = el("div", { class: "ej-top" });
+    top.append(el("h3", {}, e.ej), el("span", { class: "mini secundario mono" }, `${e.pr.length} ses.`));
+    card.append(top);
+    if (e.asistido) card.append(el("p", { class: "sub" }, "kg de ayuda: menos es mejor (eje invertido)"));
+    else if (e.nombres.length > 1) card.append(el("p", { class: "sub", title: e.nombres.join(" · ") }, `${e.nombres.length} variantes`));
+    const ul = e.pr[e.pr.length - 1];
+    const u = el("p", { class: "ult" }); u.append("Última: ", el("b", {}, cargaTxt(ul, e.asistido)), ` · ${ddmm(fecha(ul.fecha))} · ${ul.n} series` + (ul.rir_min != null ? ` · RIR mín ${fmt(ul.rir_min, 1)}` : ""));
+    card.append(u);
+    const id = "ej-" + i;
+    card.append(el("div", { class: "grafica", id }));
+    const det = el("details", { style: "margin-top:12px" }); det.append(el("summary", {}, "Ver sesiones"));
+    const tw = el("div", { class: "tabla", id: id + "-t" }); det.append(tw); card.append(det);
+    cont.append(card);
+    tabla(id + "-t", ["Fecha", "Series (reps × kg)", "RIR#", "Notas"], e.pr.slice().reverse().map(p => [
+      ddmm(fecha(p.fecha)), p.series.map(s => `${s[0] || "?"} × ${s[1] || "-"}`).join(", "), p.rir_min != null ? fmt(p.rir_min, 1) : "-", p.series.map(s => s[2]).filter(Boolean).join(". ")]));
+    const pts = e.pr.filter(p => p.kg != null), usarReps = !pts.length;
+    const puntos = (usarReps ? e.pr.filter(p => p.reps != null).map(p => ({ ...p, kg: p.reps })) : pts).map(p => ({
+      f: p.fecha, y: p.kg,
+      info: [cargaTxt(usarReps ? { ...p, kg: null } : p, e.asistido), `${p.n} series` + (p.rir_min != null ? ` · RIR mín ${fmt(p.rir_min, 1)}` : "")]
+        .concat(p.series.map(s => `${s[0] || "?"} × ${s[1] || "-"}${s[2] ? " · " + s[2] : ""}`)),
+    }));
+    lineas(id, [{ nombre: usarReps ? "Reps top" : (e.asistido ? "Ayuda" : "Carga top"), color: "--c-tinta", puntos }],
+      { alto: 170, invertir: e.asistido, ml: 36, fmtY: v => usarReps ? fmt(v) + " reps" : fmt(v, 1) + " kg", x: rangoX(e.pr.map(p => p.fecha)) });
+  });
+}
+
+// ---------- navegación ----------
+const vistaActual = () => VISTAS.includes(location.hash.slice(1)) ? location.hash.slice(1) : VISTAS[0];
+function pintar() {
+  const v = vistaActual();
+  for (const s of VISTAS) document.getElementById("v-" + s).hidden = s !== v;
+  for (const a of document.querySelectorAll("#nav a")) a.classList.toggle("aqui", a.getAttribute("href") === "#" + v);
+  ocultarTip();
+  VISTA[v](D.dias.filter(d => enRango(d.fecha)));
+}
+addEventListener("hashchange", () => { pintar(); scrollTo(0, 0); });
+for (const b of document.querySelectorAll("#filtros button")) {
+  b.classList.toggle("on", +b.dataset.d === dias);
+  b.onclick = () => {
+    dias = +b.dataset.d; try { localStorage.setItem("entreno.dias", dias); } catch (e) {}
+    document.querySelectorAll("#filtros button").forEach(x => x.classList.toggle("on", x === b));
+    pintar();
+  };
+}
+(function avisos() {
+  const ul = document.getElementById("avisos"); let n = 0;
+  for (const d of D.dias.slice().reverse()) for (const a of d.avisos || []) { ul.append(el("li", {}, `${d.fecha}: ${a}`)); n++; }
+  document.getElementById("avisos-sum").textContent = `Datos que no se han podido leer (${n})`;
+  document.getElementById("pie").textContent = `${D.dias.length} notas diarias · generado ${D.generado} desde 40 - Entreno/20-diario. `;
+  const a = el("a", { href: "/entreno/clasico/", class: "enlace" }, "versión anterior"); document.getElementById("pie").append(a);
+})();
+pintar();
+let ancho = innerWidth, espera;
+addEventListener("resize", () => { if (innerWidth === ancho) return; ancho = innerWidth; clearTimeout(espera); espera = setTimeout(pintar, 150); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", pintar);
+</script>
+</body>
+</html>

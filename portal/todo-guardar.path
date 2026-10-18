@@ -1,0 +1,9 @@
+[Unit]
+Description=Guarda en el vault la nota de To Do editada en el portal en cuanto llega
+
+[Path]
+DirectoryNotEmpty=/var/lib/portal/todo-pendiente
+Unit=todo-guardar.service
+
+[Install]
+WantedBy=paths.target

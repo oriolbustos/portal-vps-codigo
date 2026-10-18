@@ -1,0 +1,9 @@
+[Unit]
+Description=Sincroniza en cuanto llegan los pasos del iPhone
+
+[Path]
+PathChanged=/var/lib/portal/pasos-iphone.json
+Unit=salud-sync.service
+
+[Install]
+WantedBy=paths.target

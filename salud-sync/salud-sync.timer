@@ -1,0 +1,11 @@
+[Unit]
+Description=Sincroniza Google Health con el diario dos veces al día
+
+[Timer]
+OnCalendar=*-*-* 10:30:00 Europe/Madrid
+OnCalendar=*-*-* 21:30:00 Europe/Madrid
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+[Unit]
+Description=Escribe en el vault los CV editados desde el portal
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/portal/cv-guardar.py

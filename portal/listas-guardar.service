@@ -1,0 +1,6 @@
+[Unit]
+Description=Aplica en el vault los cambios del panel Listas
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/portal/listas-guardar.py

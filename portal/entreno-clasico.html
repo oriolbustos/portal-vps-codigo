@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entreno</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --wash: rgba(42,120,214,0.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --wash: rgba(57,135,229,0.12);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --wash: rgba(57,135,229,0.12);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { position: sticky; top: 0; z-index: 5; background: var(--page); border-bottom: 1px solid var(--border); }
+header .in { max-width: 1180px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+header a.volver { color: var(--ink-2); text-decoration: none; font-size: 13px; }
+h1 { font-size: 20px; margin: 0; font-weight: 600; flex: 1; }
+.filtros { display: flex; gap: 4px; }
+.filtros button, .tabs button { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.filtros button.on, .tabs button.on { background: var(--ink); color: var(--page); border-color: var(--ink); }
+main { max-width: 1180px; margin: 0 auto; padding: 16px 16px 64px; }
+h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+h3.sec { font-size: 17px; margin: 28px 0 10px; font-weight: 600; }
+.sub { color: var(--ink-2); font-size: 13px; margin: 0 0 10px; }
+.meta { color: var(--muted); font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 12px; margin-bottom: 16px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.tile .lbl { color: var(--ink-2); font-size: 13px; }
+.tile .val { font-size: 24px; font-weight: 600; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.tile .delta { font-size: 12px; color: var(--ink-2); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.grid2 > .card { margin-bottom: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-2); margin: 4px 0 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend i.line { height: 2px; border-radius: 1px; vertical-align: 3px; width: 14px; }
+.legend i.dash { height: 0; border-top: 2px dashed; background: none !important; vertical-align: 3px; width: 14px; border-radius: 0; }
+.chart { position: relative; width: 100%; touch-action: pan-y; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.endlbl { fill: var(--ink-2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 8px; padding: 8px 10px; font-size: 12px; z-index: 30; display: none; min-width: 150px; max-width: 280px; }
+.tip b { display: block; margin-bottom: 4px; }
+.tip .row { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; }
+.tip .row span:first-child { color: var(--ink-2); }
+.tip .row span:last-child { font-weight: 600; }
+.tip .key { display: inline-block; width: 12px; height: 2px; margin-right: 6px; vertical-align: 3px; }
+.tip .nota { color: var(--ink-2); margin-top: 4px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+.ejtop { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.sub.corta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ult { font-size: 13px; color: var(--ink-2); margin: 2px 0 4px; font-variant-numeric: tabular-nums; }
+.ult b { color: var(--ink); }
+details { margin-top: 6px; }
+summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+.tabla { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+td.n { text-align: right; white-space: nowrap; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; background: var(--wash); color: var(--ink-2); font-size: 11px; margin-right: 4px; }
+.vacio { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
+ul.avisos { margin: 6px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 12px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } .tile .val { font-size: 21px; } h1 { font-size: 18px; } }
+</style>
+</head>
+<body>
+<header><div class="in">
+  <a class="volver" href="/">← Portal</a>
+  <h1>Entreno</h1>
+  <div class="filtros" id="filtros">
+    <button data-d="30">30 d</button><button data-d="90" class="on">90 d</button><button data-d="0">Todo</button>
+  </div>
+</div></header>
+<main>
+  <div class="tiles" id="tiles"></div>
+
+  <div class="grid2">
+    <div class="card"><h2>Peso</h2><p class="sub">kg · días con pesada y media de 7 días</p>
+      <div class="legend"><span><i class="line" style="background:var(--s1)"></i>Pesada</span><span><i class="dash" style="border-color:var(--s2)"></i>Media 7 días</span></div>
+      <div class="chart" id="c-peso"></div></div>
+    <div class="card"><h2>Kcal comidas vs gastadas</h2><p class="sub">kcal/día · gastadas = basal + actividad</p>
+      <div class="legend"><span><i class="line" style="background:var(--s1)"></i>Comidas</span><span><i class="line" style="background:var(--s2)"></i>Gastadas</span><span>○ comidas sin confirmar (puede faltar algo)</span></div>
+      <div class="chart" id="c-kcal"></div></div>
+    <div class="card"><h2>Balance</h2><p class="sub">kcal/día · comidas − gastadas (negativo = déficit)</p>
+      <div class="legend"><span><i style="background:var(--s3)"></i>Déficit</span><span><i style="background:var(--s2)"></i>Superávit</span><span><i style="background:var(--muted);opacity:.45"></i>Sin confirmar (pálido)</span></div>
+      <div class="chart" id="c-balance"></div></div>
+    <div class="card"><h2>Macros</h2><p class="sub">kcal/día que aporta cada macro (P y C ×4, G ×9)</p>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Proteína</span><span><i style="background:var(--s4)"></i>Carbohidratos</span><span><i style="background:var(--s2)"></i>Grasa</span></div>
+      <div class="chart" id="c-macros"></div></div>
+    <div class="card"><h2>Pasos</h2><p class="sub">pasos/día</p>
+      <div class="chart" id="c-pasos"></div></div>
+    <div class="card"><h2>Sueño</h2><p class="sub">horas/noche (Fitbit) · HRV y FC reposo en el detalle</p>
+      <div class="chart" id="c-sueno"></div></div>
+    <div class="card"><h2>Sesiones de fuerza</h2><p class="sub">últimas sesiones del periodo</p>
+      <div class="tabla" id="sesiones"></div></div>
+  </div>
+
+  <h3 class="sec">Cargas por ejercicio</h3>
+  <p class="sub">Serie top de cada sesión (la más pesada; en dips y dominadas asistidas, la de menos ayuda). Pulsa un punto para ver todas las series.</p>
+  <div class="tabs" id="tabs"></div>
+  <div class="grid2" id="ejercicios"></div>
+
+  <div class="card" style="margin-top:16px">
+    <details><summary>Tabla día a día</summary><div class="tabla" id="tabla-dias"></div></details>
+    <details><summary id="avisos-sum">Datos que no se han podido leer</summary><ul class="avisos" id="avisos"></ul></details>
+  </div>
+  <p class="meta" id="pie"></p>
+</main>
+<div class="tip" id="tip"></div>
+<script id="datos" type="application/json">/*__DATOS__*/null</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("datos").textContent);
+const SES = { push: "Push", pull: "Pull", pierna: "Pierna", otros: "Otros" };
+let dias = 90, tab = "push";
+try { dias = +(localStorage.getItem("entreno.dias") ?? 90); tab = localStorage.getItem("entreno.tab") || "push"; } catch (e) {}
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fecha = s => new Date(s + "T12:00:00");
+const ddmm = d => String(d.getDate()).padStart(2, "0") + "-" + String(d.getMonth() + 1).padStart(2, "0");
+const fmt = (v, dec = 0) => v == null || isNaN(v) ? "—" : v.toLocaleString("es-ES", { maximumFractionDigits: dec, minimumFractionDigits: 0 });
+const signo = v => v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + fmt(Math.abs(v));
+const el = (tag, attrs = {}, txt) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; };
+const svgEl = (tag, attrs = {}) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+function desde() {
+  const ultimo = D.dias.length ? fecha(D.dias[D.dias.length - 1].fecha) : new Date();
+  if (!dias) return new Date(0);
+  const d = new Date(Math.max(ultimo, new Date())); d.setDate(d.getDate() - dias + 1); d.setHours(0); return d;
+}
+const enRango = f => fecha(f) >= desde();
+
+// ---------- tooltip ----------
+const tip = document.getElementById("tip");
+function mostrarTip(ev, titulo, filas, nota) {
+  tip.replaceChildren(el("b", {}, titulo));
+  for (const [color, nombre, valor] of filas) {
+    const r = el("div", { class: "row" }); const a = el("span");
+    if (color) { const k = el("i", { class: "key" }); k.style.background = color; a.append(k); }
+    a.append(document.createTextNode(nombre)); r.append(a, el("span", {}, valor)); tip.append(r);
+  }
+  if (nota) for (const n of [].concat(nota)) tip.append(el("div", { class: "nota" }, n));
+  tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (x < 8) x = 8;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const ocultarTip = () => { tip.style.display = "none"; };
+document.addEventListener("scroll", ocultarTip, { passive: true });
+
+// ---------- escalas ----------
+function niceTicks(min, max, n = 4) {
+  if (min === max) { min -= 1; max += 1; }
+  const paso0 = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(paso0)));
+  const paso = [1, 2, 2.5, 5, 10].map(m => m * mag).find(p => p >= paso0);
+  const t = []; for (let v = Math.floor(min / paso) * paso; v <= max + paso * 0.001; v += paso) t.push(+v.toFixed(6));
+  if (t[t.length - 1] < max) t.push(t[t.length - 1] + paso);
+  return t;
+}
+function marco(cont, alto, x0, x1, yt, opts = {}) {
+  const W = Math.max(cont.clientWidth, 260), H = alto;
+  const m = { l: opts.ml ?? 42, r: opts.mr ?? 14, t: 10, b: 22 };
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, height: H });
+  const y0 = yt[0], y1 = yt[yt.length - 1];
+  const sx = v => m.l + (x1 === x0 ? (W - m.l - m.r) / 2 : (v - x0) / (x1 - x0) * (W - m.l - m.r));
+  const sy = opts.invertir ? v => m.t + (v - y0) / (y1 - y0) * (H - m.t - m.b) : v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+  for (const v of yt) {
+    svg.append(svgEl("line", { x1: m.l, x2: W - m.r, y1: sy(v), y2: sy(v), stroke: css(v === 0 && y0 < 0 ? "--axis" : "--grid"), "stroke-width": 1 }));
+    const t = svgEl("text", { x: m.l - 6, y: sy(v) + 4, "text-anchor": "end", class: "tick" }); t.textContent = fmt(v, 1); svg.append(t);
+  }
+  // marcas de fecha
+  const span = (x1 - x0) / 864e5, cada = span > 200 ? 60 : span > 100 ? 30 : span > 45 ? 14 : span > 20 ? 7 : span > 8 ? 3 : 1;
+  const d = new Date(x0); d.setHours(12, 0, 0, 0);
+  let ultimoX = -99;
+  for (; d <= x1; d.setDate(d.getDate() + 1)) {
+    const ok = cada >= 30 ? d.getDate() === 1 : cada === 14 ? (d.getDate() === 1 || d.getDate() === 15) : Math.round((d - x0) / 864e5) % cada === 0;
+    if (!ok || sx(+d) - ultimoX < 44) continue;
+    ultimoX = sx(+d);
+    const t = svgEl("text", { x: sx(+d), y: H - 6, "text-anchor": "middle", class: "tick" }); t.textContent = ddmm(d); svg.append(t);
+  }
+  cont.replaceChildren(svg);
+  return { svg, W, H, m, sx, sy };
+}
+function rangoX(fechas) {
+  const ts = fechas.map(f => +fecha(f));
+  let a = Math.min(...ts), b = Math.max(...ts);
+  if (dias) a = Math.min(a, +desde());
+  if (a === b) { a -= 864e5 * 3; b += 864e5 * 3; }
+  return [a, b];
+}
+
+// ---------- líneas ----------
+// series: [{nombre, color, puntos:[{f, y, info}], dash, puntosVisibles}]
+function lineas(id, series, o = {}) {
+  const cont = document.getElementById(id);
+  const todos = series.flatMap(s => s.puntos);
+  if (!todos.length) { cont.replaceChildren(el("div", { class: "vacio" }, "Sin datos en este periodo")); return; }
+  const [x0, x1] = o.x || rangoX(todos.map(p => p.f));
+  const ys = todos.map(p => p.y);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  if (o.cero) lo = Math.min(0, lo);
+  const pad = (hi - lo) * 0.08 || 1;
+  const yt = niceTicks(o.cero ? lo : lo - pad, hi + pad, o.ticks || 4);
+  const g = marco(cont, o.alto || 210, x0, x1, yt, o);
+  const { svg, sx, sy, m, H, W } = g;
+  for (const s of series) {
+    const col = css(s.color);
+    // tramo roto si hay más de `hueco` días sin dato
+    let d = "", prev = null;
+    for (const p of s.puntos) {
+      const t = +fecha(p.f);
+      d += (prev == null || (o.hueco && (t - prev) / 864e5 > o.hueco) ? "M" : "L") + sx(t).toFixed(1) + "," + sy(p.y).toFixed(1);
+      prev = t;
+    }
+    svg.append(svgEl("path", { d, fill: "none", stroke: col, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", ...(s.dash ? { "stroke-dasharray": "5 4" } : {}) }));
+    if (s.puntosVisibles !== false) for (const p of s.puntos)
+      svg.append(p.hueco
+        ? svgEl("circle", { cx: sx(+fecha(p.f)), cy: sy(p.y), r: 3.5, fill: css("--surface"), stroke: col, "stroke-width": 1.5 })
+        : svgEl("circle", { cx: sx(+fecha(p.f)), cy: sy(p.y), r: s.puntos.length > 60 ? 3 : 4, fill: col, stroke: css("--surface"), "stroke-width": 2 }));
+  }
+  // etiqueta del último valor de la 1ª serie
+  const s0 = series[0], ul = s0.puntos[s0.puntos.length - 1];
+  if (ul && o.etiqueta !== false) {
+    const t = svgEl("text", { x: Math.min(sx(+fecha(ul.f)), W - 4), y: sy(ul.y) - 9, "text-anchor": "end", class: "endlbl" });
+    t.textContent = (o.fmtY || (v => fmt(v, 1)))(ul.y); svg.append(t);
+  }
+  // capa hover: cruz que se engancha a la fecha más cercana
+  const fechas = [...new Set(todos.map(p => p.f))].sort();
+  const cruz = svgEl("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" });
+  svg.append(cruz);
+  const hit = svgEl("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" });
+  svg.append(hit);
+  const mover = ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+    let mejor = fechas[0], dist = 1e18;
+    for (const f of fechas) { const dd = Math.abs(sx(+fecha(f)) - px); if (dd < dist) { dist = dd; mejor = f; } }
+    cruz.setAttribute("x1", sx(+fecha(mejor))); cruz.setAttribute("x2", sx(+fecha(mejor))); cruz.setAttribute("visibility", "visible");
+    const filas = [], notas = [];
+    for (const s of series) {
+      const p = s.puntos.find(q => q.f === mejor);
+      filas.push([css(s.color), s.nombre, p ? (o.fmtY || (v => fmt(v, 1)))(p.y) : "—"]);
+      if (p && p.info) notas.push(...[].concat(p.info));
+    }
+    mostrarTip(ev, ddmm(fecha(mejor)) + "-" + mejor.slice(0, 4), filas, notas);
+  };
+  hit.addEventListener("pointermove", mover); hit.addEventListener("pointerdown", mover);
+  hit.addEventListener("pointerleave", () => { cruz.setAttribute("visibility", "hidden"); ocultarTip(); });
+}
+
+// ---------- barras ----------
+// filas: [{f, partes:[{v, color, nombre}], opacidad, titulo, notas}]
+function barras(id, filas, o = {}) {
+  const cont = document.getElementById(id);
+  if (!filas.length) { cont.replaceChildren(el("div", { class: "vacio" }, "Sin datos en este periodo")); return; }
+  const [x0, x1] = rangoX(filas.map(f => f.f));
+  let lo = 0, hi = 0;
+  for (const f of filas) { let pos = 0, neg = 0; for (const p of f.partes) (p.v >= 0 ? pos += p.v : neg += p.v); hi = Math.max(hi, pos); lo = Math.min(lo, neg); }
+  const yt = niceTicks(lo, hi, 4);
+  const g = marco(cont, o.alto || 190, x0 - 864e5 * 0.6, x1 + 864e5 * 0.6, yt, o);
+  const { svg, sx, sy, W, m } = g;
+  const ancho = Math.max(2, Math.min(18, (sx(x0 + 864e5) - sx(x0)) - 2));
+  const surf = css("--surface");
+  for (const f of filas) {
+    const cx = sx(+fecha(f.f));
+    let pos = 0, neg = 0;
+    const grupo = svgEl("g", { opacity: f.opacidad ?? 1 });
+    f.partes.forEach((p, i) => {
+      if (!p.v) return;
+      const a = p.v >= 0 ? pos : neg, b = a + p.v;
+      if (p.v >= 0) pos = b; else neg = b;
+      const yA = sy(a), yB = sy(b), top = Math.min(yA, yB), h = Math.max(1, Math.abs(yA - yB) - (i ? 2 : 0));
+      const ultimo = i === f.partes.length - 1 || f.partes.slice(i + 1).every(q => !q.v);
+      const r = ultimo ? Math.min(4, ancho / 2, h) : 0;
+      // rectángulo con las esquinas del extremo de datos redondeadas
+      const x = cx - ancho / 2, w = ancho;
+      let d;
+      if (p.v >= 0) d = `M${x},${top + h}V${top + r}Q${x},${top} ${x + r},${top}H${x + w - r}Q${x + w},${top} ${x + w},${top + r}V${top + h}Z`;
+      else d = `M${x},${top}V${top + h - r}Q${x},${top + h} ${x + r},${top + h}H${x + w - r}Q${x + w},${top + h} ${x + w},${top + h - r}V${top}Z`;
+      grupo.append(svgEl("path", { d, fill: css(p.color), stroke: surf, "stroke-width": i ? 0 : 0 }));
+    });
+    svg.append(grupo);
+    const hit = svgEl("rect", { x: cx - Math.max(ancho, 12) / 2 - 1, y: m.t, width: Math.max(ancho, 12) + 2, height: g.H - m.t - m.b, fill: "transparent" });
+    const mover = ev => { grupo.setAttribute("opacity", Math.min(1, (f.opacidad ?? 1) + 0.25)); mostrarTip(ev, f.titulo || ddmm(fecha(f.f)), f.partes.filter(p => p.nombre).map(p => [css(p.color), p.nombre, p.txt ?? fmt(p.v)]), f.notas); };
+    hit.addEventListener("pointermove", mover); hit.addEventListener("pointerdown", mover);
+    hit.addEventListener("pointerleave", () => { grupo.setAttribute("opacity", f.opacidad ?? 1); ocultarTip(); });
+    svg.append(hit);
+  }
+}
+
+// ---------- datos derivados ----------
+function mediaMovil(puntos, n = 7) {
+  return puntos.map(p => {
+    const t = +fecha(p.f), win = puntos.filter(q => { const tq = +fecha(q.f); return tq <= t && tq > t - n * 864e5; });
+    return { f: p.f, y: win.reduce((a, q) => a + q.y, 0) / win.length };
+  });
+}
+const media = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+
+function tiles(ds) {
+  const cont = document.getElementById("tiles"); cont.replaceChildren();
+  const tile = (lbl, val, delta) => { const t = el("div", { class: "tile" }); t.append(el("div", { class: "lbl" }, lbl), el("div", { class: "val" }, val), el("div", { class: "delta" }, delta || "")); cont.append(t); };
+  const pesos = D.dias.filter(d => d.peso != null);
+  const ult = pesos[pesos.length - 1];
+  const enR = pesos.filter(d => enRango(d.fecha));
+  if (ult) tile("Último peso", fmt(ult.peso, 1) + " kg", ddmm(fecha(ult.fecha)) + (enR.length > 1 ? ` · ${signo(+(ult.peso - enR[0].peso).toFixed(1)).replace(/(\d)$/, "$1")} kg en el periodo` : ""));
+  const bal = ds.filter(d => d.balance != null), conf = bal.filter(d => d.confirmado);
+  tile("Balance medio", bal.length ? signo(Math.round(media(bal.map(d => d.balance)))) + " kcal" : "—", `${bal.length} días · ${conf.length} confirmados`);
+  const prot = ds.filter(d => d.prot_total), pesoRef = ult ? ult.peso : null;
+  const pm = media(prot.map(d => d.prot_total));
+  tile("Proteína media", pm ? fmt(pm) + " g" : "—", pm && pesoRef ? fmt(pm / pesoRef, 1) + " g/kg · días con comidas" : "");
+  const pasos = ds.filter(d => d.pasos);
+  tile("Pasos medios", pasos.length ? fmt(media(pasos.map(d => d.pasos))) : "—", `${pasos.length} días con pasos`);
+  const ses = ds.filter(d => d.sesiones && d.sesiones.length);
+  const sem = Math.max(1, (dias || Math.max(7, (Date.now() - +fecha(D.dias[0].fecha)) / 864e5)) / 7);
+  tile("Sesiones de fuerza", String(ses.length), fmt(ses.length / sem, 1) + " por semana");
+}
+
+function pintar() {
+  const ds = D.dias.filter(d => enRango(d.fecha));
+  tiles(ds);
+  // peso
+  const pesos = D.dias.filter(d => d.peso != null).map(d => ({ f: d.fecha, y: d.peso }));
+  const mm = mediaMovil(pesos).filter(p => enRango(p.f));
+  lineas("c-peso", [
+    { nombre: "Pesada", color: "--s1", puntos: pesos.filter(p => enRango(p.f)) },
+    { nombre: "Media 7 días", color: "--s2", puntos: mm, dash: true, puntosVisibles: false },
+  ], { fmtY: v => fmt(v, 1) + " kg" });
+  // kcal
+  const info = d => [d.confirmado ? null : "Día sin confirmar", d.cheat ? "Cheat" : null, d.hipo ? `${d.hipo} hipo` : null, d.deporte && d.deporte.length ? d.deporte.join(" · ") : null].filter(Boolean);
+  lineas("c-kcal", [
+    { nombre: "Comidas", color: "--s1", puntos: ds.filter(d => d.kcal_consumidas != null).map(d => ({ f: d.fecha, y: d.kcal_consumidas, info: info(d), hueco: !d.confirmado })) },
+    { nombre: "Gastadas", color: "--s2", puntos: ds.filter(d => d.kcal_gastadas != null).map(d => ({ f: d.fecha, y: d.kcal_gastadas })) },
+  ], { cero: true, hueco: 3, fmtY: v => fmt(v) + " kcal", ml: 46 });
+  // balance
+  barras("c-balance", ds.filter(d => d.balance != null).map(d => ({
+    f: d.fecha, opacidad: d.confirmado ? 1 : 0.45,
+    partes: [{ v: d.balance, color: d.balance < 0 ? "--s3" : "--s2", nombre: "Balance", txt: signo(d.balance) + " kcal" }],
+    notas: [d.confirmado ? "Confirmado" : "Sin confirmar (pueden faltar comidas)", `Comidas ${fmt(d.kcal_consumidas)} · gastadas ${fmt(d.kcal_gastadas)}`],
+  })), { ml: 46 });
+  // macros
+  barras("c-macros", ds.filter(d => d.prot_total || d.carb_total || d.grasa_total).map(d => ({
+    f: d.fecha, opacidad: d.confirmado ? 1 : 0.7,
+    partes: [
+      { v: (d.prot_total || 0) * 4, color: "--s1", nombre: "Proteína", txt: fmt(d.prot_total, 1) + " g" },
+      { v: (d.carb_total || 0) * 4, color: "--s4", nombre: "Carbohidratos", txt: fmt(d.carb_total, 1) + " g" },
+      { v: (d.grasa_total || 0) * 9, color: "--s2", nombre: "Grasa", txt: fmt(d.grasa_total, 1) + " g" },
+    ],
+    notas: [`${fmt(d.kcal_consumidas)} kcal apuntadas`].concat(d.confirmado ? [] : ["Sin confirmar"]),
+  })), { ml: 46 });
+  // pasos
+  barras("c-pasos", ds.filter(d => d.pasos).map(d => ({ f: d.fecha, partes: [{ v: d.pasos, color: "--s1", nombre: "Pasos" }] })), { ml: 46 });
+  const hm = v => Math.floor(v) + "h" + String(Math.round((v % 1) * 60)).padStart(2, "0");
+  lineas("c-sueno", [{ nombre: "Sueño", color: "--s1", puntos: ds.filter(d => d.sueno).map(d => ({ f: d.fecha, y: d.sueno,
+    info: [d.hrv ? "HRV " + fmt(d.hrv) : null, d.fc_reposo ? "FC reposo " + fmt(d.fc_reposo) : null].filter(Boolean) })) }],
+    { hueco: 3, fmtY: hm });
+  sesiones(ds);
+  ejercicios();
+  tablaDias(ds);
+}
+
+function sesiones(ds) {
+  const cont = document.getElementById("sesiones");
+  const ses = ds.filter(d => d.n_series).slice(-10).reverse();
+  if (!ses.length) { cont.replaceChildren(el("div", { class: "vacio" }, "Sin sesiones en este periodo")); return; }
+  const t = el("table"), h = el("tr");
+  ["Fecha", "Sesión", "Series", "Peso"].forEach((x, i) => h.append(el("th", i > 1 ? { style: "text-align:right" } : {}, x)));
+  t.append(h);
+  for (const d of ses) {
+    const r = el("tr");
+    r.append(el("td", {}, ddmm(fecha(d.fecha))));
+    const c = el("td"); (d.sesiones.length ? d.sesiones : ["otros"]).forEach(s => c.append(el("span", { class: "chip" }, SES[s] || s))); r.append(c);
+    r.append(el("td", { class: "n" }, String(d.n_series)), el("td", { class: "n" }, d.peso ? fmt(d.peso, 1) : "—"));
+    t.append(r);
+  }
+  cont.replaceChildren(t);
+}
+
+function cargaTxt(p, asistido) {
+  if (p.kg == null) return (p.reps != null ? p.reps + (p.seg ? " s" : " reps") : "sin datos") + (p.kg == null && p.reps != null ? " (sin carga)" : "");
+  return fmt(p.kg, 1) + " kg" + (asistido ? " ayuda" : "") + (p.nota_kg ? ` (${p.nota_kg})` : "") + (p.reps != null ? " × " + p.reps + (p.seg ? " s" : "") : "");
+}
+
+function ejercicios() {
+  const tabs = document.getElementById("tabs"), cont = document.getElementById("ejercicios");
+  const conDatos = D.ejercicios.map(e => ({ ...e, pr: e.puntos.filter(p => enRango(p.fecha)) })).filter(e => e.pr.length);
+  const grupos = ["push", "pull", "pierna", "otros"].filter(s => conDatos.some(e => e.sesion === s));
+  if (!grupos.includes(tab)) tab = grupos[0] || "push";
+  tabs.replaceChildren();
+  for (const s of grupos) {
+    const b = el("button", s === tab ? { class: "on" } : {}, `${SES[s]} · ${conDatos.filter(e => e.sesion === s).length}`);
+    b.onclick = () => { tab = s; try { localStorage.setItem("entreno.tab", s); } catch (e) {} ejercicios(); };
+    tabs.append(b);
+  }
+  cont.replaceChildren();
+  const lista = conDatos.filter(e => e.sesion === tab)
+    .sort((a, b) => b.pr[b.pr.length - 1].fecha.localeCompare(a.pr[a.pr.length - 1].fecha) || b.pr.length - a.pr.length);
+  if (!lista.length) { cont.append(el("div", { class: "vacio" }, "Sin sesiones en este periodo")); return; }
+  lista.forEach((e, i) => {
+    const card = el("div", { class: "card" });
+    const top = el("div", { class: "ejtop" });
+    top.append(el("h2", {}, e.ej), el("span", { class: "meta" }, `${e.pr.length} ses.`));
+    card.append(top);
+    if (e.asistido) card.append(el("p", { class: "sub" }, "kg de ayuda: menos es mejor (eje invertido, arriba = más difícil)"));
+    else if (e.nombres.length > 1) card.append(el("p", { class: "sub corta", title: e.nombres.join(" · ") }, `${e.nombres.length} variantes: ` + e.nombres.join(" · ")));
+    const ul = e.pr[e.pr.length - 1];
+    const u = el("div", { class: "ult" }); u.append("Última: ", el("b", {}, cargaTxt(ul, e.asistido)), ` · ${ddmm(fecha(ul.fecha))} · ${ul.n} series` + (ul.rir_min != null ? ` · RIR mín ${fmt(ul.rir_min, 1)}` : ""));
+    card.append(u);
+    const id = "ej-" + i;
+    const ch = el("div", { class: "chart", id }); card.append(ch);
+    // tabla de sesiones
+    const det = el("details"); det.append(el("summary", {}, "Ver sesiones"));
+    const tw = el("div", { class: "tabla" }), t = el("table"), h = el("tr");
+    ["Fecha", "Series (reps × kg)", "RIR mín", "Notas"].forEach(x => h.append(el("th", {}, x))); t.append(h);
+    for (const p of e.pr.slice().reverse()) {
+      const r = el("tr");
+      r.append(el("td", {}, ddmm(fecha(p.fecha))), el("td", {}, p.series.map(s => `${s[0] || "?"} × ${s[1] || "—"}`).join(" · ")),
+        el("td", { class: "n" }, p.rir_min != null ? fmt(p.rir_min, 1) : "—"), el("td", {}, p.series.map(s => s[2]).filter(Boolean).join(" · ")));
+      t.append(r);
+    }
+    tw.append(t); det.append(tw); card.append(det);
+    cont.append(card);
+    const pts = e.pr.filter(p => p.kg != null);
+    const usarReps = !pts.length;
+    const puntos = (usarReps ? e.pr.filter(p => p.reps != null).map(p => ({ ...p, kg: p.reps })) : pts).map(p => ({
+      f: p.fecha, y: p.kg,
+      info: [cargaTxt(usarReps ? { ...p, kg: null } : p, e.asistido), `${p.n} series` + (p.rir_min != null ? ` · RIR mín ${fmt(p.rir_min, 1)}` : "")]
+        .concat(p.series.map(s => `${s[0] || "?"} × ${s[1] || "—"}${s[2] ? " · " + s[2] : ""}`)),
+    }));
+    lineas(id, [{ nombre: usarReps ? "Reps top" : (e.asistido ? "Ayuda" : "Carga top"), color: "--s1", puntos }],
+      { alto: 170, invertir: e.asistido, ml: 36, fmtY: v => usarReps ? fmt(v) + " reps" : fmt(v, 1) + " kg", x: rangoX(e.pr.map(p => p.fecha)) });
+  });
+}
+
+function tablaDias(ds) {
+  const t = el("table"), h = el("tr");
+  const cols = [["Fecha"], ["Peso", "peso", 1], ["Comidas", "kcal_consumidas"], ["Gastadas", "kcal_gastadas"], ["Balance", "balance"], ["P", "prot_total"], ["C", "carb_total"], ["G", "grasa_total"], ["Pasos", "pasos"], ["Fuerza"]];
+  cols.forEach(c => h.append(el("th", {}, c[0]))); t.append(h);
+  for (const d of ds.slice().reverse()) {
+    const r = el("tr");
+    r.append(el("td", {}, ddmm(fecha(d.fecha)) + (d.confirmado ? " ✓" : "")));
+    for (const c of cols.slice(1, -1)) r.append(el("td", { class: "n" }, c[1] === "balance" ? signo(d.balance) : fmt(d[c[1]], c[2] || 0)));
+    r.append(el("td", {}, d.n_series ? `${d.sesiones.map(s => SES[s]).join(" + ")} (${d.n_series})` : ""));
+    t.append(r);
+  }
+  document.getElementById("tabla-dias").replaceChildren(t);
+}
+
+function avisos() {
+  const ul = document.getElementById("avisos"); let n = 0;
+  for (const d of D.dias.slice().reverse()) for (const a of d.avisos || []) { ul.append(el("li", {}, `${d.fecha}: ${a}`)); n++; }
+  document.getElementById("avisos-sum").textContent = `Datos que no se han podido leer (${n})`;
+  document.getElementById("pie").textContent = `${D.dias.length} notas diarias · generado ${D.generado} · fuente: 40 - Entreno/20-diario`;
+}
+
+for (const b of document.querySelectorAll("#filtros button")) {
+  b.classList.toggle("on", +b.dataset.d === dias);
+  b.onclick = () => {
+    dias = +b.dataset.d; try { localStorage.setItem("entreno.dias", dias); } catch (e) {}
+    document.querySelectorAll("#filtros button").forEach(x => x.classList.toggle("on", x === b));
+    pintar();
+  };
+}
+avisos();
+pintar();
+let ancho = innerWidth, espera;
+addEventListener("resize", () => { if (innerWidth === ancho) return; ancho = innerWidth; clearTimeout(espera); espera = setTimeout(pintar, 150); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", pintar);
+</script>
+</body>
+</html>

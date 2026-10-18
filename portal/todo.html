@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>To Do</title>
+<link rel="icon" href="/estatico/iconos/fav-todo.svg" type="image/svg+xml">
+<style>
+:root {
+  --lado: #faf9f8; --carta: #ffffff; --texto: #323130; --texto-2: #605e5c; --borde: #edebe9; --hover: #f3f2f1;
+  --sel: #e9eef9; --acento: #2564cf; --rojo: #a4262c; --fondo: #faf9f8; --sombra: 0 0.3px 0.9px rgba(0,0,0,.1), 0 1.6px 3.6px rgba(0,0,0,.13);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lado: #1b1a19; --carta: #292827; --texto: #f3f2f1; --texto-2: #c8c6c4; --borde: #3b3a39; --hover: #323130;
+    --sel: #2b3a55; --acento: #6b9bf2; --rojo: #f1707b; --fondo: #11100f; --sombra: 0 0.3px 0.9px rgba(0,0,0,.4), 0 1.6px 3.6px rgba(0,0,0,.5);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+  font-size: 14px; color: var(--texto); background: var(--fondo); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+svg.i.relleno { fill: currentColor; }
+
+.app { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
+
+/* barra lateral */
+#lado { width: 290px; flex: none; background: var(--lado); display: flex; flex-direction: column; border-right: 1px solid var(--borde); }
+.lado-arriba { padding: 12px 16px 8px; display: flex; flex-direction: column; gap: 10px; }
+.volver { color: var(--texto-2); text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 2px; }
+.volver:hover { color: var(--texto); }
+.volver svg { width: 16px; height: 16px; }
+.buscar { display: flex; align-items: center; gap: 8px; background: var(--carta); border-radius: 4px; padding: 0 10px; height: 32px; box-shadow: var(--sombra); }
+.buscar svg { width: 16px; height: 16px; color: var(--texto-2); }
+.buscar input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; height: 100%; }
+.navs { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+.item { display: flex; align-items: center; gap: 14px; width: 100%; text-decoration: none; padding: 0 16px 0 22px; height: 40px; text-align: left; color: var(--texto); position: relative; }
+.item:hover { background: var(--hover); }
+.item.aqui { background: var(--sel); font-weight: 600; }
+.item.aqui::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--acento); }
+.item .nombre { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .num { font-size: 12px; color: var(--texto-2); font-weight: 400; }
+.item .ic { color: var(--c, var(--acento)); display: flex; }
+.item.sub { padding-left: 46px; }
+.sep { height: 1px; background: var(--borde); margin: 8px 16px; }
+.grupo .flecha { transition: transform .15s; width: 16px; height: 16px; color: var(--texto-2); }
+.grupo[aria-expanded="true"] .flecha { transform: rotate(90deg); }
+.grupo .ic { color: var(--texto-2); }
+.lado-abajo { border-top: 1px solid var(--borde); padding: 4px 0; }
+.nueva { display: flex; align-items: center; gap: 14px; padding: 0 16px 0 22px; height: 44px; color: var(--acento); width: 100%; }
+.nueva:hover { background: var(--hover); }
+.nueva-form { padding: 8px 16px; display: flex; flex-direction: column; gap: 6px; }
+.nueva-form input, .nueva-form select { height: 32px; border: 1px solid var(--borde); border-radius: 4px; background: var(--carta); padding: 0 8px; }
+.nueva-form input:focus, .nueva-form select:focus { outline: 2px solid var(--acento); outline-offset: -1px; }
+
+/* zona central */
+#principal { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--tema); transition: background .2s; }
+.cab { padding: 28px 32px 12px; color: #fff; display: flex; align-items: flex-start; gap: 8px; }
+.cab .atras { display: none; color: #fff; margin: 4px 4px 0 -8px; }
+.cab h1 { margin: 0; font-size: 24px; font-weight: 600; line-height: 32px; display: flex; align-items: center; gap: 10px; text-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.cab h1 svg { width: 26px; height: 26px; }
+.cab .fecha { font-size: 13px; opacity: .9; margin-top: 2px; }
+.cuerpo { flex: 1; overflow-y: auto; padding: 4px 32px 16px; }
+.pie-anadir { padding: 0 32px 24px; }
+.pie-anadir[hidden] { display: none; }
+.pie-anadir .anadir { margin: 0; }
+.tarea.arrastrando { opacity: .4; }
+.fantasma { position: fixed; pointer-events: none; z-index: 50; opacity: .95; box-shadow: 0 8px 24px rgba(0,0,0,.28); transform: rotate(1.5deg); }
+body.arrastrando, body.arrastrando * { cursor: grabbing !important; user-select: none; }
+.item.soltar { background: var(--sel); outline: 2px dashed var(--acento); outline-offset: -3px; }
+.anadir { display: flex; align-items: center; gap: 14px; background: var(--carta); border-radius: 4px; padding: 0 14px; height: 52px; box-shadow: var(--sombra); }
+.anadir svg { color: var(--acento); }
+.anadir input { flex: 1; border: 0; outline: 0; background: none; height: 100%; min-width: 0; }
+.anadir input::placeholder { color: var(--acento); }
+.anadir input:focus::placeholder { color: var(--texto-2); }
+ul.tareas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.tarea { display: flex; align-items: center; gap: 14px; background: var(--carta); border-radius: 4px; min-height: 52px; padding: 8px 14px; box-shadow: var(--sombra); cursor: pointer; }
+.tarea:hover { background: color-mix(in srgb, var(--carta) 92%, var(--texto) 8%); }
+.tarea.sel { background: var(--sel); }
+.circulo { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--texto-2); flex: none; display: grid; place-items: center; color: transparent; }
+.circulo svg { width: 14px; height: 14px; stroke-width: 2.2; }
+.circulo:hover { color: var(--texto-2); }
+.circulo.hecho { background: var(--acento); border-color: var(--acento); color: #fff; }
+.tarea .txt { flex: 1; min-width: 0; }
+.tarea .tit { overflow-wrap: anywhere; }
+.tarea.hecha .tit { text-decoration: line-through; color: var(--texto-2); }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; font-size: 12px; color: var(--texto-2); margin-top: 2px; }
+.meta > span { display: inline-flex; align-items: center; gap: 4px; }
+.meta > span + span::before { content: "•"; margin: 0 6px; color: var(--texto-2); }
+.meta svg { width: 13px; height: 13px; }
+.meta .hoy { color: var(--acento); }
+.meta .vencida { color: var(--rojo); }
+.estrella { color: var(--texto-2); display: flex; padding: 4px; margin-right: -4px; }
+.estrella:hover { color: var(--acento); }
+.estrella.on { color: var(--acento); }
+.plegar { display: inline-flex; align-items: center; gap: 6px; margin: 14px 0 8px; padding: 4px 10px 4px 6px; border-radius: 4px; background: rgba(255,255,255,.88); color: #323130; font-weight: 600; font-size: 13px; }
+@media (prefers-color-scheme: dark) { .plegar { background: rgba(41,40,39,.92); color: #f3f2f1; } }
+.plegar svg { width: 16px; height: 16px; transition: transform .15s; }
+.plegar[aria-expanded="true"] svg { transform: rotate(90deg); }
+.bloque-titulo { color: #fff; font-weight: 600; margin: 18px 0 8px; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.vacio { color: #fff; opacity: .92; text-align: center; padding: 48px 16px; font-size: 15px; }
+.vacio small { display: block; margin-top: 4px; opacity: .85; font-size: 13px; }
+
+/* detalle */
+#detalle { width: 360px; flex: none; background: var(--lado); border-left: 1px solid var(--borde); display: flex; flex-direction: column; }
+#detalle[hidden] { display: none; }
+.det-cuerpo { flex: 1; overflow-y: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 8px; }
+.det-cerrar { align-self: flex-end; color: var(--texto-2); display: flex; padding: 4px; }
+.det-cerrar:hover { color: var(--texto); }
+.caja { background: var(--carta); border-radius: 4px; box-shadow: var(--sombra); }
+.det-tarea { display: flex; align-items: flex-start; gap: 12px; padding: 14px 14px 10px; }
+.det-tarea .circulo { margin-top: 4px; }
+.det-tarea textarea { flex: 1; border: 0; outline: 0; resize: none; background: none; font-size: 18px; font-weight: 600; line-height: 1.35; padding: 0; overflow: hidden; }
+.det-tarea.hecha textarea { text-decoration: line-through; color: var(--texto-2); }
+.det-tarea .estrella { margin-top: 2px; }
+.pasos { list-style: none; margin: 0; padding: 0 14px 0 14px; }
+.paso { display: flex; align-items: center; gap: 12px; min-height: 40px; border-top: 1px solid var(--borde); }
+.paso .circulo { width: 16px; height: 16px; }
+.paso .circulo svg { width: 11px; height: 11px; }
+.paso input { flex: 1; border: 0; outline: 0; background: none; min-width: 0; padding: 8px 0; }
+.paso.hecho input { text-decoration: line-through; color: var(--texto-2); }
+.paso .quitar { color: var(--texto-2); opacity: 0; display: flex; }
+.paso:hover .quitar, .paso .quitar:focus { opacity: 1; }
+@media (hover: none) { .paso .quitar { opacity: 1; } }
+.paso .quitar svg { width: 14px; height: 14px; }
+.paso-nuevo { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 44px; color: var(--acento); border-top: 1px solid var(--borde); }
+.paso-nuevo input { flex: 1; border: 0; outline: 0; background: none; min-width: 0; height: 44px; }
+.paso-nuevo input::placeholder { color: var(--acento); }
+.fila { display: flex; align-items: center; gap: 14px; padding: 0 14px; min-height: 52px; width: 100%; text-align: left; color: var(--texto-2); position: relative; }
+.fila:hover { background: var(--hover); }
+.fila.on { color: var(--acento); }
+.fila .lbl { flex: 1; }
+.fila .x { display: flex; color: var(--texto-2); padding: 4px; }
+.fila .x svg { width: 14px; height: 14px; }
+.fila input[type=date] { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.fila select { flex: 1; border: 0; background: none; outline: 0; color: var(--texto); padding: 8px 0; cursor: pointer; }
+.atajos { display: flex; gap: 6px; padding: 0 14px 12px 48px; flex-wrap: wrap; }
+.atajos button { font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--borde); color: var(--texto-2); background: var(--carta); }
+.atajos button:hover { border-color: var(--acento); color: var(--acento); }
+.det-nota { width: 100%; min-height: 110px; border: 0; outline: 0; resize: vertical; background: var(--carta); border-radius: 4px; padding: 12px 14px; box-shadow: var(--sombra); line-height: 1.45; }
+.det-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--borde); padding: 0 8px 0 16px; height: 48px; color: var(--texto-2); font-size: 12px; }
+.det-pie button { display: flex; padding: 8px; color: var(--texto-2); border-radius: 4px; }
+.det-pie button:hover { background: var(--hover); color: var(--rojo); }
+
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: #323130; color: #fff; padding: 10px 16px; border-radius: 4px; font-size: 13px; display: none; z-index: 30; box-shadow: var(--sombra); max-width: calc(100vw - 32px); }
+.guardando { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: var(--acento); transform-origin: left; animation: barra 1s ease-in-out infinite; display: none; z-index: 40; }
+@keyframes barra { 0% { transform: scaleX(0); } 60% { transform: scaleX(.8); } 100% { transform: scaleX(1); opacity: 0; } }
+
+/* móvil: como la app, primero las listas, luego la lista y el detalle a pantalla completa */
+@media (max-width: 760px) {
+  #lado { width: 100%; border: 0; }
+  .app.en-lista #lado { display: none; }
+  .app:not(.en-lista) #principal { display: none; }
+  .cab { padding: 16px 16px 8px; }
+  .cab .atras { display: flex; }
+  .cuerpo { padding: 4px 8px 12px; }
+  .pie-anadir { padding: 0 8px calc(12px + env(safe-area-inset-bottom)); }
+  .item { height: 48px; }
+  #detalle { position: fixed; inset: 0; width: auto; z-index: 20; border: 0; }
+  .det-cerrar { align-self: flex-start; }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  #lado { width: 240px; }
+  #detalle { position: fixed; top: 0; right: 0; bottom: 0; z-index: 20; box-shadow: -4px 0 16px rgba(0,0,0,.12); }
+}
+</style>
+</head>
+<body>
+<div class="guardando" id="guardando"></div>
+<div class="app" id="app">
+  <nav id="lado" aria-label="Listas">
+    <div class="lado-arriba">
+      <a class="volver" href="/"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Portal</a>
+      <label class="buscar"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+        <input id="buscar" type="search" placeholder="Buscar" autocomplete="off"></label>
+    </div>
+    <div class="navs" id="navs"></div>
+    <div class="lado-abajo">
+      <div id="nueva-caja"></div>
+    </div>
+  </nav>
+  <main id="principal">
+    <div class="cab"><button class="atras" id="atras" aria-label="Volver a las listas"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div><h1 id="titulo"></h1><div class="fecha" id="fecha"></div></div></div>
+    <div class="cuerpo" id="cuerpo"></div>
+    <div class="pie-anadir" id="pie-anadir"><label class="anadir"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      <input id="nueva-tarea" placeholder="Agregar una tarea" maxlength="500" aria-label="Agregar una tarea" enterkeyhint="done" autocomplete="off"></label></div>
+  </main>
+  <aside id="detalle" hidden aria-label="Detalle de la tarea"></aside>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script id="datos" type="application/json">/*__DATOS__*/null</script>
+<script>
+"use strict";
+let D = JSON.parse(document.getElementById("datos").textContent);
+const ICO = {
+  sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M2.5 12h2M19.5 12h2M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+  estrella: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+  casa: '<path d="M4 10.5L12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/>',
+  lista: '<path d="M9 7h11M9 12h11M9 17h11"/><path d="M5 7h.01M5 12h.01M5 17h.01" stroke-width="2.4"/>',
+  carpeta: '<path d="M3.5 7.5a2 2 0 012-2h4l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2h-13a2 2 0 01-2-2z"/>',
+  flecha: '<path d="M9 6l6 6-6 6"/>',
+  mas: '<path d="M12 5v14M5 12h14"/>',
+  check: '<path d="M6 12.5l4 4 8-9"/>',
+  cerrar: '<path d="M6 6l12 12M18 6L6 18"/>',
+  papelera: '<path d="M4.5 7h15M10 4h4M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/>',
+  nota: '<path d="M6 4h9l4 4v12H6z"/><path d="M9 12h6M9 16h4"/>',
+  carpetaMas: '<path d="M3.5 7.5a2 2 0 012-2h4l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2h-13a2 2 0 01-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>',
+  mover: '<path d="M4 12h12M12 8l4 4-4 4M20 5v14"/>',
+};
+const COLORES = ["#2564cf", "#5b6fb7", "#2f7d6d", "#9a5b2d", "#7a4fa3", "#b4466f", "#3a7a3a", "#a4373a"];
+const LISTA_TODAS = { midia: { t: "Mi día", ico: "sol", c: "#5b6fb7" }, importante: { t: "Importante", ico: "estrella", c: "#b4466f" },
+  planeado: { t: "Planeado", ico: "calendario", c: "#2f7d6d" }, tareas: { t: "Tareas", ico: "casa", c: "#2564cf" } };
+const BANDEJA = "Tareas";
+
+const $ = id => document.getElementById(id);
+function el(tag, attrs, ...hijos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) e[k] = v; else if (k === "html") e.innerHTML = v; else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const h of hijos.flat()) if (h != null && h !== false) e.append(h);
+  return e;
+}
+function ico(n, relleno, clase) {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", "i" + (relleno ? " relleno" : "") + (clase ? " " + clase : "")); s.setAttribute("aria-hidden", "true");
+  s.innerHTML = ICO[n]; return s;
+}
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const hoyD = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const hoy = () => iso(new Date());
+const sumar = (n) => { const d = hoyD(); d.setDate(d.getDate() + n); return iso(d); };
+const aFecha = s => { const [a, m, d] = s.split("-").map(Number); return new Date(a, m - 1, d); };
+const fmtCorta = s => aFecha(s).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }).replace(/\./g, "");
+const plano = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+function colorLista(l) { let h = 0; for (const c of l.grupo + "/" + l.titulo) h = (h * 31 + c.charCodeAt(0)) >>> 0; return l.titulo === BANDEJA && !l.grupo ? LISTA_TODAS.tareas.c : COLORES[h % COLORES.length]; }
+const claveLista = l => (l.grupo || "") + "\u0001" + l.titulo;
+
+// ---------- estado de la vista ----------
+let sel = null;          // tarea abierta en el detalle: {lista, titulo, k}
+let busqueda = "";
+let guardar = {};
+try { guardar = JSON.parse(localStorage.getItem("todo.vista") || "{}"); } catch (e) {}
+const persistir = () => { try { localStorage.setItem("todo.vista", JSON.stringify(guardar)); } catch (e) {} };
+guardar.plegados = guardar.plegados || {}; guardar.completadas = guardar.completadas || {};
+
+function todas() {
+  const out = [];
+  for (const l of D.listas) {
+    const vistas = {};
+    for (const t of l.tareas) { const k = vistas[t.titulo] = (vistas[t.titulo] || 0) + 1; out.push(Object.assign(t, { lista: l, k: k - 1 })); }
+  }
+  return out;
+}
+let TODAS = todas();
+const buscarTarea = s => s && TODAS.find(t => claveLista(t.lista) === s.lista && t.titulo === s.titulo && t.k === s.k);
+const ref = t => ({ lista: claveLista(t.lista), titulo: t.titulo, k: t.k });
+const bandeja = () => D.listas.find(l => l.titulo === BANDEJA && !l.grupo);
+
+function vista() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h.startsWith("l/")) {
+    const l = D.listas.find(x => claveLista(x) === h.slice(2));
+    if (l) return { tipo: "lista", lista: l };
+  }
+  if (LISTA_TODAS[h]) return { tipo: h };
+  return { tipo: "midia", vacia: !h };
+}
+const movil = () => matchMedia("(max-width: 760px)").matches;
+
+// ---------- guardar en el servidor (en cola, cada operación sobre la última versión) ----------
+let cola = Promise.resolve(), pendientes = 0;
+function op(construir, optimista) {
+  if (optimista) { optimista(); pintar(); }
+  pendientes++; $("guardando").style.display = "block";
+  cola = cola.then(async () => {
+    let d;
+    try { d = construir(); } catch (e) { aviso(e.message); return; }
+    if (!d) return;
+    d.base = D.base; d.hoy = hoy();
+    try {
+      const r = await fetch("/todo/operar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d) });
+      if (r.status === 401) { aviso("Sesión caducada. Vuelve a entrar."); return; }
+      const j = await r.json();
+      if (j.datos) cargar(j.datos);
+      if (!j.ok) aviso(j.mensaje || "No se ha guardado.");
+    } catch (e) { aviso("Sin conexión: no se ha guardado."); await refrescar(); }
+  }).finally(() => { if (--pendientes === 0) $("guardando").style.display = "none"; });
+}
+function cargar(datos) { D = datos; TODAS = todas(); pintar(); }
+async function refrescar() {
+  try { const r = await fetch("/todo/datos", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (j.base !== D.base) cargar(j); } } catch (e) {}
+}
+// operación sobre una tarea: se busca en el momento de enviar (las líneas se mueven con cada cambio)
+function opTarea(t, campos, optimista) {
+  const r = ref(t);
+  op(() => { const x = buscarTarea(r); if (!x) throw new Error("Esa tarea ya no está."); return Object.assign({ n: x.n }, campos); }, optimista);
+}
+
+// ---------- barra lateral ----------
+function pendientesDe(f) { return TODAS.filter(t => !t.hecho && f(t)).length; }
+function itemNav(href, nombre, icono, color, num, aqui, sub) {
+  const a = el("a", { class: "item" + (aqui ? " aqui" : "") + (sub ? " sub" : ""), href, style: `--c:${color}`, "data-destino": href.slice(1) },
+    el("span", { class: "ic" }, ico(icono)), el("span", { class: "nombre" }, nombre), num ? el("span", { class: "num" }, String(num)) : null);
+  a.onclick = () => { if (location.hash === href) pintar(); };
+  return a;
+}
+function pintarLado() {
+  const v = vista(), nav = $("navs"); nav.replaceChildren();
+  const h = hoy();
+  const cuentas = { midia: t => t.midia === h, importante: t => t.importante, planeado: t => !!t.vence, tareas: t => t.lista === bandeja() };
+  for (const [id, s] of Object.entries(LISTA_TODAS))
+    nav.append(itemNav("#" + id, s.t, s.ico, s.c, pendientesDe(cuentas[id]), !busqueda && v.tipo === id && !(movil() && v.vacia)));
+  nav.append(el("div", { class: "sep" }));
+  const actual = v.tipo === "lista" ? v.lista : null;
+  const hechoGrupo = new Set();
+  for (const l of D.listas) {
+    if (l === bandeja()) continue;
+    if (!l.grupo) { nav.append(itemNav("#l/" + encodeURIComponent(claveLista(l)), l.titulo, "lista", colorLista(l), l.tareas.filter(t => !t.hecho).length, l === actual && !busqueda)); continue; }
+    if (hechoGrupo.has(l.grupo)) continue;
+    hechoGrupo.add(l.grupo);
+    const abierto = !guardar.plegados[l.grupo] || (actual && actual.grupo === l.grupo);
+    const b = el("button", { class: "item grupo", "aria-expanded": String(abierto) }, el("span", { class: "ic" }, ico("carpeta")),
+      el("span", { class: "nombre" }, l.grupo), ico("flecha", false, "flecha"));
+    b.onclick = () => { guardar.plegados[l.grupo] = abierto; persistir(); pintarLado(); };
+    nav.append(b);
+    if (abierto) for (const x of D.listas.filter(x => x.grupo === l.grupo))
+      nav.append(itemNav("#l/" + encodeURIComponent(claveLista(x)), x.titulo, "lista", colorLista(x), x.tareas.filter(t => !t.hecho).length, x === actual && !busqueda, true));
+  }
+}
+
+// nueva lista (con grupo opcional)
+let creando = false;
+function pintarNueva() {
+  const caja = $("nueva-caja"); caja.replaceChildren();
+  if (!creando) {
+    const b = el("button", { class: "nueva" }, ico("mas"), el("span", {}, "Nueva lista"));
+    b.onclick = () => { creando = true; pintarNueva(); };
+    caja.append(b); return;
+  }
+  const nombre = el("input", { placeholder: "Nombre de la lista", maxlength: "100" });
+  const grupo = el("select", { "aria-label": "Grupo" }, el("option", { value: "" }, "Sin grupo"),
+    D.grupos.map(g => el("option", { value: g }, "Grupo: " + g)), el("option", { value: "\u0002" }, "Nuevo grupo…"));
+  const nuevoGrupo = el("input", { placeholder: "Nombre del grupo", maxlength: "100", hidden: true });
+  grupo.onchange = () => { nuevoGrupo.hidden = grupo.value !== "\u0002"; if (!nuevoGrupo.hidden) nuevoGrupo.focus(); };
+  const crear = () => {
+    const t = nombre.value.trim(); if (!t) return;
+    const g = grupo.value === "\u0002" ? nuevoGrupo.value.trim() : grupo.value;
+    creando = false; pintarNueva();
+    op(() => ({ op: "lista_nueva", titulo: t, grupo: g }));
+    const espera = setInterval(() => { const l = D.listas.find(x => x.titulo === t && x.grupo === g); if (l) { clearInterval(espera); location.hash = "#l/" + encodeURIComponent(claveLista(l)); } }, 200);
+    setTimeout(() => clearInterval(espera), 8000);
+  };
+  const tecla = e => { if (e.key === "Enter") crear(); if (e.key === "Escape") { creando = false; pintarNueva(); } };
+  nombre.onkeydown = tecla; nuevoGrupo.onkeydown = tecla;
+  const f = el("div", { class: "nueva-form" }, nombre, grupo, nuevoGrupo);
+  caja.append(f); nombre.focus();
+}
+
+// ---------- lista central ----------
+function filaTarea(t, v) {
+  const h = hoy();
+  const li = el("li", { class: "tarea" + (t.hecho ? " hecha" : "") + (buscarTarea(sel) === t ? " sel" : "") });
+  const circ = el("button", { class: "circulo" + (t.hecho ? " hecho" : ""), "aria-label": t.hecho ? "Marcar como no completada" : "Marcar como completada" }, ico("check"));
+  circ.onclick = e => { e.stopPropagation(); const hecho = !t.hecho; opTarea(t, { op: "marcar", hecho }, () => { t.hecho = hecho; }); };
+  const meta = [];
+  if (v.tipo !== "lista" && !(v.tipo === "tareas")) meta.push(el("span", {}, t.lista.grupo ? t.lista.titulo : t.lista.titulo));
+  if (t.midia === h && v.tipo !== "midia") meta.push(el("span", {}, ico("sol"), "Mi día"));
+  if (t.pasos.length) meta.push(el("span", {}, `${t.pasos.filter(p => p.hecho).length} de ${t.pasos.length}`));
+  if (t.vence) {
+    const cls = t.hecho ? "" : t.vence < h ? "vencida" : t.vence === h ? "hoy" : "";
+    const txt = t.vence === h ? "Hoy" : t.vence === sumar(1) ? "Mañana" : t.vence === sumar(-1) ? "Ayer" : fmtCorta(t.vence);
+    meta.push(el("span", { class: cls }, ico("calendario"), (cls === "vencida" ? "Vencida, " : "") + txt));
+  }
+  if (t.nota.some(x => x.trim())) meta.push(el("span", {}, ico("nota"), "Nota"));
+  const est = el("button", { class: "estrella" + (t.importante ? " on" : ""), "aria-label": t.importante ? "Quitar importancia" : "Marcar como importante" }, ico("estrella", t.importante));
+  est.onclick = e => { e.stopPropagation(); const valor = !t.importante; opTarea(t, { op: "importante", valor }, () => { t.importante = valor; }); };
+  li.append(circ, el("div", { class: "txt" }, el("div", { class: "tit" }, t.titulo), meta.length ? el("div", { class: "meta" }, meta) : null), est);
+  li.onclick = () => { if (soltado) { soltado = false; return; } abrir(t); };
+  li.onpointerdown = e => arrastrar(e, t, li);
+  return li;
+}
+
+// Arrastrar una tarea (con ratón) a una lista de la barra lateral: Mi día, Importante y Planeado
+// la marcan; Tareas y las listas la mueven.
+let soltado = false;
+function arrastrar(e, t, li) {
+  if (e.pointerType !== "mouse" || e.button !== 0 || e.target.closest("button") || movil()) return;
+  const x0 = e.clientX, y0 = e.clientY, caja = li.getBoundingClientRect();
+  let fantasma = null, sobre = null;
+  const mover = ev => {
+    if (!fantasma) {
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      fantasma = li.cloneNode(true); fantasma.classList.add("fantasma"); fantasma.style.width = caja.width + "px";
+      document.body.append(fantasma); li.classList.add("arrastrando"); document.body.classList.add("arrastrando");
+    }
+    ev.preventDefault();
+    fantasma.style.left = ev.clientX - (x0 - caja.left) + "px"; fantasma.style.top = ev.clientY - (y0 - caja.top) + "px";
+    const d = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-destino]") || null;
+    if (d !== sobre) { sobre?.classList.remove("soltar"); sobre = d; sobre?.classList.add("soltar"); }
+  };
+  const fin = () => {
+    removeEventListener("pointermove", mover); removeEventListener("pointerup", fin); removeEventListener("pointercancel", fin);
+    if (!fantasma) return;
+    fantasma.remove(); li.classList.remove("arrastrando"); document.body.classList.remove("arrastrando"); sobre?.classList.remove("soltar");
+    soltado = true; setTimeout(() => { soltado = false; }, 0);
+    if (sobre) soltar(t, sobre.dataset.destino);
+  };
+  addEventListener("pointermove", mover); addEventListener("pointerup", fin); addEventListener("pointercancel", fin);
+}
+function soltar(t, destino) {
+  const h = hoy();
+  if (destino === "midia") { if (t.midia !== h) opTarea(t, { op: "midia", valor: true }, () => { t.midia = h; }); aviso("Agregada a Mi día"); return; }
+  if (destino === "importante") { if (!t.importante) opTarea(t, { op: "importante", valor: true }, () => { t.importante = true; }); aviso("Marcada como importante"); return; }
+  if (destino === "planeado") { if (!t.vence) opTarea(t, { op: "vence", fecha: h }, () => { t.vence = h; }); aviso(t.vence === h ? "Vence hoy" : "Ya tenía fecha"); return; }
+  const l = destino === "tareas" ? bandeja() : D.listas.find(x => "l/" + encodeURIComponent(claveLista(x)) === destino);
+  if (!l || l === t.lista) return;
+  opTarea(t, { op: "mover", lista: l.titulo, grupo: l.grupo });  // sin cambio optimista: la tarea se busca por su lista al enviar
+  if (sel && buscarTarea(sel) === t) { sel.lista = claveLista(l); sel.k = 0; }
+  aviso(`Movida a ${l.titulo}`);
+}
+
+function prepararAnadir() {
+  const input = $("nueva-tarea");
+  input.onkeydown = e => {
+    if (e.key !== "Enter" || e.isComposing || !input.value.trim()) return;
+    e.preventDefault();
+    const v = vista(), texto = input.value.trim(); input.value = "";
+    const destino = v.tipo === "lista" ? v.lista : bandeja();
+    const extra = { midia: v.tipo === "midia", importante: v.tipo === "importante", vence: v.tipo === "planeado" ? hoy() : "" };
+    op(() => ({ op: "anadir", lista: destino.titulo, grupo: destino.grupo, texto, ...extra }), () => {
+      destino.tareas.push({ titulo: texto, hecho: false, importante: extra.importante, midia: extra.midia ? hoy() : "", vence: extra.vence, pasos: [], nota: [], n: -1, lista: destino, k: 99 });
+      TODAS = todas();
+    });
+    requestAnimationFrame(() => { $("cuerpo").scrollTop = $("cuerpo").scrollHeight; });
+  };
+}
+
+function seccionCompletadas(id, hechas, v) {
+  if (!hechas.length) return [];
+  const abierto = !!guardar.completadas[id];
+  const b = el("button", { class: "plegar", "aria-expanded": String(abierto) }, ico("flecha"), `Completadas ${hechas.length}`);
+  b.onclick = () => { guardar.completadas[id] = !abierto; persistir(); pintarCentro(); };
+  return abierto ? [b, el("ul", { class: "tareas" }, hechas.map(t => filaTarea(t, v)))] : [b];
+}
+
+function pintarCentro() {
+  const v = vista(), cuerpo = $("cuerpo"), h = hoy();
+  cuerpo.replaceChildren();
+  let titulo, icono, color, fecha = "";
+  $("pie-anadir").hidden = !!busqueda;
+  if (busqueda) {
+    const q = plano(busqueda);
+    const res = TODAS.filter(t => plano(t.titulo + " " + t.nota.join(" ") + " " + t.pasos.map(p => p.texto).join(" ")).includes(q));
+    $("principal").style.setProperty("--tema", "#2564cf");
+    $("titulo").replaceChildren(`Buscando “${busqueda}”`); $("fecha").textContent = "";
+    if (!res.length) cuerpo.append(el("div", { class: "vacio" }, "No hay nada con eso."));
+    cuerpo.append(el("ul", { class: "tareas" }, res.filter(t => !t.hecho).map(t => filaTarea(t, { tipo: "busqueda" }))));
+    cuerpo.append(...seccionCompletadas("busqueda", res.filter(t => t.hecho), { tipo: "busqueda" }));
+    return;
+  }
+  let lista;
+  if (v.tipo === "lista") { titulo = v.lista.titulo; icono = "lista"; color = colorLista(v.lista); lista = v.lista.tareas; }
+  else {
+    const s = LISTA_TODAS[v.tipo]; titulo = s.t; icono = s.ico; color = s.c;
+    if (v.tipo === "midia") { lista = TODAS.filter(t => t.midia === h); fecha = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }); }
+    if (v.tipo === "importante") lista = TODAS.filter(t => t.importante);
+    if (v.tipo === "planeado") lista = TODAS.filter(t => t.vence && !t.hecho);
+    if (v.tipo === "tareas") lista = bandeja().tareas;
+  }
+  $("principal").style.setProperty("--tema", color);
+  $("titulo").replaceChildren(ico(icono), titulo);
+  $("fecha").textContent = fecha;
+  document.title = titulo + " · To Do";
+  const abiertas = lista.filter(t => !t.hecho), hechas = lista.filter(t => t.hecho);
+  if (v.tipo === "planeado") {
+    const bloques = [["Anteriores", t => t.vence < h], ["Hoy", t => t.vence === h], ["Mañana", t => t.vence === sumar(1)],
+      ["Esta semana", t => t.vence > sumar(1) && t.vence <= sumar(7)], ["Más adelante", t => t.vence > sumar(7)]];
+    for (const [nombre, f] of bloques) {
+      const xs = abiertas.filter(f).sort((a, b) => a.vence.localeCompare(b.vence));
+      if (xs.length) cuerpo.append(el("div", { class: "bloque-titulo" }, `${nombre} · ${xs.length}`), el("ul", { class: "tareas" }, xs.map(t => filaTarea(t, v))));
+    }
+  } else {
+    cuerpo.append(el("ul", { class: "tareas" }, abiertas.map(t => filaTarea(t, v))));
+    cuerpo.append(...seccionCompletadas(v.tipo === "lista" ? "l/" + claveLista(v.lista) : v.tipo, hechas, v));
+  }
+  if (!abiertas.length && v.tipo !== "lista") {
+    const msg = { midia: ["Céntrate en tu día", "Añade aquí lo que quieras hacer hoy."], importante: ["Nada importante", "Marca tareas con la estrella."],
+      planeado: ["Nada planeado", "Las tareas con fecha de vencimiento salen aquí."], tareas: ["Todo hecho", "Las tareas que no van a ninguna lista."] }[v.tipo];
+    cuerpo.append(el("div", { class: "vacio" }, msg[0], el("small", {}, msg[1])));
+  }
+}
+
+// ---------- detalle ----------
+function abrir(t) { sel = ref(t); pintar(); }
+function cerrar() { sel = null; pintar(); }
+function autoalto(ta) { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px"; }
+
+function pintarDetalle() {
+  const det = $("detalle"), t = buscarTarea(sel);
+  if (!t) { det.hidden = true; det.replaceChildren(); sel = null; return; }
+  // si se está escribiendo en el detalle, se conserva lo escrito al repintar
+  const act = document.activeElement && det.contains(document.activeElement) ? document.activeElement : null;
+  const enfocado = act ? act.dataset.campo : null, escrito = act && "value" in act ? act.value : null;
+  det.hidden = false; det.replaceChildren();
+  const h = hoy();
+  const cuerpo = el("div", { class: "det-cuerpo" });
+  const x = el("button", { class: "det-cerrar", "aria-label": "Cerrar detalle" }, ico(movil() ? "flecha" : "cerrar"));
+  if (movil()) x.firstChild.style.transform = "rotate(180deg)";
+  x.onclick = cerrar;
+
+  // título, estrella y pasos
+  const circ = el("button", { class: "circulo" + (t.hecho ? " hecho" : ""), "aria-label": "Completada" }, ico("check"));
+  circ.onclick = () => { const hecho = !t.hecho; opTarea(t, { op: "marcar", hecho }, () => { t.hecho = hecho; }); };
+  const tit = el("textarea", { rows: "1", "aria-label": "Título", "data-campo": "titulo", maxlength: "500" });
+  tit.value = t.titulo;
+  tit.oninput = () => autoalto(tit);
+  const guardarTit = () => { const v = tit.value.replace(/\s+/g, " ").trim(); if (v && v !== t.titulo) { opTarea(t, { op: "renombrar", texto: v }); sel.titulo = v; sel.k = 0; } else tit.value = t.titulo; };
+  tit.onblur = guardarTit; tit.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); tit.blur(); } };
+  const est = el("button", { class: "estrella" + (t.importante ? " on" : ""), "aria-label": "Importante" }, ico("estrella", t.importante));
+  est.onclick = () => { const valor = !t.importante; opTarea(t, { op: "importante", valor }, () => { t.importante = valor; }); };
+  const pasos = el("ul", { class: "pasos" });
+  t.pasos.forEach((p, i) => {
+    const c = el("button", { class: "circulo" + (p.hecho ? " hecho" : ""), "aria-label": "Paso completado" }, ico("check"));
+    c.onclick = () => opTarea(t, { op: "paso_marcar", i, hecho: !p.hecho }, () => { p.hecho = !p.hecho; });
+    const inp = el("input", { "aria-label": "Paso", "data-campo": "paso" + i, maxlength: "500" }); inp.value = p.texto;
+    inp.onblur = () => { const v = inp.value.trim(); if (v && v !== p.texto) opTarea(t, { op: "paso_renombrar", i, texto: v }); else inp.value = p.texto; };
+    inp.onkeydown = e => { if (e.key === "Enter") inp.blur(); };
+    const q = el("button", { class: "quitar", "aria-label": "Quitar paso" }, ico("cerrar"));
+    q.onclick = () => opTarea(t, { op: "paso_borrar", i });
+    pasos.append(el("li", { class: "paso" + (p.hecho ? " hecho" : "") }, c, inp, q));
+  });
+  const nuevoPaso = el("input", { placeholder: t.pasos.length ? "Siguiente paso" : "Agregar paso", "data-campo": "nuevopaso", maxlength: "500" });
+  nuevoPaso.onkeydown = e => { if (e.key === "Enter" && nuevoPaso.value.trim()) { const v = nuevoPaso.value.trim(); nuevoPaso.value = ""; opTarea(t, { op: "paso_anadir", texto: v }, () => { t.pasos.push({ hecho: false, texto: v }); }); } };
+  cuerpo.append(x, el("div", { class: "caja" },
+    el("div", { class: "det-tarea" + (t.hecho ? " hecha" : "") }, circ, tit, est), pasos,
+    el("label", { class: "paso-nuevo" }, ico("mas"), nuevoPaso)));
+
+  // Mi día
+  const enDia = t.midia === h;
+  const filaDia = el("div", { class: "caja" });
+  const bDia = el("button", { class: "fila" + (enDia ? " on" : "") }, ico("sol"), el("span", { class: "lbl" }, enDia ? "Agregado a Mi día" : "Agregar a Mi día"));
+  bDia.onclick = () => { if (!enDia) opTarea(t, { op: "midia", valor: true }, () => { t.midia = h; }); };
+  if (enDia) { const q = el("span", { class: "x", role: "button", "aria-label": "Quitar de Mi día" }, ico("cerrar")); q.onclick = e => { e.stopPropagation(); opTarea(t, { op: "midia", valor: false }, () => { t.midia = ""; }); }; bDia.append(q); }
+  filaDia.append(bDia);
+
+  // vencimiento
+  const filaVence = el("div", { class: "caja" });
+  const lblV = t.vence ? (t.vence === h ? "Vence hoy" : t.vence === sumar(1) ? "Vence mañana" : (t.vence < h ? "Venció el " : "Vence el ") + fmtCorta(t.vence)) : "Agregar fecha de vencimiento";
+  const fv = el("div", { class: "fila" + (t.vence ? " on" : "") }, ico("calendario"), el("span", { class: "lbl" }, lblV));
+  const fecha = el("input", { type: "date", "aria-label": "Fecha de vencimiento", value: t.vence || "" });
+  fecha.onchange = () => opTarea(t, { op: "vence", fecha: fecha.value }, () => { t.vence = fecha.value; });
+  fecha.onclick = () => { try { fecha.showPicker(); } catch (e) {} };
+  fv.append(fecha);
+  if (t.vence) { const q = el("button", { class: "x", "aria-label": "Quitar fecha", style: "position:relative;z-index:1" }, ico("cerrar")); q.onclick = () => opTarea(t, { op: "vence", fecha: "" }, () => { t.vence = ""; }); fv.append(q); }
+  filaVence.append(fv);
+  if (!t.vence) {
+    const sig = () => { const d = hoyD(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return iso(d); };
+    const at = el("div", { class: "atajos" });
+    for (const [n, f] of [["Hoy", () => hoy()], ["Mañana", () => sumar(1)], ["Semana próxima", sig]]) {
+      const b = el("button", {}, n); b.onclick = () => { const v = f(); opTarea(t, { op: "vence", fecha: v }, () => { t.vence = v; }); }; at.append(b);
+    }
+    filaVence.append(at);
+  }
+
+  // lista
+  const filaLista = el("div", { class: "caja" });
+  const s = el("select", { "aria-label": "Lista" });
+  for (const l of D.listas) s.append(el("option", { value: claveLista(l), selected: l === t.lista }, (l.grupo ? l.grupo + " › " : "") + l.titulo));
+  s.onchange = () => { const l = D.listas.find(x => claveLista(x) === s.value); opTarea(t, { op: "mover", lista: l.titulo, grupo: l.grupo }); sel.lista = s.value; sel.k = 0; };
+  filaLista.append(el("label", { class: "fila" }, ico("lista"), s));
+
+  // nota
+  const nota = el("textarea", { class: "det-nota", placeholder: "Agregar nota", "data-campo": "nota", maxlength: "5000" });
+  nota.value = t.nota.join("\n");
+  nota.onblur = () => { if (nota.value.trim() !== t.nota.join("\n").trim()) opTarea(t, { op: "nota", texto: nota.value }); };
+
+  cuerpo.append(filaDia, filaVence, filaLista, nota);
+  const borrar = el("button", { "aria-label": "Eliminar tarea", title: "Eliminar tarea" }, ico("papelera"));
+  borrar.onclick = () => { if (confirm(`Se eliminará «${t.titulo}».`)) { opTarea(t, { op: "borrar" }); sel = null; pintar(); } };
+  det.append(cuerpo, el("div", { class: "det-pie" }, el("span", {}, t.hecho ? "Completada" : t.lista.titulo), borrar));
+  requestAnimationFrame(() => autoalto(tit));
+  if (enfocado) {
+    const f = det.querySelector(`[data-campo="${enfocado}"]`);
+    if (f) { const ant = f.onblur; f.onblur = null; if (escrito != null) f.value = escrito; f.focus(); f.onblur = ant; if (f === tit) autoalto(tit); }
+  }
+}
+
+// ---------- pintar ----------
+function pintar() {
+  const v = vista();
+  $("app").classList.toggle("en-lista", !!busqueda || !(movil() && v.vacia));
+  pintarLado(); pintarCentro(); pintarDetalle();
+}
+let avisoT;
+function aviso(t) { const x = $("toast"); x.textContent = t; x.style.display = "block"; clearTimeout(avisoT); avisoT = setTimeout(() => x.style.display = "none", 3500); }
+
+$("buscar").oninput = e => { busqueda = e.target.value.trim(); pintar(); };
+$("atras").onclick = () => { if (busqueda) { busqueda = ""; $("buscar").value = ""; } history.replaceState(null, "", location.pathname); sel = null; pintar(); };
+addEventListener("hashchange", () => { busqueda = ""; $("buscar").value = ""; sel = null; pintar(); $("cuerpo").scrollTop = 0; });
+addEventListener("keydown", e => {
+  const enCampo = e.target.closest && e.target.closest("input,textarea,select,[contenteditable]");
+  if (e.key === "Escape" && sel && !enCampo) return cerrar();
+  if (!enCampo && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !$("pie-anadir").hidden && $("app").classList.contains("en-lista")) $("nueva-tarea").focus();
+});
+let eraMovil = movil();
+addEventListener("resize", () => { if (movil() !== eraMovil) { eraMovil = movil(); pintar(); } });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !pendientes) refrescar(); });
+setInterval(() => { if (!document.hidden && !pendientes && !document.activeElement.closest("#detalle")) refrescar(); }, 30000);
+
+if (D.error) aviso(D.error);
+pintarNueva();
+prepararAnadir();
+pintar();
+</script>
+</body>
+</html>

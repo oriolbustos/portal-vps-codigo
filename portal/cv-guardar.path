@@ -1,0 +1,9 @@
+[Unit]
+Description=Guarda en el vault un CV editado en el portal en cuanto llega
+
+[Path]
+DirectoryNotEmpty=/var/lib/portal/cv-pendiente
+Unit=cv-guardar.service
+
+[Install]
+WantedBy=paths.target

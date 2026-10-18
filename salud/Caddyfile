@@ -1,0 +1,27 @@
+testobm.duckdns.org {
+    handle /webdav/* {
+        reverse_proxy webdav:8080
+    }
+    handle_path /{$MCP_VAULT_RUTA}/* {
+        reverse_proxy mcp:8000
+    }
+    handle_path /{$MCP_JUDIT_RUTA}/* {
+        reverse_proxy mcp-judit:8000
+    }
+    redir /finanzas /finanzas/
+    handle /finanzas/* {
+        route {
+            forward_auth 172.18.0.1:8791 {
+                uri /_auth
+            }
+            uri strip_prefix /finanzas
+            reverse_proxy 172.18.0.1:8790
+        }
+    }
+    handle_path /{$FIN_MCP_TOKEN}/* {
+        reverse_proxy mcp-finanzas:8000
+    }
+    handle {
+        reverse_proxy 172.18.0.1:8791
+    }
+}

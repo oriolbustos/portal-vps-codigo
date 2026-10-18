@@ -1,0 +1,22 @@
+[Unit]
+Description=Portal personal (login, portada, panel de entreno) en el puerto 8791
+After=network-online.target
+
+[Service]
+User=portal
+Group=portal
+ExecStart=/usr/bin/python3 /opt/portal/portal.py
+StateDirectory=portal
+StateDirectoryMode=0700
+Restart=always
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

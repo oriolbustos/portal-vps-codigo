@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tareas</title>
+<link rel="stylesheet" href="/estatico/estilo.css">
+<link rel="icon" href="/estatico/iconos/fav-tareas.svg" type="image/svg+xml">
+<style>
+.filtros { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 24px 0 16px; }
+.filtros > div { display: flex; flex-direction: column; gap: 6px; }
+.filtros > div[hidden] { display: none; }
+.segmentos { flex-wrap: wrap; }
+.matriz { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 760px) { .matriz { grid-template-columns: 1fr; } }
+.cuadrante { padding: 16px; min-height: 160px; }
+@media (min-width: 768px) { .cuadrante { padding: 20px 24px; } }
+.cuadrante header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.cuadrante h2 { font-family: var(--serif); font-size: var(--t-2xl); line-height: 1.1; }
+.cuadrante .que { color: var(--tinta-2); font-size: var(--t-xs); margin-bottom: 8px; }
+.cuenta { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2); }
+ul.tareas { list-style: none; margin: 0; padding: 0; }
+ul.tareas > li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--linea); align-items: start; }
+ul.tareas > li:first-child { border-top: 0; }
+.t-texto { color: var(--tinta-alta); }
+.t-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.t-meta .insignia { font-size: var(--t-xs); padding: 2px 5px; }
+.t-sub { margin: 4px 0 0; padding-left: 16px; list-style: disc; color: var(--tinta-2); font-size: var(--t-xs); }
+.t-acc { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.t-acc button { font: inherit; font-size: var(--t-xs); font-weight: 500; font-variation-settings: "wdth" 90; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta-2); }
+.t-acc button:hover { color: var(--tinta-alta); border-color: var(--tinta-2); }
+.t-acc button[aria-pressed="true"] { background: var(--tinta-alta); color: var(--fondo); border-color: var(--tinta-alta); }
+.t-acc button.quitar { border: 0; background: none; text-decoration: underline; text-underline-offset: 2px; }
+.grupo-amb { padding: 16px; }
+@media (min-width: 768px) { .grupo-amb { padding: 20px 24px; } }
+.grupo-amb h2 { font-family: var(--serif); font-size: var(--t-2xl); }
+.vista[hidden] { display: none; }
+.pie-panel { margin-top: 32px; font-size: var(--t-xs); color: var(--tinta-2); }
+.toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--tinta-alta); color: var(--fondo); padding: 8px 14px; font-size: var(--t-sm); display: none; z-index: 20; }
+@media (max-width: 600px) { ul.tareas > li { grid-template-columns: 1fr; } .t-acc { justify-content: flex-start; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+<header class="cabecera">
+  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-tareas"></i></span>Tareas</h1></div>
+  <nav class="nav" id="nav"><a href="#matriz">Matriz</a><a href="#lista">Lista</a></nav>
+</header>
+
+<div class="filtros">
+  <div><span class="etiqueta">Ámbito</span><div class="segmentos" id="f-ambito"></div></div>
+  <div><span class="etiqueta">Estado</span><div class="segmentos" id="f-estado"></div></div>
+  <div id="f-prio-caja"><span class="etiqueta">Prioridad</span><div class="segmentos" id="f-prio"></div></div>
+</div>
+
+<section class="vista" id="v-matriz">
+  <div class="rejilla matriz" id="matriz"></div>
+  <div class="rejilla" style="margin-top:32px"><div class="cuadrante" id="sin"></div></div>
+</section>
+
+<section class="vista" id="v-lista" hidden>
+  <div class="rejilla" id="lista"></div>
+</section>
+
+<p class="pie-panel" id="pie"></p>
+</div>
+<div class="toast" id="toast"></div>
+<script id="datos" type="application/json">/*__DATOS__*/null</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("datos").textContent);
+const EST = { doing: "En curso", todo: "Pendiente", seguimiento: "Seguimiento" };
+const CUAD = [
+  { id: "hacer", t: "Hacer ya", q: "Urgente e importante", f: x => x.u && x.i },
+  { id: "planificar", t: "Planificar", q: "Importante, no urgente", f: x => !x.u && x.i },
+  { id: "rapido", t: "Resolver rápido", q: "Urgente, no importante", f: x => x.u && !x.i },
+  { id: "despues", t: "Más adelante", q: "Ni urgente ni importante", f: x => !x.u && !x.i },
+];
+const PRIO = { todas: "Todas", urg: "Urgentes", imp: "Importantes", sin: "Sin clasificar" };
+const F = { ambito: "", estado: "", prio: "todas" };
+try { Object.assign(F, JSON.parse(localStorage.getItem("tareas.filtros") || "{}")); } catch (e) {}
+const el = (tag, attrs = {}, txt) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; };
+const clasificada = x => x.u !== null && x.u !== undefined;
+
+function segmentos(id, opciones, clave) {
+  const c = document.getElementById(id); c.replaceChildren();
+  for (const [v, t] of opciones) {
+    const b = el("button", v === F[clave] ? { class: "on" } : {}, t);
+    b.onclick = () => { F[clave] = v; try { localStorage.setItem("tareas.filtros", JSON.stringify(F)); } catch (e) {} pintar(); };
+    c.append(b);
+  }
+}
+
+function filtradas(conPrio) {
+  return D.tareas.filter(x => (!F.ambito || x.ambito === F.ambito) && (!F.estado || x.estado === F.estado) &&
+    (!conPrio || F.prio === "todas" || (F.prio === "urg" && x.u) || (F.prio === "imp" && x.i) || (F.prio === "sin" && !clasificada(x))));
+}
+
+function item(x, conAmbito = true) {
+  const li = el("li"), izq = el("div");
+  izq.append(el("div", { class: "t-texto" }, x.texto));
+  const meta = el("div", { class: "t-meta" });
+  if (conAmbito) meta.append(el("span", { class: "insignia" }, x.ambito));
+  meta.append(el("span", { class: "insignia" + (x.estado === "doing" ? " punto" : "") }, EST[x.estado]));
+  izq.append(meta);
+  if (x.sub.length) { const u = el("ul", { class: "t-sub" }); for (const s of x.sub) u.append(el("li", {}, s)); izq.append(u); }
+  const acc = el("div", { class: "t-acc" });
+  const boton = (txt, pulsado, fn, extra) => { const b = el("button", { "aria-pressed": String(!!pulsado), ...(extra || {}) }, txt); b.onclick = fn; acc.append(b); };
+  if (clasificada(x)) {
+    boton("Urgente", x.u, () => guardar(x, !x.u, x.i));
+    boton("Importante", x.i, () => guardar(x, x.u, !x.i));
+    if (!x.tag_u && !x.tag_i) boton("Quitar", false, () => guardar(x, null, null), { class: "quitar", title: "Dejar sin clasificar" });
+  } else {
+    boton("Urgente", false, () => guardar(x, true, false));
+    boton("Importante", false, () => guardar(x, false, true));
+    boton("Ninguna", false, () => guardar(x, false, false));
+  }
+  li.append(izq, acc);
+  return li;
+}
+
+function lista(ul, xs, conAmbito) {
+  if (!xs.length) { ul.append(el("li", { class: "vacio", style: "display:block;padding:12px 0;text-align:left" }, "Nada aquí")); return; }
+  const orden = { doing: 0, todo: 1, seguimiento: 2 };
+  for (const x of xs.slice().sort((a, b) => orden[a.estado] - orden[b.estado])) ul.append(item(x, conAmbito));
+}
+
+function matriz() {
+  const xs = filtradas(false), m = document.getElementById("matriz"); m.replaceChildren();
+  for (const c of CUAD) {
+    const caja = el("div", { class: "cuadrante" }), h = el("header"), sel = xs.filter(x => clasificada(x) && c.f(x));
+    h.append(el("h2", {}, c.t), el("span", { class: "cuenta" }, String(sel.length)));
+    caja.append(h, el("p", { class: "que" }, c.q));
+    const ul = el("ul", { class: "tareas" }); lista(ul, sel, !F.ambito); caja.append(ul); m.append(caja);
+  }
+  const sin = xs.filter(x => !clasificada(x)), s = document.getElementById("sin"); s.replaceChildren();
+  const h = el("header"); h.append(el("h2", {}, "Sin clasificar"), el("span", { class: "cuenta" }, String(sin.length)));
+  s.append(h, el("p", { class: "que" }, "Marca si es urgente, importante o ninguna de las dos para colocarla en la matriz."));
+  const ul = el("ul", { class: "tareas" }); lista(ul, sin, !F.ambito); s.append(ul);
+}
+
+function porAmbito() {
+  const xs = filtradas(true), c = document.getElementById("lista"); c.replaceChildren();
+  for (const a of D.ambitos.filter(a => !F.ambito || a === F.ambito)) {
+    const sel = xs.filter(x => x.ambito === a);
+    if (!sel.length && F.ambito !== a) continue;
+    const g = el("div", { class: "grupo-amb" }), h = el("header", { class: "ej-top", style: "display:flex;justify-content:space-between;align-items:baseline" });
+    h.append(el("h2", {}, a), el("span", { class: "cuenta" }, String(sel.length)));
+    const ul = el("ul", { class: "tareas" }); lista(ul, sel, false); g.append(h, ul); c.append(g);
+  }
+  if (!c.children.length) c.append(el("div", { class: "vacio" }, "Nada con estos filtros"));
+}
+
+const vistaActual = () => location.hash === "#lista" ? "lista" : "matriz";
+function pintar() {
+  const v = vistaActual();
+  document.getElementById("v-matriz").hidden = v !== "matriz";
+  document.getElementById("v-lista").hidden = v !== "lista";
+  document.getElementById("f-prio-caja").hidden = v !== "lista";
+  for (const a of document.querySelectorAll("#nav a")) a.classList.toggle("aqui", a.getAttribute("href") === "#" + v);
+  segmentos("f-ambito", [["", "Todos"], ...D.ambitos.map(a => [a, a])], "ambito");
+  segmentos("f-estado", [["", "Todos"], ["doing", "En curso"], ["todo", "Pendiente"], ["seguimiento", "Seguimiento"]], "estado");
+  segmentos("f-prio", Object.entries(PRIO), "prio");
+  v === "matriz" ? matriz() : porAmbito();
+}
+
+let avisoT;
+function aviso(txt) { const t = document.getElementById("toast"); t.textContent = txt; t.style.display = "block"; clearTimeout(avisoT); avisoT = setTimeout(() => t.style.display = "none", 2500); }
+async function guardar(x, u, i) {
+  const antes = [x.u, x.i];
+  x.u = u; x.i = i; pintar();
+  try {
+    const r = await fetch("/tareas/clasificar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: x.id, u, i }) });
+    if (!r.ok) throw new Error(await r.text());
+  } catch (e) { [x.u, x.i] = antes; pintar(); aviso("No se ha guardado. Recarga la página y prueba otra vez."); }
+}
+
+addEventListener("hashchange", pintar);
+document.getElementById("pie").textContent = `${D.tareas.length} tareas de ${D.ambitos.length} ámbitos, leídas de 30 - Plan a las ${D.generado.slice(11)}` + (D.avisos.length ? `. Avisos: ${D.avisos.join(", ")}` : "");
+pintar();
+</script>
+</body>
+</html>

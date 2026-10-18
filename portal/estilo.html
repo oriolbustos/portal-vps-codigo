@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estilo</title>
+<link rel="stylesheet" href="/estatico/estilo.css">
+<link rel="icon" href="/estatico/iconos/fav-estilo.svg" type="image/svg+xml">
+<style>
+.vista[hidden] { display: none; }
+.muestras { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.muestra .color { height: 72px; border-bottom: 1px solid var(--linea); }
+.muestra .txt { padding: 10px 12px; font-size: var(--t-xs); }
+.muestra .txt b { display: block; font-weight: 500; color: var(--tinta-alta); }
+.escala { display: grid; grid-template-columns: repeat(17, 1fr); border: 1px solid var(--linea); }
+.escala div { height: 40px; }
+.tipo { display: grid; grid-template-columns: 120px 1fr; gap: 8px 24px; align-items: baseline; }
+@media (max-width: 600px) { .tipo { grid-template-columns: 1fr; } }
+.fila-comp { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--linea); border: 1px solid var(--linea); }
+.comparar > div { background: var(--fondo); padding: 16px; }
+.comparar .mal { color: var(--tinta-2); text-decoration: line-through; text-decoration-color: var(--acento); }
+@media (max-width: 600px) { .comparar { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+<header class="cabecera">
+  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-estilo"></i></span>Estilo</h1></div>
+  <nav class="nav" id="nav">
+    <a href="#principios">Principios</a><a href="#color">Color</a><a href="#tipografia">Tipografía</a><a href="#componentes">Componentes</a><a href="#escritura">Escritura</a>
+  </nav>
+</header>
+
+<section class="vista" id="v-principios">
+  <div class="seccion"><span class="n">01</span><h2>Principios</h2><p>Cómo tienen que verse los paneles del portal. Se lee de la nota del vault: si la cambias, esta página cambia.</p></div>
+  <div class="rejilla c2">
+    <div class="celda texto"><!--md:intro--><!--md:Referencia--></div>
+    <div class="celda texto"><!--md:Visual--></div>
+  </div>
+</section>
+
+<section class="vista" id="v-color" hidden>
+  <div class="seccion"><span class="n">02</span><h2>Color</h2><p>Grises cálidos y un único acento. El rojo solo marca dónde estás o algo que mirar.</p></div>
+  <div class="rejilla muestras" id="muestras"></div>
+  <div class="seccion"><span class="n"></span><h2 class="titulo-2">Escala pampas</h2><p>De g0 (fondo claro) a g10 (títulos), y n3 a n0, los fondos casi negros del modo oscuro.</p></div>
+  <div class="escala" id="escala"></div>
+  <div class="seccion"><span class="n"></span><h2 class="titulo-2">Gráficas</h2><p>Tres series (cuatro como mucho), siempre en este orden. Una sola serie va en tinta.</p></div>
+  <div class="rejilla muestras" id="muestras-graf"></div>
+</section>
+
+<section class="vista" id="v-tipografia" hidden>
+  <div class="seccion"><span class="n">03</span><h2>Tipografía</h2><p>Serif para títulos y cifras, sans para leer, mono para números en tablas y ejes.</p></div>
+  <div class="rejilla">
+    <div class="celda tipo">
+      <span class="etiqueta">Display</span><span class="display">Entreno</span>
+      <span class="etiqueta">Título</span><span class="titulo">Cargas por ejercicio</span>
+      <span class="etiqueta">Título 2</span><span class="titulo-2">Press pecho mancuernas</span>
+      <span class="etiqueta">Cifra</span><span class="cifra" style="padding:0"><span class="valor">86,2<small>kg</small></span></span>
+      <span class="etiqueta">Texto</span><span>Serie top de cada sesión: la más pesada. En dips y dominadas asistidas, la de menos ayuda.</span>
+      <span class="etiqueta">Secundario</span><span class="secundario peq">kcal/día · gastadas = basal + actividad</span>
+      <span class="etiqueta">Etiqueta</span><span class="etiqueta">Balance medio</span>
+      <span class="etiqueta">Navegación</span><span class="versalita">Resumen · Nutrición · Fuerza</span>
+      <span class="etiqueta">Mono</span><span class="mono">12.450 pasos · 7h26 · −320 kcal</span>
+    </div>
+  </div>
+</section>
+
+<section class="vista" id="v-componentes" hidden>
+  <div class="seccion"><span class="n">04</span><h2>Componentes</h2><p>Lo que hay en <code>/estatico/estilo.css</code>. Para una página nueva, enlaza la hoja y usa estas clases.</p></div>
+  <div class="rejilla c3">
+    <div class="tarjeta"><span class="etiqueta">.tarjeta</span><h3><a class="principal" href="#componentes">Entreno</a></h3><p class="secundario peq">Pasa el ratón: se redondea y se desplaza. Toda la caja es el enlace.</p><div class="pie"><span class="insignia">push</span><span class="insignia">pull</span><span class="insignia punto">hoy</span></div></div>
+    <div class="tarjeta"><span class="etiqueta">.tarjeta</span><h3><a class="principal" href="#componentes">Finanzas</a></h3><p class="secundario peq">Gastos, ingresos, inversiones y patrimonio.</p><div class="pie"><span class="insignia">Caja cerrada</span></div></div>
+    <div class="celda"><span class="etiqueta">.boton · .segmentos</span>
+      <div class="fila-comp" style="margin-top:12px"><button class="boton">Ver sesiones</button><button class="boton fuerte">Abrir</button><a class="boton" href="#componentes">Cerrar sesión</a></div>
+      <div class="fila-comp" style="margin-top:12px"><div class="segmentos" id="seg-demo"><button>30 d</button><button class="on">90 d</button><button>Todo</button></div></div>
+      <div class="fila-comp" style="margin-top:12px"><span class="insignia">.insignia</span><span class="insignia punto">con punto</span></div>
+    </div>
+  </div>
+  <div class="rejilla">
+    <div class="celda"><span class="etiqueta">.sello · .ico</span>
+      <p class="titulo-2" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 24px">
+        <span><span class="sello"><i class="ico ico-portal"></i></span>Portal</span><span><span class="sello"><i class="ico ico-tareas"></i></span>Tareas</span>
+        <span><span class="sello"><i class="ico ico-listas"></i></span>Listas</span><span><span class="sello"><i class="ico ico-finanzas"></i></span>Finanzas</span>
+        <span><span class="sello"><i class="ico ico-entreno"></i></span>Entreno</span><span><span class="sello"><i class="ico ico-trabajo"></i></span>Trabajo</span>
+        <span><span class="sello"><i class="ico ico-estilo"></i></span>Estilo</span></p>
+      <p class="peq secundario" style="margin-top:12px">Un icono de línea delante del título, sin recuadro: un arco para el portal y uno propio para cada panel. Solo el favicon lleva fondo oscuro, para verse en la pestaña. Iconos en <code>/estatico/iconos/</code> (24 px, trazo 1,5, puntas rectas, sin rellenos); favicon = <code>fav-&lt;panel&gt;.svg</code>.</p>
+    </div>
+  </div>
+  <div class="rejilla cifras">
+    <div class="cifra"><span class="etiqueta">Último peso</span><span class="valor">86,2<small>kg</small></span><span class="nota">17-10 · −0,8 en el periodo</span></div>
+    <div class="cifra"><span class="etiqueta">Balance medio</span><span class="valor">−412<small>kcal</small></span><span class="nota">28 días · 21 confirmados</span></div>
+    <div class="cifra"><span class="etiqueta">Pasos medios</span><span class="valor">11.380</span><span class="nota">30 días con pasos</span></div>
+    <div class="cifra"><span class="etiqueta">Sesiones</span><span class="valor">3,2<small>/sem</small></span><span class="nota">13 en el periodo</span></div>
+  </div>
+  <div class="rejilla c2">
+    <div class="celda"><span class="etiqueta">table</span>
+      <div class="tabla" style="margin-top:8px"><table>
+        <tr><th>Fecha</th><th>Sesión</th><th class="n">Series</th><th class="n">Peso</th></tr>
+        <tr><td>17-10</td><td><span class="insignia">Push</span></td><td class="n">16</td><td class="n">86,2</td></tr>
+        <tr><td>15-10</td><td><span class="insignia">Pull</span></td><td class="n">14</td><td class="n">86,6</td></tr>
+        <tr><td>13-10</td><td><span class="insignia">Pierna</span></td><td class="n">12</td><td class="n">-</td></tr>
+      </table></div>
+    </div>
+    <div class="celda"><span class="etiqueta">.grafica</span>
+      <div class="leyenda"><span><i class="linea" style="background:var(--c1)"></i>Comidas</span><span><i class="linea" style="background:var(--c2)"></i>Gastadas</span></div>
+      <div class="grafica"><svg viewBox="0 0 400 140" height="140" preserveAspectRatio="none">
+        <line x1="30" x2="400" y1="20" y2="20" stroke="var(--c-rejilla)"/><line x1="30" x2="400" y1="70" y2="70" stroke="var(--c-rejilla)"/><line x1="30" x2="400" y1="120" y2="120" stroke="var(--c-eje)"/>
+        <text class="tick" x="24" y="24" text-anchor="end">3k</text><text class="tick" x="24" y="74" text-anchor="end">2k</text><text class="tick" x="24" y="124" text-anchor="end">1k</text>
+        <path d="M40,60 L100,48 L160,70 L220,55 L280,64 L340,40 L390,52" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M40,38 L100,40 L160,36 L220,30 L280,42 L340,34 L390,36" fill="none" stroke="var(--c2)" stroke-width="2" stroke-linejoin="round"/>
+      </svg></div>
+    </div>
+  </div>
+  <div class="rejilla">
+    <div class="celda"><span class="etiqueta">details · .aviso</span>
+      <details style="margin-top:8px"><summary>Ver sesiones</summary><p class="peq secundario">Contenido plegado. El signo + / − hace de icono.</p></details>
+      <div class="aviso" style="margin-top:12px">Fitbit: el permiso ha caducado. Reautoriza con <code>python3 /opt/salud-sync/autorizar.py</code>.</div>
+    </div>
+  </div>
+</section>
+
+<section class="vista" id="v-escritura" hidden>
+  <div class="seccion"><span class="n">05</span><h2>Escritura</h2><p>Cómo hablan los paneles, y cómo tiene que escribir la IA en ellos.</p></div>
+  <div class="comparar">
+    <div><span class="etiqueta">Así no</span><p class="mal" style="margin-top:8px">¡Vas genial! 🎉 Has perdido casi 1 kg esta semana 💪</p></div>
+    <div><span class="etiqueta">Así</span><p style="margin-top:8px">86,2 kg · −0,8 en 7 días</p></div>
+    <div><p class="mal">🔒 Caja cerrada</p></div><div><p>Caja cerrada</p></div>
+    <div><p class="mal">⚠️ ¡Ups! Algo salió mal. Por favor, inténtalo de nuevo más tarde.</p></div><div><p>Fitbit no responde. Se reintenta a las 21:30.</p></div>
+    <div><p class="mal">N/A</p></div><div><p>-</p></div>
+  </div>
+  <div class="rejilla"><div class="celda texto"><!--md:Forma de escribir--></div></div>
+</section>
+</div>
+<script>
+"use strict";
+const VISTAS = ["principios", "color", "tipografia", "componentes", "escritura"];
+function ir() {
+  const v = VISTAS.includes(location.hash.slice(1)) ? location.hash.slice(1) : VISTAS[0];
+  for (const s of VISTAS) document.getElementById("v-" + s).hidden = s !== v;
+  for (const a of document.querySelectorAll("#nav a")) a.classList.toggle("aqui", a.getAttribute("href") === "#" + v);
+}
+addEventListener("hashchange", () => { ir(); scrollTo(0, 0); });
+ir();
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function muestras(id, lista) {
+  const c = document.getElementById(id); c.replaceChildren();
+  for (const [v, nombre, uso] of lista) {
+    const d = document.createElement("div"); d.className = "muestra";
+    d.innerHTML = `<div class="color" style="background:var(${v})"></div><div class="txt"><b>${nombre}</b><span class="mono">${v} · ${css(v)}</span><br><span class="secundario">${uso}</span></div>`;
+    c.append(d);
+  }
+}
+function pintar() {
+  muestras("muestras", [["--fondo", "Fondo", "página"], ["--fondo-alto", "Fondo alto", "tarjeta activa, campos"], ["--tinta-alta", "Tinta alta", "títulos y cifras"],
+    ["--tinta", "Tinta", "texto"], ["--tinta-2", "Tinta 2", "secundario"], ["--linea", "Línea", "bordes 1 px"], ["--acento", "Acento", "solo \"aquí\" y avisos"]]);
+  muestras("muestras-graf", [["--c1", "Serie 1", "azul pizarra"], ["--c2", "Serie 2", "rojo"], ["--c3", "Serie 3", "verde azulado"], ["--c4", "Serie 4", "ocre, solo si hacen falta 4"], ["--c-tinta", "Una serie", "tinta"]]);
+  const e = document.getElementById("escala"); e.replaceChildren();
+  for (const g of ["g0", "g05", "g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g9", "g95", "g10", "n3", "n2", "n1", "n0"]) { const d = document.createElement("div"); d.style.background = `var(--${g})`; d.title = g + " " + css("--" + g); e.append(d); }
+}
+pintar();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", pintar);
+for (const b of document.querySelectorAll("#seg-demo button")) b.onclick = () => document.querySelectorAll("#seg-demo button").forEach(x => x.classList.toggle("on", x === b));
+</script>
+</body>
+</html>

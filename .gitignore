@@ -1,0 +1,17 @@
+# Lista blanca: solo el código del servidor. Todo lo demás de /opt queda fuera.
+/*
+!/.gitignore
+!/README.md
+!/portal/
+!/finanzas/
+!/salud-sync/
+!/salud/
+
+# Secretos y estado (nunca en git)
+/salud/.env
+/salud/obsidian-config/
+/salud/syncthing-config/
+__pycache__/
+*.bak*
+*.tgz
+*.shy

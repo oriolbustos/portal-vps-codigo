@@ -1,0 +1,79 @@
+/* Finanzas con el estilo del portal. Lo mete la llave (/opt/finanzas/llave.py) después de estilo.css,
+   solo en el VPS: el panel local (fin servir) no cambia. Traduce los tokens del panel a los del portal
+   y ajusta sus componentes. Si el panel cambia de clases, revisar aquí. */
+
+:root, :root:where(:not([data-theme="light"])), :root[data-theme="dark"] {
+  --page: var(--fondo); --surface: var(--fondo); --ink: var(--tinta-alta); --ink-2: var(--tinta-2); --muted: var(--tinta-2);
+  --grid: var(--linea); --axis: var(--c-eje); --border: var(--linea);
+  --s1: var(--c1, #3f6ea8); --s2: var(--c2, #d95151); --s3: var(--c3, #24906f); --s4: var(--c4, #a8740a); --neutral: var(--tinta-2);
+  --good: #24906f; --bad: var(--rojo); --wash: var(--fondo-2);
+}
+
+body { font: 15px/1.5 var(--sans); color: var(--tinta); letter-spacing: 0.0075em; }
+body > main { max-width: 1536px; padding: 24px var(--margen) 96px; }
+
+/* cabecera */
+header.top { background: var(--fondo); border-bottom-color: var(--linea); }
+.top .in { max-width: 1536px; padding: 20px var(--margen) 0; }
+.top .row1 { align-items: flex-end; }
+h1 { font-family: var(--serif); font-size: var(--t-3xl); font-weight: 400; line-height: 1; color: var(--tinta-alta); }
+nav { gap: 4px 28px; margin-top: 16px; padding-bottom: 4px; scrollbar-width: none; }
+nav a { position: relative; padding: 4px 0 12px; border: 0; color: var(--tinta-2); font-size: var(--t-base);
+  text-transform: uppercase; letter-spacing: 0.025em; font-stretch: 83%; font-variation-settings: "wdth" 83; }
+nav a:hover { color: var(--tinta-alta); }
+nav a.on { color: var(--tinta-alta); font-weight: 400; border: 0; }
+nav a.on::after { content: ""; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 6px; height: 6px; border-radius: 50%; background: var(--acento); }
+nav a .badge { font-family: var(--mono); font-weight: 300; border-radius: 4px; background: none; border: 1px dotted var(--tinta-2); letter-spacing: 0; }
+
+/* tarjetas: rejilla de líneas de 1 px, esquinas rectas */
+.card { background: var(--fondo); border: 1px solid var(--linea); border-radius: 0; padding: 20px 24px 16px; margin-bottom: -1px; }
+.grid2 { gap: 0; }
+.grid2 > .card { margin: 0 -1px -1px 0; }
+.grid2 + .card, .card + .grid2, .grid2 + .grid2 { margin-top: 0; }
+h2 { font-family: var(--serif); font-size: var(--t-xl); font-weight: 400; line-height: 1.2; color: var(--tinta-alta); }
+.sub { font-size: var(--t-xs); color: var(--tinta-2); }
+.tiles { gap: 0; margin-bottom: -1px; }
+.tile { border-radius: 0; background: var(--fondo); border-color: var(--linea); margin: 0 -1px -1px 0; padding: 16px 24px; }
+.tile .lbl { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; font-variation-settings: "wdth" 90; }
+.tile .val { font-family: var(--serif); font-size: var(--t-3xl); font-weight: 400; line-height: 1.1; color: var(--tinta-alta); font-variant-numeric: tabular-nums; }
+.tile .delta { font-size: var(--t-xs); }
+.mini { border-top-color: var(--linea); }
+.mini .t span:last-child, .bars .r .v, .cat .v, .it .v, .it .d { font-family: var(--mono); font-weight: 300; font-size: 0.9em; }
+
+/* gráficas */
+.tick { font-family: var(--mono); font-weight: 300; fill: var(--tinta-2); }
+.endlbl { font-family: var(--mono); fill: var(--tinta-alta); }
+.legend { font-size: var(--t-xs); }
+.legend i, .grp i { border-radius: 2px; }
+.tip { border-radius: 0; border-color: var(--linea-alta); box-shadow: none; background: var(--fondo-alto); font-size: var(--t-xs); }
+.tip b { font-family: var(--serif); font-weight: 400; font-size: var(--t-base); color: var(--tinta-alta); }
+.tip .row span:last-child { font-family: var(--mono); }
+
+/* tablas */
+table { font-size: var(--t-sm); }
+th { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; font-variation-settings: "wdth" 90; border-bottom-color: var(--linea-alta); }
+td { border-bottom-color: var(--linea); }
+td:not(:first-child):not(.l):not(.wrap) { font-family: var(--mono); font-weight: 300; font-size: 0.92em; }
+
+/* controles */
+.btn, .chip { font-family: var(--sans); font-weight: 550; font-variation-settings: "wdth" 90; border-radius: 6px; border: 1px solid var(--linea); background: var(--fondo-alto); color: var(--tinta); }
+.btn:hover, .chip:hover { background: var(--fondo-2); }
+.btn.pri, .chip.on { background: var(--tinta-alta); color: var(--fondo); border-color: var(--tinta-alta); }
+.btn.peligro { color: var(--rojo); }
+.link { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--subrayado); }
+.tag { border: 1px dotted var(--tinta-2); border-radius: 4px; }
+input, select, textarea { background: var(--fondo-alto); border-color: var(--linea); color: var(--tinta-alta); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--linea-alta); }
+.aviso, .falta { border-radius: 0; background: none; border: 0; border-left: 2px solid var(--acento); color: var(--tinta-2); font-size: var(--t-xs); padding: 2px 10px; margin-bottom: 16px; }
+.aviso code { font-size: inherit; }
+#meta { display: none; }
+.mesbar h2 { font-size: var(--t-2xl); }
+.bars .r.click, .cat, .it { border-radius: 0; }
+.bars .r .b, .cat .b, .subbar span { border-radius: 0 2px 2px 0; }
+dialog { border-radius: 0; border-color: var(--linea-alta); background: var(--fondo); }
+dialog h3 { font-family: var(--serif); font-size: var(--t-xl); font-weight: 400; }
+.toast { border-radius: 0; }
+
+/* icono del panel delante del título, igual que .sello en estilo.css (sin recuadro, en la línea base), solo con CSS */
+.top .row1 h1::before { content: ""; display: inline-block; width: 0.97em; height: 0.97em; vertical-align: -0.12em; margin: 0 0.26em 0 -0.12em; background: var(--tinta-alta);
+  -webkit-mask: url("iconos/finanzas.svg") center / contain no-repeat; mask: url("iconos/finanzas.svg") center / contain no-repeat; }

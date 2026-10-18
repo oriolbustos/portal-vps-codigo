@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+"""Panel Trabajo: el CV renderizado.
+
+Los CV son LaTeX guardados como .md en el vault (CVS). Se compila el elegido con XeLaTeX
+(fuente Carlito) y se convierte a PNG con pdftoppm para verlo también en el móvil.
+Caché en /var/lib/portal/cv/, por huella del fuente: solo recompila si cambia. Solo lee del vault.
+"""
+import hashlib, html, json, os, re, secrets, shutil, subprocess, threading, time
+from pathlib import Path
+from urllib.parse import quote
+
+CVS =Path("/srv/vault/20 - Career/40 - Opportunities/01 - CVs")
+ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
+CACHE = ESTADO / "cv"
+# Guardar: el portal no puede escribir en el vault (systemd lo deja en solo lectura). Deja la
+# petición aquí y la recoge cv-guardar.path → /opt/portal/cv-guardar.py (root), que la escribe.
+PENDIENTE = ESTADO / "cv-pendiente"
+RESULTADO = ESTADO / "cv-resultado.json"
+cerrojo = threading.Lock()
+
+
+def lista() -> list:
+    """CV en LaTeX, el más reciente primero (por la fecha AA-MM del nombre)."""
+    out = []
+    for p in CVS.glob("*.md"):
+        try:
+            if "\\documentclass" not in p.read_text(encoding="utf-8", errors="replace")[:4000]:
+                continue
+        except OSError:
+            continue
+        m = re.search(r"(\d{2})-(\d{2})", p.stem)
+        out.append((m.group(1) + m.group(2) if m else "0000", p.stem, p))
+    return [(nombre, p) for _, nombre, p in sorted(out, reverse=True)]
+
+
+def compilar(p: Path) -> dict:
+    return compilar_fuente(p.read_bytes())
+
+
+def compilar_fuente(fuente: bytes) -> dict:
+    """→ {"huella", "paginas", "error", "log"}. Deja cv.pdf y pagina-N.png en CACHE/huella/."""
+    with cerrojo:  # una compilación a la vez: la vista previa puede llegar repetida
+        return _compilar(fuente)
+
+
+def _compilar(fuente: bytes) -> dict:
+    huella = hashlib.sha256(fuente).hexdigest()[:16]
+    d = CACHE / huella
+    if (d / "cv.pdf").exists():
+        return {"huella": huella, "paginas": len(list(d.glob("pagina-*.png"))), "error": "", "log": ""}
+    CACHE.mkdir(parents=True, exist_ok=True)
+    viejas = sorted((x for x in CACHE.iterdir() if x.is_dir() and x.name != "var"), key=lambda x: x.stat().st_mtime)
+    for viejo in viejas[:-6]:  # guarda solo las 6 últimas compilaciones
+        shutil.rmtree(viejo, ignore_errors=True)
+    tmp = CACHE / (huella + ".tmp")
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir()
+    (tmp / "cv.tex").write_bytes(fuente)
+    entorno = dict(os.environ, HOME=str(CACHE / "var"), TEXMFVAR=str(CACHE / "var" / "texmf"),
+                   XDG_CACHE_HOME=str(CACHE / "var" / "cache"))
+    for motor in ("xelatex", "pdflatex"):  # las plantillas antiguas (\pdfglyphtounicode) solo van con pdflatex
+        r = subprocess.run([motor, "-interaction=nonstopmode", "-halt-on-error", "-no-shell-escape", "cv.tex"],
+                           cwd=tmp, env=entorno, capture_output=True, text=True, timeout=120)
+        if r.returncode == 0 and (tmp / "cv.pdf").exists():
+            break
+    if r.returncode != 0 or not (tmp / "cv.pdf").exists():
+        errores = [l for l in r.stdout.splitlines() if l.startswith("!")]
+        log = "\n".join(r.stdout.splitlines()[-25:])
+        shutil.rmtree(tmp, ignore_errors=True)
+        return {"huella": huella, "paginas": 0, "error": errores[0] if errores else "No compila", "log": log}
+    subprocess.run(["pdftoppm", "-png", "-r", "150", "cv.pdf", "pagina"], cwd=tmp, capture_output=True, timeout=60)
+    for f in tmp.glob("pagina-*.png"):  # pdftoppm numera con ceros a la izquierda según el total
+        f.rename(tmp / f"pagina-{int(f.stem.split('-')[1])}.png")
+    for f in tmp.iterdir():
+        if f.suffix not in (".pdf", ".png"):
+            f.unlink()
+    shutil.rmtree(d, ignore_errors=True)
+    tmp.rename(d)
+    return {"huella": huella, "paginas": len(list(d.glob("pagina-*.png"))), "error": "", "log": ""}
+
+
+def archivo(huella: str, nombre: str):
+    """Ruta segura a un PDF o PNG de la caché, o None."""
+    if not re.fullmatch(r"[0-9a-f]{16}", huella) or not re.fullmatch(r"cv\.pdf|pagina-\d{1,2}\.png", nombre):
+        return None
+    f = CACHE / huella / nombre
+    return f if f.is_file() else None
+
+
+def pagina(elegido: str = "") -> str:
+    cvs = lista()
+    if not cvs:
+        return '<p class="vacio">No encuentro ningún CV en LaTeX en el vault.</p>'
+    nombre, p = next(((n, q) for n, q in cvs if n == elegido), cvs[0])
+    try:
+        c = compilar(p)
+    except Exception as e:
+        c = {"error": str(e), "log": "", "paginas": 0, "huella": ""}
+    opciones = "".join(f'<option value="{html.escape(n)}"{" selected" if n == nombre else ""}>{html.escape(n)}</option>' for n, _ in cvs)
+    cab = f"""<div class="barra-cv"><form method="get"><label class="etiqueta" for="cv">Versión</label>
+<select id="cv" name="cv" onchange="this.form.submit()">{opciones}</select></form>
+<a class="boton" href="/trabajo/editar?cv={quote(nombre)}">Editar</a>"""
+    if c["error"]:
+        return cab + f"""</div><div class="aviso">No compila: {html.escape(c['error'])}</div>
+<details style="margin-top:12px"><summary>Ver el final del log</summary><pre class="mono mini">{html.escape(c['log'])}</pre></details>"""
+    base = f"/trabajo/cv/{c['huella']}"
+    imgs = "".join(f'<img src="{base}/pagina-{i}.png" alt="CV, página {i}" loading="lazy">' for i in range(1, c["paginas"] + 1))
+    return cab + f"""<a class="boton fuerte" href="{base}/cv.pdf" download="{html.escape(nombre)}.pdf">Descargar PDF</a></div>
+<p class="mini secundario fuente">Fuente: <code>20 - Career/40 - Opportunities/01 - CVs/{html.escape(p.name)}</code></p>
+<div class="hojas">{imgs}</div>"""
+
+
+# ---------- edición ----------
+def buscar(nombre: str):
+    return next((p for n, p in lista() if n == nombre), None)
+
+
+def sha(datos: bytes) -> str:
+    return hashlib.sha256(datos).hexdigest()
+
+
+def guardar(nombre: str, base: str, texto: str):
+    """Pide a cv-guardar (root) que escriba el CV en el vault. → (código HTTP, {ok, mensaje, base})."""
+    p = buscar(nombre)
+    if not p:
+        return 404, {"ok": False, "mensaje": "No encuentro ese CV en el vault."}
+    texto = texto.replace("\r\n", "\n")
+    if "\\documentclass" not in texto or len(texto) > 200_000:
+        return 400, {"ok": False, "mensaje": "Eso no parece un CV en LaTeX (falta \\documentclass). No guardo."}
+    actual = sha(p.read_bytes())
+    if base != actual:
+        return 409, {"ok": False, "mensaje": "El CV ha cambiado en el vault desde que lo abriste. Copia tus cambios y recarga."}
+    nuevo = texto.encode("utf-8")
+    if sha(nuevo) == actual:
+        return 200, {"ok": True, "mensaje": "Sin cambios.", "base": actual}
+    pid = secrets.token_hex(8)
+    PENDIENTE.mkdir(exist_ok=True)
+    tmp = ESTADO / f"cv-{pid}.tmp"
+    tmp.write_text(json.dumps({"id": pid, "archivo": p.name, "base": actual, "texto": texto}, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(PENDIENTE / f"{pid}.json")
+    for _ in range(40):  # cv-guardar.path lo recoge en menos de un segundo
+        time.sleep(0.25)
+        try:
+            r = json.loads(RESULTADO.read_text())
+        except (OSError, ValueError):
+            continue
+        if r.get("id") == pid:
+            if r.get("ok"):
+                return 200, {"ok": True, "mensaje": f"Guardado en el vault a las {time.strftime('%H:%M')}.", "base": sha(nuevo)}
+            return 500, {"ok": False, "mensaje": "No se ha guardado: " + r.get("error", "error desconocido")}
+    return 504, {"ok": False, "mensaje": "El guardado no responde. Revisa cv-guardar en el servidor."}
+
+
+def editor(nombre: str) -> str:
+    p = buscar(nombre)
+    if not p:
+        return '<p class="vacio">No encuentro ese CV. <a class="enlace" href="/trabajo/">Volver</a></p>'
+    datos = p.read_bytes()
+    texto = datos.decode("utf-8", errors="replace")
+    ini = json.dumps({"cv": nombre, "base": sha(datos)}).replace("</", "<\\/")
+    return f"""<div class="barra-cv"><div><span class="etiqueta">Editando</span> <b>{html.escape(nombre)}</b>
+<span class="mini secundario" id="estado"></span></div>
+<div class="fila-botones"><a class="boton" href="/trabajo/?cv={quote(nombre)}">Salir</a>
+<button class="boton" id="b-previa" title="Ctrl+Enter">Vista previa</button>
+<button class="boton fuerte" id="b-guardar" title="Ctrl+S">Guardar en el vault</button></div></div>
+<div class="editor">
+<textarea id="fuente" spellcheck="false" autocapitalize="off" autocomplete="off">{html.escape(texto)}</textarea>
+<div class="previa" id="previa"><p class="vacio">Pulsa Vista previa para compilar.</p></div>
+</div>
+<script id="ini" type="application/json">{ini}</script>
+<script>
+"use strict";
+const INI = JSON.parse(document.getElementById("ini").textContent);
+const ta = document.getElementById("fuente"), estado = document.getElementById("estado"), previa = document.getElementById("previa");
+let base = INI.base, sucio = false, ocupado = false;
+const decir = t => {{ estado.textContent = t; }};
+ta.addEventListener("input", () => {{ if (!sucio) {{ sucio = true; decir("Cambios sin guardar"); }} }});
+addEventListener("beforeunload", e => {{ if (sucio) {{ e.preventDefault(); e.returnValue = ""; }} }});
+async function post(url, cuerpo) {{
+  const r = await fetch(url, {{ method: "POST", headers: {{ "Content-Type": "application/json" }}, body: JSON.stringify(cuerpo) }});
+  let d = {{}}; try {{ d = await r.json(); }} catch (e) {{ d = {{ mensaje: "Respuesta rara del servidor (" + r.status + ")." }}; }}
+  return d;
+}}
+async function vistaPrevia() {{
+  if (ocupado) return; ocupado = true; decir("Compilando...");
+  try {{
+    const d = await post("/trabajo/compilar", {{ texto: ta.value }});
+    previa.replaceChildren();
+    if (d.error || !d.huella) {{
+      const a = document.createElement("div"); a.className = "aviso"; a.textContent = d.error ? "No compila: " + d.error : (d.mensaje || "No se ha podido compilar.");
+      const pre = document.createElement("pre"); pre.className = "mono mini"; pre.textContent = d.log || "";
+      previa.append(a, pre); decir("No compila");
+    }} else {{
+      for (let i = 1; i <= d.paginas; i++) {{ const im = document.createElement("img"); im.src = `/trabajo/cv/${{d.huella}}/pagina-${{i}}.png`; im.alt = "Página " + i; previa.append(im); }}
+      decir(sucio ? "Vista previa al día, cambios sin guardar" : "Vista previa al día");
+    }}
+  }} catch (e) {{ decir("No se ha podido compilar"); }}
+  ocupado = false;
+}}
+async function guardarCV() {{
+  if (ocupado) return; ocupado = true; decir("Guardando...");
+  try {{
+    const d = await post("/trabajo/guardar", {{ cv: INI.cv, base, texto: ta.value }});
+    if (d.ok) {{ base = d.base; sucio = false; }}
+    decir(d.mensaje || "Error al guardar");
+  }} catch (e) {{ decir("No se ha guardado: sin conexión"); }}
+  ocupado = false;
+}}
+document.getElementById("b-previa").onclick = vistaPrevia;
+document.getElementById("b-guardar").onclick = guardarCV;
+addEventListener("keydown", e => {{
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") {{ e.preventDefault(); guardarCV(); }}
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {{ e.preventDefault(); vistaPrevia(); }}
+}});
+vistaPrevia();
+</script>"""

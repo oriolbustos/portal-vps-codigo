@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Listas</title>
+<link rel="stylesheet" href="/estatico/estilo.css">
+<link rel="icon" href="/estatico/iconos/fav-listas.svg" type="image/svg+xml">
+<style>
+.anadir { display: flex; flex-wrap: wrap; gap: 8px; padding: 24px 0 16px; position: sticky; top: 0; background: var(--fondo); z-index: 3; }
+.anadir input { flex: 1 1 240px; min-width: 0; font: inherit; font-size: 16px; padding: 9px 12px; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); border-radius: 6px; }
+.anadir input:focus, .anadir select:focus { outline: none; border-color: var(--linea-alta); }
+.anadir select { font: inherit; font-size: var(--t-sm); padding: 8px; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); border-radius: 6px; max-width: 46%; }
+.anadir .boton { padding: 6px 14px; }
+.secciones { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.sec { padding: 16px; }
+@media (min-width: 768px) { .sec { padding: 20px 24px; } }
+.sec h2 { font-family: var(--serif); font-size: var(--t-xl); line-height: 1.2; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.sec h2 .cuenta { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2); }
+ul.items { list-style: none; margin: 0; padding: 0; }
+ul.items > li { border-top: 1px solid var(--linea); }
+ul.items > li:first-child { border-top: 0; }
+.fila { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 0; font: inherit; color: inherit; text-align: left; background: none; border: 0; }
+button.fila { cursor: pointer; }
+button.fila:hover .txt { color: var(--tinta-alta); }
+.caja { flex: none; width: 18px; height: 18px; margin-top: 3px; border: 1px solid var(--tinta-2); border-radius: 3px; display: grid; place-items: center; font-size: 12px; line-height: 1; }
+.hecho .caja { background: var(--tinta-alta); border-color: var(--tinta-alta); color: var(--fondo); }
+.txt { flex: 1; min-width: 0; color: var(--tinta); overflow-wrap: anywhere; }
+.hecho .txt { color: var(--tinta-2); text-decoration: line-through; text-decoration-color: var(--tinta-2); }
+.cuando { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2); flex: none; margin-top: 3px; }
+.det { margin: -4px 0 8px 0; padding-left: 18px; color: var(--tinta-2); font-size: var(--t-xs); overflow-wrap: anywhere; }
+.archivar { flex: none; font: inherit; font-size: var(--t-xs); color: var(--tinta-2); background: none; border: 0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; padding: 2px 0; margin-top: 2px; }
+.archivar:hover { color: var(--tinta-alta); }
+.ocupado { opacity: .5; pointer-events: none; }
+.pie-panel { margin-top: 32px; font-size: var(--t-xs); color: var(--tinta-2); }
+.toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--tinta-alta); color: var(--fondo); padding: 8px 14px; font-size: var(--t-sm); display: none; z-index: 20; max-width: calc(100vw - 32px); }
+details.archivo { margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="pagina">
+<header class="cabecera">
+  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-listas"></i></span>Listas</h1></div>
+  <nav class="nav" id="nav"></nav>
+</header>
+<form class="anadir" id="f-anadir" autocomplete="off">
+  <input id="texto" placeholder="Añadir o buscar" enterkeyhint="done" maxlength="300">
+  <select id="seccion" aria-label="Sección"></select>
+  <button class="boton fuerte">Añadir</button>
+</form>
+<div id="lista"></div>
+<p class="pie-panel" id="pie"></p>
+</div>
+<div class="toast" id="toast"></div>
+<script id="datos" type="application/json">/*__DATOS__*/null</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("datos").textContent);
+const ARCH = "Archivado";
+const el = (tag, attrs = {}, txt) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; };
+const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const plano = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const ddmm = f => f ? f.slice(8, 10) + "-" + f.slice(5, 7) : "";
+const input = document.getElementById("texto"), select = document.getElementById("seccion");
+let ultimaSeccion = {};
+try { ultimaSeccion = JSON.parse(localStorage.getItem("listas.seccion") || "{}"); } catch (e) {}
+
+const actual = () => D.listas.find(l => "#" + slug(l.nombre) === location.hash) || D.listas[0];
+
+function pintarNav() {
+  const nav = document.getElementById("nav"); nav.replaceChildren();
+  for (const l of D.listas) { const a = el("a", { href: "#" + slug(l.nombre) }, l.nombre); if (l === actual()) a.classList.add("aqui"); nav.append(a); }
+}
+
+function pintarSelect(l) {
+  const secs = l.secciones.filter(s => s.titulo !== ARCH);
+  select.replaceChildren();
+  for (const s of secs) select.append(el("option", { value: s.titulo }, s.titulo || "Sin sección"));
+  select.hidden = secs.length < 2;
+  const ult = ultimaSeccion[l.archivo];
+  if (ult != null && secs.some(s => s.titulo === ult)) select.value = ult;
+}
+
+function item(l, it) {
+  const li = el("li");
+  if (l.casillas) {
+    const b = el("button", { class: "fila" + (it.hecho ? " hecho" : ""), type: "button", "aria-pressed": String(it.hecho) });
+    b.append(el("span", { class: "caja", "aria-hidden": "true" }, it.hecho ? "✓" : ""), el("span", { class: "txt" }, it.texto));
+    if (it.hecho && it.cuando) b.append(el("span", { class: "cuando" }, ddmm(it.cuando)));
+    b.onclick = () => operar(l, { op: "marcar", n: it.n, linea: it.linea, hecho: !it.hecho }, b, () => { it.hecho = !it.hecho; });
+    li.append(b);
+  } else {
+    const f = el("div", { class: "fila" }); f.append(el("span", { class: "txt" }, it.texto));
+    const a = el("button", { class: "archivar", type: "button" }, "Archivar");
+    a.onclick = () => operar(l, { op: "archivar", n: it.n, linea: it.linea }, li);
+    if (!l.enArchivo) f.append(a);
+    li.append(f);
+    if (it.sub.length) li.append(el("div", { class: "det" }, it.sub.join(". ")));
+  }
+  return li;
+}
+
+function seccion(l, s, filtro) {
+  const its = s.items.filter(it => !filtro || plano(it.texto + " " + it.sub.join(" ")).includes(filtro));
+  if (filtro && !its.length) return null;
+  const c = el("div", { class: "sec" }), h = el("h2");
+  h.append(el("span", {}, s.titulo || l.nombre), el("span", { class: "cuenta" }, l.casillas ? `${its.filter(i => !i.hecho).length}/${its.length}` : String(its.length)));
+  const ul = el("ul", { class: "items" }); for (const it of its) ul.append(item(l, it));
+  if (!its.length) ul.append(el("li", { class: "vacio", style: "padding:8px 0;text-align:left" }, "Vacía"));
+  c.append(h, ul); return c;
+}
+
+function pintar() {
+  const l = actual(), filtro = plano(input.value.trim()), cont = document.getElementById("lista");
+  pintarNav(); cont.replaceChildren();
+  if (l.error) { cont.append(el("div", { class: "aviso" }, "No se puede leer esta lista: " + l.error)); return; }
+  const rej = el("div", { class: "rejilla secciones" });
+  for (const s of l.secciones.filter(s => s.titulo !== ARCH)) { const c = seccion(l, s, filtro); if (c) rej.append(c); }
+  if (!rej.children.length) cont.append(el("div", { class: "vacio" }, filtro ? "No está. Pulsa Añadir para apuntarlo." : "Lista vacía"));
+  else cont.append(rej);
+  const arch = l.secciones.find(s => s.titulo === ARCH);
+  if (arch && arch.items.length && !filtro) {
+    const d = el("details", { class: "archivo" }); d.append(el("summary", {}, `Archivado (${arch.items.length})`));
+    const r = el("div", { class: "rejilla" }); r.append(seccion({ ...l, enArchivo: true }, arch, "")); d.append(r); cont.append(d);
+  }
+  document.getElementById("pie").textContent = `${l.archivo} en 30 - Personal/10 - Listas. Leída a las ${D.generado}.`;
+}
+
+let avisoT;
+function aviso(t) { const x = document.getElementById("toast"); x.textContent = t; x.style.display = "block"; clearTimeout(avisoT); avisoT = setTimeout(() => x.style.display = "none", 3000); }
+
+// Una operación a la vez: el vault se escribe en orden y cada respuesta trae la lista ya actualizada.
+let cola = Promise.resolve();
+function operar(l, cuerpo, nodo, optimista) {
+  if (optimista) { optimista(); pintar(); } else if (nodo) nodo.classList.add("ocupado");
+  cola = cola.then(async () => {
+    try {
+      const r = await fetch("/listas/operar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ archivo: l.archivo, ...cuerpo }) });
+      let d = {}; try { d = await r.json(); } catch (e) { d = { mensaje: "Respuesta rara del servidor (" + r.status + ")." }; }
+      if (d.lista) { const i = D.listas.findIndex(x => x.archivo === l.archivo); D.listas[i] = d.lista; }
+      if (!d.ok) aviso(d.mensaje || "No se ha guardado.");
+      else if (cuerpo.op === "anadir") aviso("Añadido: " + cuerpo.texto);
+    } catch (e) { aviso("Sin conexión. No se ha guardado."); }
+    pintar();
+  });
+  return cola;
+}
+
+document.getElementById("f-anadir").onsubmit = e => {
+  e.preventDefault();
+  const t = input.value.trim(), l = actual();
+  if (!t) { input.focus(); return; }
+  ultimaSeccion[l.archivo] = select.value; try { localStorage.setItem("listas.seccion", JSON.stringify(ultimaSeccion)); } catch (er) {}
+  input.value = "";
+  operar(l, { op: "anadir", texto: t, seccion: select.value || "" });
+};
+input.addEventListener("input", pintar);
+addEventListener("hashchange", () => { input.value = ""; pintarSelect(actual()); pintar(); scrollTo(0, 0); });
+pintarSelect(actual());
+pintar();
+</script>
+</body>
+</html>
