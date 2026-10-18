@@ -122,6 +122,16 @@ def borrar_sesion(token: str):
             guardar_sesiones(s)
 
 
+# Fotos de Entreno: en modo censurado no existen nunca, aunque Entreno se vea (medidas.py pregunta aquí).
+medidas.privado = lambda h: censurado(h.token())
+
+
+def sin_fotos(pagina: str) -> str:
+    """Entreno en modo censurado: quita la pestaña Fotos sin dejar hueco (los datos ya llegan vacíos)."""
+    pagina = pagina.replace('<a href="#fotos">Fotos</a>', "").replace('"perimetros", "fotos"]', '"perimetros"]')
+    return pagina.replace("</head>", "<style>#v-fotos{display:none!important}</style></head>", 1)
+
+
 # ---------- contraseña y freno ----------
 def comprobar(usuario: str, clave: str) -> bool:
     try:
@@ -547,7 +557,8 @@ class Manejador(BaseHTTPRequestHandler):
             rehacer_entreno()
             if not PANEL_ENTRENO.exists():
                 return self.enviar(pagina("Entreno", f"<div class='pagina'><p class='vacio'>Aún no hay panel. {html.escape(estado_entreno['error'])}</p></div>"), 503)
-            return self.enviar(PANEL_ENTRENO.read_text(encoding="utf-8"), renovado=renovado)
+            panel = PANEL_ENTRENO.read_text(encoding="utf-8")
+            return self.enviar(sin_fotos(panel) if cens else panel, renovado=renovado)
         if ruta in ("/entreno/clasico", "/entreno/clasico/"):
             rehacer_entreno()
             if not PANEL_ENTRENO_CLASICO.exists():
@@ -618,7 +629,8 @@ class Manejador(BaseHTTPRequestHandler):
         origen = self.headers.get("Origin") or self.headers.get("Referer") or ""
         if origen and urlsplit(origen).hostname != DOMINIO:
             return self.enviar("Origen no permitido", 403)
-        if censurado(self.token()) and censura.panel_oculto(urlsplit(self.path).path, censura.leer()):
+        if censurado(self.token()) and (censura.panel_oculto(urlsplit(self.path).path, censura.leer())
+                                         or urlsplit(self.path).path.startswith("/entreno/fotos/")):  # fotos: nunca
             return self.no_encontrado()
         if urlsplit(self.path).path == "/config/":
             return self.api_config()
