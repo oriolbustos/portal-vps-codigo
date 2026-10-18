@@ -6,8 +6,9 @@
 - /_auth: lo consulta Caddy (forward_auth) antes de dejar pasar a /finanzas/ (la llave).
 - Portada con una tarjeta por panel (lista PANELES) y /entreno/, que se rehace solo
   cuando cambian las notas diarias del vault (/entreno/clasico/ = versión anterior).
-- /estilo/: guía de estilo viva. Las reglas se leen de la nota del vault ESTILO_NOTA;
-  la hoja compartida y las fuentes se sirven en /estatico/ (sin sesión).
+- /config/: Apariencia (modo, colores, fuentes, iconos: apariencia.py), Portada (orden y paneles ocultos),
+  Escritura (reglas de la nota de estilo: escritura.py), Modo censurado y Guía de estilo (/config/guia/, antes /estilo/).
+  La guía lee sus reglas de la nota del vault ESTILO_NOTA; la hoja compartida y las fuentes se sirven en /estatico/ (sin sesión).
 - Modo censurado por dispositivo (botón Censurar de la portada) y /config/: ver censura.py.
 """
 import hashlib, html, json, os, re, secrets, sys, threading, time
@@ -17,9 +18,11 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, urlsplit
 
 import bcrypt
+from xml.etree.ElementTree import ParseError as ET_ERROR
 
 sys.path.insert(0, str(Path(__file__).parent))
 import censura, entreno, listas, tareas, todo, trabajo  # noqa: E402
+import apariencia, escritura  # noqa: E402  (/config/: Apariencia, Portada y Escritura)
 import entreno_sesion  # noqa: E402  (Entreno en directo, /entreno/sesion/)
 import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
 
@@ -32,7 +35,7 @@ PANEL_ENTRENO_CLASICO = ESTADO / "entreno-clasico.html"
 AQUI = Path(__file__).parent
 ESTATICO = AQUI / "estatico"
 ESTILO_NOTA = Path("/srv/vault/30 - Personal/00 - Sistema VPS/estilo-frontend.md")
-TIPOS = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2", ".svg": "image/svg+xml"}
+TIPOS = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2", ".svg": "image/svg+xml", ".png": "image/png"}
 PUERTO = int(os.environ.get("PORTAL_PUERTO", "8791"))
 DOMINIO = os.environ.get("PORTAL_DOMINIO", "testobm.duckdns.org")
 COOKIE = "portal_sesion"
@@ -242,8 +245,7 @@ PANELES = [
     {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas},
     {"titulo": "Entreno", "ruta": "/entreno/", "desc": "Peso, nutrición, actividad y fuerza.", "estado": None},
     {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV actual.", "estado": None},
-    {"titulo": "Estilo", "ruta": "/estilo/", "desc": "Guía visual y de escritura.", "estado": None},
-    {"titulo": "Configuración", "ruta": "/config/", "desc": "Modo censurado y ajustes.", "estado": None},  # en modo censurado, solo "Volver al modo normal"
+    {"titulo": "Configuración", "ruta": "/config/", "desc": "Apariencia, portada, escritura y censura.", "estado": None},  # en modo censurado, solo "Volver al modo normal"
 ]
 
 # ---------- pasos del iPhone (Atajo de iOS) ----------
@@ -312,7 +314,7 @@ def pagina(titulo, cuerpo, icono="portal"):
 def pagina_login(siguiente="/", error=""):
     err = f'<p class="error">{html.escape(error)}</p>' if error else ""
     return pagina("Portal · entrar", f"""<main class="login"><div class="rejilla" style="width:100%;max-width:362px"><form method="post" action="/login">
-<h1>Portal</h1>{err}
+<h1>{html.escape(apariencia.leer()["nombre"])}</h1>{err}
 <input type="hidden" name="next" value="{html.escape(siguiente)}">
 <label class="campo"><span class="etiqueta">Usuario</span><input name="usuario" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
 <label class="campo"><span class="etiqueta">Contraseña</span><input type="password" name="clave" autocomplete="current-password" required></label>
@@ -322,7 +324,8 @@ def pagina_login(siguiente="/", error=""):
 def pagina_portada(cens=False):
     tarjetas = []
     conf = censura.leer()
-    for p in PANELES:
+    ap = apariencia.leer()
+    for p in apariencia.ordenar(PANELES, ap, lambda p: p["ruta"].strip("/").split("/")[0]):
         if cens and censura.panel_oculto(p["ruta"], conf):
             continue
         try:
@@ -337,8 +340,9 @@ def pagina_portada(cens=False):
         desc = p["desc_censurado"] if cens and quita and p.get("desc_censurado") else p["desc"]
         tarjetas.append(f"""<div class="tarjeta"><h2><span class="sello"><i class="ico ico-{ico}"></i></span><a class="principal" href="{p['ruta']}">{html.escape(p['titulo'])}</a></h2>
 <p class="secundario peq">{html.escape(desc)}</p>{f'<div class="pie">{insignias}</div>' if insignias else ''}</div>""")
-    return pagina("Portal", f"""<div class="pagina"><header class="cabecera">
-<div class="marca"><h1>Portal</h1></div>
+    sello = '<span class="sello"><i class="ico ico-portal"></i></span>' if ap["logo_en_titulo"] else ""
+    return pagina(html.escape(ap["nombre"]), f"""<div class="pagina"><header class="cabecera">
+<div class="marca"><h1>{sello}{html.escape(ap["nombre"])}</h1></div>
 <div class="extra">{'' if cens else '<form method="post" action="/censurar"><button class="boton">Censurar</button></form>'}<form method="post" action="/salir"><button class="boton">Cerrar sesión</button></form></div></header>
 <div class="rejilla tarjetas">{''.join(tarjetas)}</div>
 </div>""")
@@ -426,12 +430,21 @@ def pagina_estilo() -> str:
 
 
 def pagina_config(guardado=False):
-    paneles = [(p["ruta"].strip("/").split("/")[0], p["titulo"]) for p in PANELES if p["ruta"] != "/config/"]
+    """Pestañas Apariencia, Portada y Escritura (config.html, con JS) y Modo censurado (formulario de censura.py)."""
+    paneles = [(p["ruta"].strip("/").split("/")[0], p["titulo"]) for p in PANELES]
     try:
         nombres_listas = [listas.NOMBRES.get(p.stem, p.stem) for p in listas.notas()]
     except OSError:
         nombres_listas = []
-    cuerpo = censura.pagina(censura.leer(), paneles, [n for n, _ in tareas.ambitos()], todo.datos(), nombres_listas, guardado)
+    form = censura.pagina(censura.leer(), [x for x in paneles if x[0] != "config"], [n for n, _ in tareas.ambitos()],
+                          todo.datos(), nombres_listas, guardado, solo_formulario=True)
+    try:
+        esc = escritura.leer()
+    except OSError:
+        esc = None
+    datos = {"apariencia": apariencia.leer(), "opciones": apariencia.opciones(paneles), "escritura": esc, "guardado": guardado}
+    plantilla = (AQUI / "config.html").read_text(encoding="utf-8")
+    cuerpo = plantilla.replace("<!--censura-->", form).replace("__DATOS__", json.dumps(datos, ensure_ascii=False).replace("</", "<\\/"))
     return pagina("Configuración", cuerpo, icono="config")
 
 
@@ -480,6 +493,10 @@ class Manejador(BaseHTTPRequestHandler):
         self.send_header("Set-Cookie", f"{COOKIE}={token}; Max-Age={max_age}; Path=/; HttpOnly; Secure; SameSite=Lax")
 
     def enviar(self, cuerpo: str, codigo=200, renovado=None):
+        ap = apariencia.leer()  # modo claro/oscuro fijo y nombre del portal, en cualquier página
+        cuerpo = apariencia.modo(cuerpo, ap)
+        if ap["nombre"] != "Portal":
+            cuerpo = cuerpo.replace(">← Portal<", f">← {html.escape(ap['nombre'])}<")
         datos = cuerpo.encode("utf-8")
         self.send_response(codigo)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -575,9 +592,11 @@ class Manejador(BaseHTTPRequestHandler):
                 rehacer_entreno(forzar=True)
             if PANEL_ENTRENO_CLASICO.exists():
                 return self.enviar(PANEL_ENTRENO_CLASICO.read_text(encoding="utf-8"), renovado=renovado)
-        if ruta == "/estilo":
-            return self.redirigir("/estilo/", codigo=301)
-        if ruta == "/estilo/":
+        if ruta in ("/estilo", "/estilo/"):  # la guía vive ahora dentro de Configuración
+            return self.redirigir("/config/guia/", codigo=301)
+        if ruta in ("/config/guia", "/config/guia/"):
+            if cens:
+                return self.no_encontrado()
             return self.enviar(pagina_estilo(), renovado=renovado)
         if ruta in ("/tareas", "/trabajo", "/listas"):
             return self.redirigir(ruta + "/", codigo=301)
@@ -615,7 +634,20 @@ class Manejador(BaseHTTPRequestHandler):
         self.no_encontrado()
 
     def estatico(self, nombre: str):
-        """Solo archivos de /opt/portal/estatico con extensión conocida, sin salir de la carpeta."""
+        """Solo archivos de /opt/portal/estatico con extensión conocida, sin salir de la carpeta.
+        Más lo de apariencia.py: estilo.css con lo elegido en /config/, iconos cambiados (iconos/<panel>.svg),
+        los de siempre aunque estén cambiados (iconos-fabrica/) y lo subido (propio/)."""
+        ap = apariencia.leer()
+        if nombre == "estilo.css":
+            texto = apariencia.modo((ESTATICO / "estilo.css").read_text(encoding="utf-8") + apariencia.css(ap), ap)
+            return self.enviar_bytes(texto.encode("utf-8"), TIPOS[".css"], "no-cache")
+        if nombre.startswith("iconos/") and (r := apariencia.icono(nombre[len("iconos/"):], ap)):
+            return self.enviar_bytes(r[0], r[1], "no-cache")
+        if nombre.startswith("iconos-fabrica/"):
+            nombre = "iconos/" + nombre[len("iconos-fabrica/"):]
+        if nombre.startswith("propio/"):
+            r = apariencia.subido(nombre[len("propio/"):])
+            return self.enviar_archivo(r[0], r[1], "public, max-age=31536000, immutable") if r else self.enviar("No encontrado", 404)
         ruta = (ESTATICO / nombre).resolve()
         if ESTATICO.resolve() not in ruta.parents or ruta.suffix not in TIPOS or not ruta.is_file():
             return self.enviar("No encontrado", 404)
@@ -623,12 +655,16 @@ class Manejador(BaseHTTPRequestHandler):
         self.enviar_archivo(ruta, TIPOS[ruta.suffix], "public, max-age=86400" if ruta.suffix == ".woff2" else "no-cache")
 
     def enviar_archivo(self, ruta: Path, tipo: str, cache="private, max-age=3600"):
-        datos = ruta.read_bytes()
+        self.enviar_bytes(ruta.read_bytes(), tipo, cache)
+
+    def enviar_bytes(self, datos: bytes, tipo: str, cache: str):
         self.send_response(200)
         self.send_header("Content-Type", tipo)
         self.send_header("Content-Length", str(len(datos)))
         self.send_header("Cache-Control", cache)
         self.send_header("X-Content-Type-Options", "nosniff")
+        if tipo == "image/svg+xml":  # un SVG abierto a pelo no ejecuta nada
+            self.send_header("Content-Security-Policy", "default-src 'none'; img-src data:; style-src 'unsafe-inline'")
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(datos)
@@ -642,6 +678,10 @@ class Manejador(BaseHTTPRequestHandler):
         if censurado(self.token()) and (censura.panel_oculto(urlsplit(self.path).path, censura.leer())
                                          or urlsplit(self.path).path.startswith("/entreno/fotos/")):  # fotos: nunca
             return self.no_encontrado()
+        if urlsplit(self.path).path in ("/config/apariencia", "/config/subir", "/config/escritura"):
+            if censurado(self.token()):
+                return self.no_encontrado()
+            return self.api_apariencia(urlsplit(self.path).path.rsplit("/", 1)[1])
         if urlsplit(self.path).path == "/config/":
             if censurado(self.token()):  # en modo censurado no se cambia nada
                 return self.redirigir("/config/")
@@ -698,7 +738,63 @@ class Manejador(BaseHTTPRequestHandler):
         campos = parse_qs(self.rfile.read(largo).decode("utf-8", "replace"))
         censura.guardar(censura.desde_formulario(campos, censura.leer()))
         log("portal: configuración guardada")
-        self.redirigir("/config/?guardado")
+        self.redirigir("/config/?guardado#censura")
+
+    def api_apariencia(self, accion: str):
+        """/config/: apariencia {..} o {fabrica: true}; subir ?tipo=icono|fuente&nombre= (archivo en el cuerpo);
+        escritura {base, apartados} o {base, fabrica: true}."""
+        def responder(codigo, d):
+            datos = json.dumps(d, ensure_ascii=False).encode()
+            self.send_response(codigo)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(datos)))
+            self.cabeceras_comunes()
+            self.end_headers()
+            self.wfile.write(datos)
+        if not sesion_valida(self.token(), renovar=False)[0]:
+            return responder(401, {"ok": False, "mensaje": "Sesión caducada. Vuelve a entrar."})
+        largo = int(self.headers.get("Content-Length") or 0)
+        if largo > 2 * 1024 * 1024:
+            return responder(413, {"ok": False, "mensaje": "El archivo pasa de 2 MB."})
+        cuerpo = self.rfile.read(largo)
+        if accion == "subir":
+            q = parse_qs(urlsplit(self.path).query)
+            try:
+                s = apariencia.subir(q.get("tipo", [""])[0], q.get("nombre", [""])[0], cuerpo)
+            except (ValueError, ET_ERROR) as e:
+                return responder(400, {"ok": False, "mensaje": f"No se puede usar ese archivo: {e}."})
+            log(f"portal: apariencia: subido {s['tipo']} {s['id']}")
+            return responder(200, {"ok": True, "subido": s})
+        try:
+            d = json.loads(cuerpo)
+            if not isinstance(d, dict):
+                raise ValueError
+        except ValueError:
+            return responder(400, {"ok": False, "mensaje": "Petición no válida."})
+        if accion == "apariencia":
+            if d.get("fabrica") is True:
+                apariencia.de_fabrica()
+                log("portal: apariencia restablecida de fábrica")
+                return responder(200, {"ok": True, "apariencia": apariencia.leer()})
+            d["subidos"] = apariencia.leer()["subidos"]  # lo subido lo sabe el servidor, no la página
+            a = apariencia.guardar(d)
+            log("portal: apariencia guardada")
+            return responder(200, {"ok": True, "apariencia": a})
+        try:  # escritura
+            if d.get("fabrica") is True:
+                ok, msg = escritura.guardar(str(d.get("base", "")), None)
+            else:
+                ok, msg = escritura.guardar(str(d.get("base", "")), escritura.validar(d.get("apartados")))
+        except (OSError, ValueError) as e:
+            ok, msg = False, str(e) or "Petición no válida."
+        if ok:
+            log("portal: reglas de escritura guardadas")
+        time.sleep(0.05)
+        try:
+            actual = escritura.leer()
+        except OSError:
+            actual = None
+        return responder(200 if ok else 409, {"ok": ok, "mensaje": msg, "escritura": actual})
 
     def api_entreno_sesion(self):
         """Entreno en directo: {fecha, huella, filas} → tabla Entreno de la nota del día vía entreno-sesion-guardar."""

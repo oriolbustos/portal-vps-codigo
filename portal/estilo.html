@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Estilo</title>
+<title>Guía de estilo</title>
 <link rel="stylesheet" href="/estatico/estilo.css">
-<link rel="icon" href="/estatico/iconos/fav-estilo.svg" type="image/svg+xml">
+<link rel="icon" href="/estatico/iconos/fav-config.svg" type="image/svg+xml">
 <style>
 .vista[hidden] { display: none; }
+.nav.guia { padding-top: 24px; margin-bottom: 0; }
+.nav.guia a { font-size: var(--t-sm); }
 .muestras { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .muestra .color { height: 72px; border-bottom: 1px solid var(--linea); }
 .muestra .txt { padding: 10px 12px; font-size: var(--t-xs); }
@@ -26,11 +28,12 @@
 <body>
 <div class="pagina">
 <header class="cabecera">
-  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-estilo"></i></span>Estilo</h1></div>
-  <nav class="nav" id="nav">
+  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-config"></i></span>Configuración</h1></div>
+  <nav class="nav"><a href="/config/#apariencia">Apariencia</a><a href="/config/#portada">Portada</a><a href="/config/#escritura">Escritura</a><a href="/config/#censura">Modo censurado</a><a class="aqui" href="/config/guia/">Guía de estilo</a></nav>
+</header>
+<nav class="nav guia" id="nav">
     <a href="#principios">Principios</a><a href="#color">Color</a><a href="#tipografia">Tipografía</a><a href="#componentes">Componentes</a><a href="#escritura">Escritura</a>
   </nav>
-</header>
 
 <section class="vista" id="v-principios">
   <div class="seccion"><span class="n">01</span><h2>Principios</h2><p>Cómo tienen que verse los paneles del portal. Se lee de la nota del vault: si la cambias, esta página cambia.</p></div>

@@ -1,0 +1,10 @@
+[Unit]
+StartLimitIntervalSec=0
+Description=Guarda en el vault la nota de estilo (reglas de escritura editadas en /config/) en cuanto llega
+
+[Path]
+DirectoryNotEmpty=/var/lib/portal/estilo-pendiente
+Unit=estilo-guardar.service
+
+[Install]
+WantedBy=paths.target

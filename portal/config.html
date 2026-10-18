@@ -1,0 +1,348 @@
+<style>
+.vista[hidden] { display: none; }
+.cajas { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.color { display: flex; gap: 12px; align-items: center; padding: 12px 14px; }
+.color input[type=color] { width: 40px; height: 40px; flex: none; padding: 0; border: 1px solid var(--linea); border-radius: 6px; background: none; cursor: pointer; }
+.color input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+.color input[type=color]::-webkit-color-swatch { border: 0; border-radius: 4px; }
+.color .txt { min-width: 0; flex: 1; font-size: var(--t-xs); line-height: 1.35; }
+.color .txt b { display: block; font-weight: 500; font-size: var(--t-sm); color: var(--tinta-alta); }
+.color .mono { color: var(--tinta-2); }
+.quitar { font: inherit; font-size: var(--t-xs); color: var(--tinta-2); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.quitar:hover { color: var(--tinta-alta); }
+.fila { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.sub { padding: 24px 0 10px; }
+.sub h3 { font-family: var(--serif); font-size: var(--t-xl); }
+.sub p { color: var(--tinta-2); font-size: var(--t-sm); }
+select.campo-s, input.campo-s { font: inherit; font-size: var(--t-sm); padding: 6px 8px; background: var(--fondo-alto); color: var(--tinta-alta); border: 1px solid var(--linea); border-radius: 6px; max-width: 100%; }
+.fuente { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.fuente .muestra { font-size: var(--t-xl); color: var(--tinta-alta); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icono-p { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.icono-p .cab { display: flex; gap: 12px; align-items: center; }
+.icono-p .grande { width: 32px; height: 32px; color: var(--tinta-alta); flex: none; }
+.galeria { display: flex; flex-wrap: wrap; gap: 4px; }
+.galeria button { width: 36px; height: 36px; display: grid; place-items: center; background: var(--fondo); border: 1px solid var(--linea); border-radius: 6px; cursor: pointer; color: var(--tinta); padding: 0; }
+.galeria button:hover { border-color: var(--linea-alta); color: var(--tinta-alta); }
+.galeria button.on { background: var(--tinta-alta); color: var(--fondo); border-color: var(--tinta-alta); }
+.galeria .ico { width: 20px; height: 20px; }
+.paneles { max-width: 640px; }
+.panel-f { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--fondo); }
+.panel-f.arrastra { opacity: .4; }
+.panel-f.encima { box-shadow: inset 0 2px 0 var(--linea-alta), 0 0 0 1px var(--linea); }
+.panel-f .asa { cursor: grab; color: var(--tinta-2); font-family: var(--mono); user-select: none; touch-action: none; padding: 4px; }
+.panel-f .nombre { flex: 1; min-width: 0; font-size: var(--t-base); color: var(--tinta-alta); }
+.panel-f .nombre .ico { width: .9em; height: .9em; vertical-align: -0.1em; margin-right: 8px; }
+.panel-f.oculto .nombre { color: var(--tinta-2); text-decoration: line-through; text-decoration-color: var(--tinta-2); }
+.panel-f label { font-size: var(--t-sm); color: var(--tinta-2); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.panel-f input { accent-color: var(--tinta-alta); }
+.flechas { display: flex; gap: 2px; }
+.flechas button { font: inherit; font-size: var(--t-sm); width: 28px; height: 28px; padding: 0; background: var(--fondo); border: 1px solid var(--linea); border-radius: 6px; color: var(--tinta-2); cursor: pointer; }
+.flechas button:hover:not(:disabled) { color: var(--tinta-alta); border-color: var(--linea-alta); }
+.flechas button:disabled { opacity: .3; cursor: default; }
+.apartado { padding: 16px 18px; }
+.apartado .cab { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.apartado h3 { font-family: var(--serif); font-size: var(--t-xl); cursor: text; }
+.apartado h3:empty::before { content: "Sin título"; color: var(--tinta-2); }
+.reglas { list-style: none; margin: 0; padding: 0; }
+.reglas li { display: flex; gap: 12px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--linea); font-size: var(--t-sm); }
+.reglas li .r { flex: 1; min-width: 0; cursor: text; }
+.reglas li .r strong { font-weight: 590; color: var(--tinta-alta); }
+.reglas li input, .apartado input.titulo { flex: 1; font: inherit; padding: 4px 6px; border: 1px solid var(--linea-alta); border-radius: 4px; background: var(--fondo-alto); color: var(--tinta-alta); }
+.reglas li.nueva { border-bottom: 0; }
+.reglas li.nueva input { border-color: var(--linea); }
+.acciones { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 32px 0 0; }
+.estado { color: var(--tinta-2); font-size: var(--t-sm); min-height: 1.5em; }
+.estado.mal { color: var(--acento); }
+.peligro { border-top: 1px solid var(--linea); margin-top: 48px; padding-top: 24px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+.peligro p { color: var(--tinta-2); font-size: var(--t-sm); max-width: 62ch; flex: 1 1 300px; }
+.opciones { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.opcion { display: flex; gap: 12px; align-items: baseline; padding: 14px 16px; cursor: pointer; }
+.opcion input { accent-color: var(--tinta-alta); width: 16px; height: 16px; flex: none; transform: translateY(2px); margin: 0; }
+.opcion .secundario { display: block; font-size: var(--t-xs); margin-top: 2px; }
+.hecho { color: var(--tinta-2); font-size: var(--t-sm); }
+</style>
+<div class="pagina">
+<header class="cabecera">
+  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-config"></i></span>Configuración</h1></div>
+  <div class="extra"><form method="post" action="/censurar"><button class="boton">Censurar</button></form></div>
+  <nav class="nav" id="nav"><a href="#apariencia">Apariencia</a><a href="#portada">Portada</a><a href="#escritura">Escritura</a><a href="#censura">Modo censurado</a><a href="/config/guia/">Guía de estilo</a></nav>
+</header>
+
+<section class="vista" id="v-apariencia">
+  <div class="seccion"><span class="n">01</span><h2>Modo</h2><p>Automático sigue al sistema del dispositivo. Claro u oscuro lo fijan en todos los paneles.</p></div>
+  <div class="segmentos" id="modo"><button data-v="auto">Automático</button><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div>
+
+  <div class="seccion"><span class="n">02</span><h2>Colores</h2><p>Se aplican al momento en todo el portal. Los de la base van por modo: elige cuál estás editando.</p></div>
+  <div class="sub"><div class="fila"><h3>Base</h3><div class="segmentos" id="editando"><button data-v="claro">Claro</button><button data-v="oscuro">Oscuro</button></div></div></div>
+  <div class="rejilla cajas" id="c-modo"></div>
+  <div class="sub"><h3>Acento y gráficas</h3><p>Iguales en los dos modos.</p></div>
+  <div class="rejilla cajas" id="c-graf"></div>
+  <div class="sub"><h3>Bolitas de Tareas</h3><p>El color de cada ámbito, en el orden de Panel.md.</p></div>
+  <div class="rejilla cajas" id="c-amb"></div>
+
+  <div class="seccion"><span class="n">03</span><h2>Tipografía</h2><p>Una fuente para cada uso. Puedes subir la tuya (woff2, woff, ttf u otf).</p></div>
+  <div class="rejilla c3" id="fuentes"></div>
+  <div class="sub fila"><h3>Tamaño del texto</h3><input type="range" id="escala" min="80" max="130" step="5"><span class="mono peq" id="escala-v"></span></div>
+
+  <div class="seccion"><span class="n">04</span><h2>Logo e iconos</h2><p>El nombre del portal y el icono de cada panel (cabecera, portada y pestaña del navegador). Puedes subir un SVG o un PNG con fondo transparente.</p></div>
+  <div class="fila" style="padding-bottom:20px">
+    <label class="fila"><span class="etiqueta">Nombre</span><input class="campo-s" id="nombre" maxlength="40"></label>
+    <label class="fila peq"><input type="checkbox" id="logo-titulo"> Icono delante del nombre en la portada</label>
+  </div>
+  <div class="rejilla c3" id="iconos"></div>
+
+  <div class="peligro"><p>Vuelve todo lo de esta pestaña y el orden de la portada a como venía: modo automático, colores, tipografía, nombre e iconos. Borra los iconos y fuentes subidos. No toca las reglas de escritura ni el modo censurado.</p><button class="boton" id="fabrica">Restablecer de fábrica</button></div>
+</section>
+
+<section class="vista" id="v-portada">
+  <div class="seccion"><span class="n">01</span><h2>Portada</h2><p>Orden de las tarjetas y cuáles se ven. Arrastra o usa las flechas. Un panel oculto no sale en la portada, pero su dirección sigue funcionando. Configuración siempre se ve.</p></div>
+  <div class="rejilla paneles" id="paneles"></div>
+  <div class="acciones"><button class="boton" id="orden-fabrica">Restablecer orden</button></div>
+</section>
+
+<section class="vista" id="v-escritura">
+  <div class="seccion"><span class="n">01</span><h2>Escritura</h2><p>Cómo escriben la IA y los paneles. Es la sección "Forma de escribir" de la nota de estilo del vault: lo que cambies aquí cambia la nota. Toca una regla o un título para editarlo.</p></div>
+  <div class="rejilla c2" id="apartados"></div>
+  <div class="acciones"><button class="boton" id="nuevo-apartado">Nuevo apartado</button></div>
+  <div class="peligro"><p>Vuelve las reglas de escritura a las de fábrica. La versión anterior queda en el git del vault.</p><button class="boton" id="escritura-fabrica">Restablecer reglas de fábrica</button></div>
+</section>
+
+<section class="vista" id="v-censura">
+<!--censura-->
+</section>
+<p class="estado" id="estado" style="position:sticky;bottom:0;background:var(--fondo);padding:8px 0"></p>
+</div>
+<script>
+"use strict";
+const D = __DATOS__;
+let A = D.apariencia, E = D.escritura;
+const O = D.opciones;
+const $ = s => document.querySelector(s);
+const el = (t, props = {}, ...hijos) => { const e = Object.assign(document.createElement(t), props); e.append(...hijos); return e; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+// ---------- pestañas ----------
+const VISTAS = ["apariencia", "portada", "escritura", "censura"];
+function ir() {
+  const v = VISTAS.includes(location.hash.slice(1)) ? location.hash.slice(1) : VISTAS[0];
+  for (const s of VISTAS) document.getElementById("v-" + s).hidden = s !== v;
+  for (const a of document.querySelectorAll("#nav a")) a.classList.toggle("aqui", a.getAttribute("href") === "#" + v);
+}
+addEventListener("hashchange", () => { ir(); scrollTo(0, 0); });
+ir();
+
+function estado(t, mal) { const e = $("#estado"); e.textContent = t; e.classList.toggle("mal", !!mal); }
+
+// ---------- guardar apariencia ----------
+let temporizador = null, enVuelo = Promise.resolve();
+function guardar(recargar) {
+  clearTimeout(temporizador);
+  estado("Guardando...");
+  temporizador = setTimeout(() => {
+    enVuelo = enVuelo.then(async () => {
+      try {
+        const r = await fetch("/config/apariencia", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(A)});
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.mensaje || "No se ha podido guardar.");
+        A = d.apariencia;
+        if (recargar) return location.reload();
+        refrescarHoja();
+        estado("Guardado.");
+      } catch (e) { estado(e.message === "Failed to fetch" ? "Sin conexión. No se ha guardado." : e.message, true); }
+    });
+  }, 250);
+}
+function refrescarHoja() {
+  const viejo = document.querySelector('link[href^="/estatico/estilo.css"]');
+  const nuevo = el("link", {rel: "stylesheet", href: "/estatico/estilo.css?v=" + Date.now()});
+  nuevo.onload = () => { viejo.remove(); document.documentElement.removeAttribute("style"); };
+  viejo.after(nuevo);
+}
+const modoReal = () => A.modo !== "auto" ? A.modo : (matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro");
+
+// ---------- modo ----------
+function pintarModo() { for (const b of $("#modo").children) b.classList.toggle("on", b.dataset.v === A.modo); }
+for (const b of $("#modo").children) b.onclick = () => { A.modo = b.dataset.v; pintarModo(); guardar(true); };
+
+// ---------- colores ----------
+let editando = modoReal();
+function cajaColor(grupo, [k, nombre, uso]) {
+  const fab = O.fabrica[grupo][k], valor = A[grupo][k] || fab;
+  const inp = el("input", {type: "color", value: valor, title: nombre});
+  const hex = el("span", {className: "mono", textContent: valor});
+  const quitar = el("button", {className: "quitar", textContent: "De fábrica", hidden: !A[grupo][k]});
+  inp.oninput = () => {
+    hex.textContent = inp.value;
+    if (grupo === "comun" || grupo === modoReal()) document.documentElement.style.setProperty("--" + k, inp.value);
+  };
+  inp.onchange = () => { if (inp.value === fab) delete A[grupo][k]; else A[grupo][k] = inp.value; quitar.hidden = !A[grupo][k]; guardar(); };
+  quitar.onclick = () => { delete A[grupo][k]; inp.value = fab; hex.textContent = fab; quitar.hidden = true; guardar(); };
+  return el("div", {className: "color"}, inp, el("div", {className: "txt"}, el("b", {textContent: nombre}), el("span", {textContent: uso}), el("br"), hex, " ", quitar));
+}
+function pintarColores() {
+  for (const b of $("#editando").children) b.classList.toggle("on", b.dataset.v === editando);
+  $("#c-modo").replaceChildren(...O.colores_modo.map(c => cajaColor(editando, c)));
+  $("#c-graf").replaceChildren(...O.colores_comunes.filter(c => !/^ad$/.test(c[0])).map(c => cajaColor("comun", c)));
+  $("#c-amb").replaceChildren(...O.colores_comunes.filter(c => /^ad$/.test(c[0])).map(c => cajaColor("comun", c)));
+}
+for (const b of $("#editando").children) b.onclick = () => { editando = b.dataset.v; pintarColores(); };
+
+// ---------- subir ----------
+function elegirArchivo(acepta) {
+  return new Promise(ok => { const i = el("input", {type: "file", accept: acepta}); i.onchange = () => ok(i.files[0]); i.click(); });
+}
+async function subir(tipo, acepta) {
+  const f = await elegirArchivo(acepta);
+  if (!f) return null;
+  if (f.size > 2 * 1024 * 1024) { estado("El archivo pasa de 2 MB.", true); return null; }
+  estado("Subiendo...");
+  try {
+    const r = await fetch(`/config/subir?tipo=${tipo}&nombre=${encodeURIComponent(f.name)}`, {method: "POST", body: f});
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.mensaje);
+    A.subidos[d.subido.id] = d.subido;
+    return d.subido;
+  } catch (e) { estado(e.message || "No se ha podido subir.", true); return null; }
+}
+
+// ---------- tipografía ----------
+function pintarFuentes() {
+  const subidas = Object.entries(A.subidos).filter(([, s]) => s.tipo === "fuente");
+  $("#fuentes").replaceChildren(...Object.entries(O.huecos_fuente).map(([h, titulo]) => {
+    const actual = A.fuentes[h] || O.fabrica.fuentes[h];
+    const sel = el("select", {className: "campo-s"});
+    for (const [k, n] of Object.entries(O.fuentes)) sel.append(el("option", {value: k, textContent: n + (k === O.fabrica.fuentes[h] ? " (de fábrica)" : "")}));
+    for (const [i, s] of subidas) sel.append(el("option", {value: "sub:" + i, textContent: s.nombre + " (subida)"}));
+    sel.value = actual;
+    sel.onchange = () => { if (sel.value === O.fabrica.fuentes[h]) delete A.fuentes[h]; else A.fuentes[h] = sel.value; guardar(); };
+    const boton = el("button", {className: "quitar", textContent: "Subir fuente"});
+    boton.onclick = async () => { const s = await subir("fuente", ".woff2,.woff,.ttf,.otf"); if (s) { A.fuentes[h] = "sub:" + s.id; pintarFuentes(); guardar(); } };
+    const variable = {titulos: "--serif", texto: "--sans", numeros: "--mono"}[h];
+    return el("div", {className: "fuente"}, el("span", {className: "etiqueta", textContent: titulo}),
+      el("div", {className: "muestra", textContent: h === "numeros" ? "86,2 kg  12.450 pasos" : "Portal personal 86,2", style: `font-family: var(${variable})`}),
+      el("div", {className: "fila"}, sel, boton));
+  }));
+  $("#escala").value = A.escala; $("#escala-v").textContent = A.escala + " %";
+}
+$("#escala").oninput = () => { $("#escala-v").textContent = $("#escala").value + " %"; document.documentElement.style.fontSize = $("#escala").value + "%"; };
+$("#escala").onchange = () => { A.escala = +$("#escala").value; guardar(); };
+
+// ---------- nombre e iconos ----------
+const urlIcono = v => v.startsWith("sub:") ? `/estatico/propio/${v.slice(4)}.${A.subidos[v.slice(4)].ext}` : `/estatico/iconos-fabrica/${v.slice(4)}.svg`;  // sin cambios aplicados
+const icoDe = url => el("i", {className: "ico", style: `--i: url("${url}")`});
+function pintarIconos() {
+  $("#nombre").value = A.nombre; $("#logo-titulo").checked = A.logo_en_titulo;
+  const subidos = Object.entries(A.subidos).filter(([, s]) => s.tipo === "icono").map(([i]) => "sub:" + i);
+  const filas = [{clave: "portal", titulo: A.nombre + " (logo)"}, ...O.paneles];
+  $("#iconos").replaceChildren(...filas.map(({clave, titulo}) => {
+    const fab = "fab:" + clave, actual = A.iconos[clave] || fab;
+    const gal = el("div", {className: "galeria"});
+    for (const v of [fab, ...O.iconos.filter(n => n !== clave).map(n => "fab:" + n), ...subidos]) {
+      const b = el("button", {className: v === actual ? "on" : "", title: v === fab ? "De fábrica" : (v.startsWith("sub:") ? A.subidos[v.slice(4)].nombre : v.slice(4).replace("extra/", ""))}, icoDe(urlIcono(v)));
+      b.onclick = () => { if (v === fab) delete A.iconos[clave]; else A.iconos[clave] = v; pintarIconos(); guardar(); };
+      gal.append(b);
+    }
+    const subirB = el("button", {className: "quitar", textContent: "Subir SVG o PNG"});
+    subirB.onclick = async () => { const s = await subir("icono", ".svg,.png,image/svg+xml,image/png"); if (s) { A.iconos[clave] = "sub:" + s.id; pintarIconos(); guardar(); } };
+    return el("div", {className: "icono-p"},
+      el("div", {className: "cab"}, el("span", {className: "grande"}, Object.assign(icoDe(urlIcono(actual)), {style: `--i: url("${urlIcono(actual)}"); width:100%; height:100%`})),
+        el("div", {}, el("b", {textContent: titulo, style: "font-weight:500;color:var(--tinta-alta)"}), el("br"), subirB)), gal);
+  }));
+}
+$("#nombre").onchange = () => { A.nombre = $("#nombre").value.trim() || "Portal"; pintarIconos(); guardar(); };
+$("#logo-titulo").onchange = () => { A.logo_en_titulo = $("#logo-titulo").checked; guardar(); };
+$("#fabrica").onclick = async () => {
+  if (!confirm("¿Volver la apariencia y la portada a como venían de fábrica? Se borran los iconos y fuentes subidos.")) return;
+  const r = await fetch("/config/apariencia", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({fabrica: true})});
+  if ((await r.json()).ok) location.reload(); else estado("No se ha podido restablecer.", true);
+};
+
+// ---------- portada ----------
+function ordenPaneles() {
+  const pos = k => { const i = A.paneles.orden.indexOf(k); return i < 0 ? 999 : i; };
+  return O.paneles.map((p, i) => [p, i]).sort((x, y) => pos(x[0].clave) - pos(y[0].clave) || x[1] - y[1]).map(x => x[0]);
+}
+function mover(lista, de, a) { const [x] = lista.splice(de, 1); lista.splice(a, 0, x); A.paneles.orden = lista.map(p => p.clave); pintarPaneles(); guardar(); }
+let arrastrando = null;
+function pintarPaneles() {
+  const lista = ordenPaneles();
+  $("#paneles").replaceChildren(...lista.map((p, i) => {
+    const oculto = A.paneles.ocultos.includes(p.clave);
+    const vis = el("input", {type: "checkbox", checked: !oculto, disabled: p.clave === "config"});
+    vis.onchange = () => { A.paneles.ocultos = vis.checked ? A.paneles.ocultos.filter(k => k !== p.clave) : [...A.paneles.ocultos, p.clave]; pintarPaneles(); guardar(); };
+    const arriba = el("button", {textContent: "↑", title: "Subir", disabled: i === 0, onclick: () => mover(lista, i, i - 1)});
+    const abajo = el("button", {textContent: "↓", title: "Bajar", disabled: i === lista.length - 1, onclick: () => mover(lista, i, i + 1)});
+    const asa = el("span", {className: "asa", textContent: "⋮⋮", title: "Arrastrar"});
+    const f = el("div", {className: "panel-f" + (oculto ? " oculto" : "")}, asa,
+      el("span", {className: "nombre"}, el("i", {className: "ico ico-" + p.clave}), p.titulo),
+      el("label", {}, vis, "Visible"), el("div", {className: "flechas"}, arriba, abajo));
+    f.dataset.i = i;
+    asa.onpointerdown = e => { e.preventDefault(); arrastrando = i; f.classList.add("arrastra"); asa.setPointerCapture(e.pointerId); };
+    asa.onpointermove = e => {
+      if (arrastrando === null) return;
+      const sobre = document.elementFromPoint(e.clientX, e.clientY)?.closest(".panel-f");
+      for (const x of document.querySelectorAll(".panel-f")) x.classList.toggle("encima", x === sobre && x !== f);
+    };
+    asa.onpointerup = e => {
+      if (arrastrando === null) return;
+      const sobre = document.elementFromPoint(e.clientX, e.clientY)?.closest(".panel-f");
+      const de = arrastrando; arrastrando = null;
+      if (sobre && +sobre.dataset.i !== de) mover(lista, de, +sobre.dataset.i); else pintarPaneles();
+    };
+    return f;
+  }));
+}
+$("#orden-fabrica").onclick = () => { A.paneles = {orden: [], ocultos: []}; pintarPaneles(); guardar(); };
+
+// ---------- escritura ----------
+const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`(.+?)`/g, "<code>$1</code>");
+async function guardarEscritura(cuerpo) {
+  estado("Guardando en el vault...");
+  try {
+    const r = await fetch("/config/escritura", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({base: E.base, ...cuerpo})});
+    const d = await r.json();
+    if (d.escritura) E = d.escritura;
+    pintarEscritura();
+    estado(d.ok ? "Guardado en la nota de estilo." : d.mensaje, !d.ok);
+  } catch (e) { estado("Sin conexión. No se ha guardado.", true); }
+}
+const guardarApartados = () => guardarEscritura({apartados: E.apartados});
+function editarEnSitio(nodo, valor, alGuardar) {
+  const inp = el("input", {value: valor, className: nodo.tagName === "H3" ? "titulo" : ""});
+  let hecho = false;
+  const fin = ok => { if (hecho) return; hecho = true; if (ok && inp.value.trim() !== valor) alGuardar(inp.value.trim()); else pintarEscritura(); };
+  inp.onkeydown = e => { if (e.key === "Enter") fin(true); if (e.key === "Escape") fin(false); };
+  inp.onblur = () => fin(true);
+  nodo.replaceWith(inp); inp.focus();
+}
+function pintarEscritura() {
+  if (!E) { $("#apartados").replaceChildren(el("p", {className: "vacio", textContent: "No encuentro la nota de estilo en el vault."})); return; }
+  $("#apartados").replaceChildren(...E.apartados.map((ap, ia) => {
+    const h3 = el("h3", {textContent: ap.titulo});
+    h3.onclick = () => editarEnSitio(h3, ap.titulo, v => { ap.titulo = v; guardarApartados(); });
+    const borrarAp = el("button", {className: "quitar", textContent: "Quitar apartado"});
+    borrarAp.onclick = () => { if (confirm(`¿Quitar el apartado "${ap.titulo}" y sus ${ap.reglas.length} reglas?`)) { E.apartados.splice(ia, 1); guardarApartados(); } };
+    const ul = el("ul", {className: "reglas"});
+    for (const o of ap.otros) ul.append(el("li", {}, el("span", {className: "r secundario", textContent: o})));
+    ap.reglas.forEach((r, ir) => {
+      const span = el("span", {className: "r", innerHTML: md(r), title: "Tocar para editar"});
+      span.onclick = () => editarEnSitio(span, r, v => { if (v) ap.reglas[ir] = v; else ap.reglas.splice(ir, 1); guardarApartados(); });
+      const q = el("button", {className: "quitar", textContent: "Quitar"});
+      q.onclick = () => { ap.reglas.splice(ir, 1); guardarApartados(); };
+      ul.append(el("li", {}, span, q));
+    });
+    const nueva = el("input", {placeholder: "Añadir una regla"});
+    nueva.onkeydown = e => { if (e.key === "Enter" && nueva.value.trim()) { ap.reglas.push(nueva.value.trim()); guardarApartados(); } };
+    ul.append(el("li", {className: "nueva"}, nueva));
+    return el("div", {className: "apartado"}, el("div", {className: "cab"}, h3, borrarAp), ul);
+  }));
+}
+$("#nuevo-apartado").onclick = () => {
+  const t = prompt("Título del apartado");
+  if (t && t.trim()) { E.apartados.push({titulo: t.trim(), reglas: [], otros: []}); guardarApartados(); }
+};
+$("#escritura-fabrica").onclick = () => { if (confirm("¿Volver las reglas de escritura a las de fábrica?")) guardarEscritura({fabrica: true}); };
+
+pintarModo(); pintarColores(); pintarFuentes(); pintarIconos(); pintarPaneles(); pintarEscritura();
+if (D.guardado) estado("Guardado.");
+</script>

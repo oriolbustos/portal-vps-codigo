@@ -153,7 +153,7 @@ def _seccion(n, titulo, texto, cajas):
             f'<div class="rejilla opciones">{"".join(cajas)}</div>')
 
 
-def pagina(c: dict, paneles: list, ambitos: list, todo_datos: dict, nombres_listas: list, guardado=False) -> str:
+def pagina(c: dict, paneles: list, ambitos: list, todo_datos: dict, nombres_listas: list, guardado=False, solo_formulario=False) -> str:
     """paneles = [(clave, título)], ambitos = [nombre], todo_datos = todo.datos(), nombres_listas = [pestaña]."""
     oc = set(c["paneles_ocultos"])
     s1 = [_caja("panel", k, k in oc, t) for k, t in paneles]
@@ -170,6 +170,16 @@ def pagina(c: dict, paneles: list, ambitos: list, todo_datos: dict, nombres_list
     nls = list(dict.fromkeys(list(nombres_listas) + list(c["listas_ocultas"])))
     s5 = [_caja("lista", n, n in c["listas_ocultas"], n) for n in nls]
     aviso = '<span class="hecho">Guardado.</span>' if guardado else ""
+    if solo_formulario:  # pestaña Modo censurado de /config/ (la cabecera y los estilos los pone config.html)
+        return f"""<p class="peq secundario" style="max-width:68ch;padding-top:24px">Modo censurado: para enseñar el portal sin lo personal. Se activa con <b>Censurar</b> en la portada y solo afecta a este dispositivo. Para volver al modo normal, entra en Configuración y pulsa <b>Volver al modo normal</b> (o cierra sesión y vuelve a entrar).</p>
+<form method="post" action="/config/">
+{_seccion(1, "Paneles", "Paneles que desaparecen enteros en modo censurado.", s1)}
+{_seccion(2, "Ámbitos", "Ámbitos cuyas tareas salen redactadas en Tareas: el ámbito se ve, pero el texto, las subtareas y las notas de sus tareas salen como ••• y no se pueden cambiar.", s2)}
+{_seccion(3, "Finanzas", "Cifras que se tapan con ••• en Finanzas (sus gráficas, borrosas). El panel no cambia de forma y gastos, categorías, viajes y suscripciones se ven normal.", s3)}
+{_seccion(4, "To Do", "Grupos y listas que se ocultan.", s4)}
+{_seccion(5, "Listas", "Pestañas de Listas que se ocultan.", s5)}
+<div class="acciones"><button class="boton fuerte">Guardar</button>{aviso}</div>
+</form>"""
     return f"""{ESTILO}<div class="pagina"><header class="cabecera">
 <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-config"></i></span>Configuración</h1></div>
 <div class="extra"><form method="post" action="/censurar"><button class="boton">Censurar</button></form></div></header>

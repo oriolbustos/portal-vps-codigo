@@ -1,0 +1,8 @@
+[Unit]
+# Sin límite de arranques: varios cambios seguidos desde el portal lo lanzan muchas veces en pocos segundos
+StartLimitIntervalSec=0
+Description=Escribe en el vault la nota de estilo editada desde /config/
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/portal/estilo-guardar.py
