@@ -123,13 +123,13 @@
 .cuenta { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2); }
 ul.tareas { list-style: none; margin: 0; padding: 0; }
 /* fila: círculo para marcar hecha (como en To Do) + la tarea, que abre el detalle */
-ul.tareas > li.fila { display: flex; align-items: flex-start; gap: 12px; border-top: 1px solid var(--linea); }
+ul.tareas > li.fila { display: flex; align-items: flex-start; gap: 10px; border-top: 1px solid var(--linea); }
 ul.tareas > li.fila:first-child { border-top: 0; }
 ul.tareas .t-abrir { all: unset; box-sizing: border-box; flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; cursor: pointer; }
 ul.tareas .t-abrir:hover .t-texto { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--tinta-2); }
 ul.tareas .t-abrir:focus-visible { outline: 2px solid var(--linea-alta); outline-offset: 2px; }
-/* centrado en la primera línea del texto: 10px de relleno + media línea (1,5 de interlineado) - medio círculo */
-.t-check { flex: none; font-size: var(--t-base); width: 20px; height: 20px; margin-top: calc(10px + 0.75em - 10px); padding: 0; border: 1.5px solid var(--tinta-2); border-radius: 50%; background: none; color: var(--tinta-alta); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+/* a la altura de la letra (0,8 em) y centrado en la primera línea: 10px de relleno + media línea (1,5 de interlineado) - medio círculo */
+.t-check { flex: none; font-size: var(--t-base); width: 0.8em; height: 0.8em; margin-top: calc(10px + 0.75em - 0.4em + 1px); padding: 0; border: 1.25px solid var(--tinta-2); border-radius: 50%; background: none; color: var(--tinta-alta); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .t-check svg { display: block; opacity: 0; }
 .t-check:hover { border-color: var(--tinta-alta); }
 .t-check:hover svg, .t-check:focus-visible svg { opacity: 0.8; }
@@ -362,7 +362,7 @@ function filtradas(conPrio) {
     (!conPrio || F.prio === "todas" || (F.prio === "puntuadas" && puntuada(x)) || (F.prio === "sin" && !puntuada(x))));
 }
 
-const CHECK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const CHECK = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 function item(x, conAmbito = true) {
   const li = el("li", { class: "fila" + (x.id === sel ? " sel" : "") }), b = el("button", { type: "button", class: "t-abrir" }), izq = el("div");
   const tx = el("div", { class: "t-texto" });
