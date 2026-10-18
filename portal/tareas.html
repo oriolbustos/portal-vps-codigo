@@ -33,7 +33,12 @@
 @media (min-width: 768px) { .grafico { padding: 20px 24px; } }
 .grafico .que { color: var(--tinta-2); font-size: var(--t-xs); margin: 4px 0 16px; }
 .cabeza-graf { display: flex; flex-direction: column; gap: 12px; }
+/* vista y ejes, plegados tras un enlace discreto junto al título */
+.titulo-graf { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.editar-graf { font: inherit; font-size: var(--t-xs); color: var(--tinta-2); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--linea); }
+.editar-graf:hover { color: var(--tinta-alta); }
 .mandos { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.mandos[hidden] { display: none; }
 .mandos > div { display: flex; flex-direction: column; gap: 6px; }
 .mandos > div[hidden] { display: none; }
 .plano { display: grid; grid-template-columns: 18px 22px repeat(6, minmax(0, 1fr)); grid-template-rows: auto repeat(6, minmax(56px, auto)) auto auto auto; }
@@ -198,8 +203,8 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 
 <section class="vista" id="v-matriz">
   <div class="rejilla"><div class="grafico">
-    <div class="cabeza-graf"><h2 class="titulo-3">Matriz</h2>
-      <div class="mandos">
+    <div class="cabeza-graf"><div class="titulo-graf"><h2 class="titulo-3">Matriz</h2><button type="button" class="editar-graf" id="g-editar" aria-expanded="false" aria-controls="g-mandos">Editar gráfico</button></div>
+      <div class="mandos" id="g-mandos" hidden>
         <div><span class="etiqueta">Vista</span><div class="segmentos" id="g-dim"></div></div>
         <div id="g-x-caja"><span class="etiqueta">Horizontal</span><div class="segmentos" id="g-x"></div></div>
         <div id="g-y-caja"><span class="etiqueta">Vertical</span><div class="segmentos" id="g-y"></div></div>
@@ -455,6 +460,13 @@ function mandos() {
   for (const id of ["g-x-caja", "g-y-caja", "g-tam-caja"]) $(id).hidden = G.dim !== 2;
   $("g-uno-caja").hidden = G.dim !== 1;
 }
+// cerrado al cargar: solo se abre con "Editar gráfico"
+$("g-editar").onclick = () => {
+  const m = $("g-mandos"), abrir = m.hidden;
+  m.hidden = !abrir;
+  $("g-editar").textContent = abrir ? "Listo" : "Editar gráfico";
+  $("g-editar").setAttribute("aria-expanded", String(abrir));
+};
 
 function porAmbito() {
   const xs = filtradas(true), c = $("lista"); c.replaceChildren();
