@@ -221,8 +221,7 @@ PANELES = [
     {"titulo": "Tareas", "ruta": "/tareas/", "desc": "Pendientes por ámbito y prioridad.", "estado": None},
     {"titulo": "Listas", "ruta": "/listas/", "desc": "Compra, regalos, deseos y más.", "estado": None,
      "desc_censurado": "Compra y otras listas."},  # en modo censurado, si hay listas ocultas
-    {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas,
-     "desc_censurado": "Gastos, categorías y viajes."},  # en modo censurado, si se quita algo
+    {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas},
     {"titulo": "Entreno", "ruta": "/entreno/", "desc": "Peso, nutrición, actividad y fuerza.", "estado": None},
     {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV actual.", "estado": None},
     {"titulo": "Estilo", "ruta": "/estilo/", "desc": "Guía visual y de escritura.", "estado": None},

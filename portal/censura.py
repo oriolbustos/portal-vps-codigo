@@ -4,7 +4,7 @@
   sesiones.json). Se sale cerrando sesión y volviendo a entrar con usuario y contraseña.
 - Qué se oculta: CONFIG (json), se edita en /config/. En modo censurado /config/ no existe (404) ni su tarjeta.
 - Silencioso: lo oculto se quita de los datos antes de enviarlos. Nada en pantalla dice que falte algo.
-- Finanzas: /_auth manda a Caddy la cabecera X-Portal-Censura (1/0), Caddy la pasa a la llave
+- Finanzas (misma estructura, cifras como •••): /_auth manda a Caddy la cabecera X-Portal-Censura (1/0), Caddy la pasa a la llave
   (/opt/finanzas/llave.py) y la llave lee la clave "finanzas" de este mismo json.
 """
 import html, json, os
@@ -22,7 +22,7 @@ POR_DEFECTO = {
 }
 FINANZAS = {
     "patrimonio": ("Patrimonio", "Patrimonio e invertido de la portada, su gráfica y los traspasos entre cuentas propias."),
-    "inversiones": ("Inversiones", "La pestaña Inversiones y los movimientos de inversión."),
+    "inversiones": ("Inversiones", "Valores de la pestaña Inversiones y movimientos de inversión."),
     "ingresos": ("Ingresos y ahorro", "Nómina e ingresos, ahorro en euros y tasa de ahorro."),
 }
 BANDEJA = "Tareas"  # lista fija de To Do: no se oculta
@@ -166,7 +166,7 @@ def pagina(c: dict, paneles: list, ambitos: list, todo_datos: dict, nombres_list
 <form method="post" action="/config/">
 {_seccion(1, "Paneles", "Paneles que desaparecen enteros en modo censurado.", s1)}
 {_seccion(2, "Ámbitos", "Ámbitos que se ocultan en Tareas: sus tareas no salen y no se puede mover nada a ellos.", s2)}
-{_seccion(3, "Finanzas", "Qué se quita del panel de Finanzas. Gastos, categorías, viajes y suscripciones se siguen viendo.", s3)}
+{_seccion(3, "Finanzas", "Cifras que se tapan con ••• en Finanzas (sus gráficas, borrosas). El panel no cambia de forma y gastos, categorías, viajes y suscripciones se ven normal.", s3)}
 {_seccion(4, "To Do", "Grupos y listas que se ocultan.", s4)}
 {_seccion(5, "Listas", "Pestañas de Listas que se ocultan.", s5)}
 <div class="acciones"><button class="boton fuerte">Guardar</button>{aviso}</div>

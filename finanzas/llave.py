@@ -6,7 +6,7 @@
   pregunta a su /_auth (forward_auth) antes de dejar pasar a /finanzas/.
 - Cuando cambian datos, reglas o código (Claude por el conector, o un push del PC), rehace panel.html y hace commit.
 - Modo censurado del portal (/opt/portal/censura.py): si llega X-Portal-Censura: 1 (la pone el /_auth del portal
-  y Caddy la copia), quita del panel lo que diga la clave "finanzas" de /var/lib/portal/config.json.
+  y Caddy la copia), tapa con ••• (y gráficas borrosas) lo que diga la clave "finanzas" de /var/lib/portal/config.json.
 """
 import html, json, os, subprocess, threading, time
 from datetime import datetime, timedelta
@@ -124,27 +124,50 @@ VOLVER = ('<a href="/" style="color:var(--tinta-2);text-decoration:none;font-siz
 
 
 # ---------- modo censurado ----------
+# Misma estructura que el panel normal: las cifras sensibles salen como "•••" y sus gráficas, borrosas.
+# Los datos de verdad no llegan al navegador: se cambian por TAPA (un número diminuto que eur() pinta como "•••")
+# o, en las gráficas borrosas, por una serie inventada.
 CONFIG_PORTAL = Path("/var/lib/portal/config.json")  # la escribe el portal desde /config/
-BLOQUES = ["patrimonio", "inversiones", "ingresos"]   # si no se puede leer la config, se quita todo
-# Lo que se esconde de cada bloque. Va por posición (tarjetas) y por id: si el panel cambia de estructura, revisar.
-CENSURA_CSS = {
-    "patrimonio": "#tiles>.tile:nth-child(1),#tiles>.tile:nth-child(4),.card:has(#ch-pat)",
-    "inversiones": "#v-inversiones",
-    "ingresos": "#tiles>.tile:nth-child(2),.card:has(#ch-aho),#mes-tiles>.tile:nth-child(3),"
-                "#mes-tiles>.tile:nth-child(4),.card:has(#mes-ing),#tabla-anual tr:last-child",
-}
-# Textos del panel que delatarían lo quitado (si ya no están, no pasa nada: los datos ya van vacíos).
+BLOQUES = ["patrimonio", "inversiones", "ingresos"]   # si no se puede leer la config, se censura todo
+TAPA = 1e-9
+CENSURA_JS = [  # siempre: eur() y pct() pintan "•••" para TAPA (y sus sumas) y para cocientes absurdos
+    ("const eur = (v, d = 0) => (+v)",
+     "const TAPA = v => v !== 0 && Math.abs(v) < 1e-6;\nconst eur = (v, d = 0) => TAPA(+v) ? \"•••\" : (+v)"),
+    ("const pct = v => (v * 100)", "const pct = v => !isFinite(v) || Math.abs(v) > 100 ? \"•••\" : (v * 100)"),
+]
+# Lo que eur()/pct() no pueden saber (cifras que salen de restar o de datos inventados).
+# Si el panel cambia y un texto ya no está, no pasa nada grave: los datos ya van tapados.
 CENSURA_TEXTO = {
-    "inversiones": [('<a href="#inversiones">Inversiones</a>', ""), ("inversiones: vInversiones, ", "")],
-    "ingresos": [('<a href="#mes">Ingresos y gastos</a>', '<a href="#mes">Gastos</a>'),
-                 ("<h2>Gastos por grupo e ingresos</h2>", "<h2>Gastos por grupo</h2>"),
-                 (', [N, "Ingresos", "line"]', ""),
-                 ('lines: [{ name: "Ingresos", color: N, values: meses.map(m => m.ingresos || null) }], ', "")],
+    "patrimonio": [
+        ('eur(pu.patrimonio), dPat != null ? `${dPat >= 0 ? "▲ +" : "▼ "}${eur(dPat)} en 12 meses` : "", dPat != null ? dPat >= 0 : null)',
+         '"•••", "••• en 12 meses", null)'),
+        ('eur(pu.invertido || 0), pu.invertido ? pct(pu.invertido / pu.patrimonio) + " del patrimonio" : "", null)',
+         '"•••", "••• del patrimonio", null)'),
+    ],
+    "inversiones": [
+        ('`intereses conocidos: ${eur(intereses, 2)}`', '"intereses conocidos: •••"'),
+        ('${ap != null ? eur(v - ap) : "—"}', '${ap != null ? "•••" : "—"}'),
+        ('${ap ? pct((v - ap) / ap) : "—"}', '${ap != null ? "•••" : "—"}'),
+        ('(s.a.tir * 100).toLocaleString("es-ES", { maximumFractionDigits: 1 }) + " %"', '"•••"'),
+    ],
+    "ingresos": [
+        ('tile("Ahorro", eur(ing - gas), ing ? pct((ing - gas) / ing) + " de los ingresos" : "", ing - gas >= 0)',
+         'tile("Ahorro", "•••", "••• de los ingresos", null)'),
+        ("· entradas ${eur(i, 2)}", "· entradas •••"),
+        ("const ah = cerrados.map(m => m.ahorroOrd)", "const ah = cerrados.map((m, i) => 0.3 + 0.1 * Math.sin(i))"),
+        ('lines: [{ name: "Ingresos", color: N, values: meses.map(m => m.ingresos || null) }], ',
+         'lines: [{ name: "Ingresos", color: N, values: meses.map(m => null) }], '),  # la leyenda se queda, la línea no
+    ],
 }
+BORROSO = {"patrimonio": "#ch-pat", "inversiones": "#ch-inv", "ingresos": "#ch-aho"}
+
+
+def _falsa(n: int, base: float) -> list:
+    """Serie inventada (sube con algo de ruido) para las gráficas que salen borrosas."""
+    return [round(base * (1 + 0.04 * i + 0.05 * ((i * 7) % 5 - 2)), 2) for i in range(n)]
 
 
 def censurar(texto: str) -> str:
-    """Quita los datos (no solo los esconde) y luego esconde los huecos, sin dejar rastro."""
     try:
         bloques = [b for b in json.loads(CONFIG_PORTAL.read_text()).get("finanzas", BLOQUES) if b in BLOQUES]
     except (OSError, ValueError, AttributeError):
@@ -153,25 +176,32 @@ def censurar(texto: str) -> str:
         return texto
     i = texto.index("let D = ") + len("let D = ")
     D, fin = json.JSONDecoder().raw_decode(texto, i)
-    tipos_fuera = set()
+    tipos = set()
     if "patrimonio" in bloques:
-        D["patrimonio"] = [{k: (v if k == "mes" else 0) for k, v in p.items()} for p in D.get("patrimonio", [])]
-        tipos_fuera.add("interno")  # traspasos entre cuentas propias: dejan ver saldos
+        pat = D.get("patrimonio", [])
+        f1, f2, f3 = _falsa(len(pat), 20000), _falsa(len(pat), 8000), _falsa(len(pat), 5000)
+        D["patrimonio"] = [{"mes": p["mes"], "cuentas": f1[k], "patrimonio": f1[k], "invertido": f2[k], "remunerado": f3[k]}
+                           for k, p in enumerate(pat)]
+        tipos.add("interno")  # traspasos entre cuentas propias: dejan ver saldos
     if "inversiones" in bloques:
-        D["inversiones"] = []
-        tipos_fuera.add("inversion")
+        for a in D.get("inversiones", []):
+            a["serie"] = [[m, TAPA] for m, _ in a.get("serie", [])]
+            a["aportes"] = {m: TAPA for m in a.get("aportes", {})}
+            a.update(base=TAPA if a.get("base") is not None else None, tir=TAPA if a.get("tir") is not None else None)
+        tipos.add("inversion")
     if "ingresos" in bloques:
         for m in D.get("meses", []):
-            m["ingresos"] = 0
-        D["ingresos"] = []
-    D["detalle"] = [f for f in D.get("detalle", []) if f[8] not in tipos_fuera
-                    and not ("ingresos" in bloques and f[8] != "gasto" and f[3] > 0)]  # entradas de dinero (los Bizums de vuelta son "gasto")
+            m["ingresos"] = TAPA
+        for a in D.get("ingresos", []):
+            a[3] = TAPA
+    for f in D.get("detalle", []):
+        if f[8] in tipos or ("ingresos" in bloques and f[8] != "gasto" and f[3] > 0):  # los Bizums de vuelta son "gasto"
+            f[3] = TAPA if f[3] >= 0 else -TAPA
     texto = texto[:i] + json.dumps(D, ensure_ascii=False).replace("</", "<\\/") + texto[fin:]
-    for b in bloques:
-        for viejo, nuevo in CENSURA_TEXTO.get(b, []):
-            texto = texto.replace(viejo, nuevo)
-    css = ",".join(CENSURA_CSS[b] for b in bloques)
-    return texto.replace("</head>", f"<style>{css}{{display:none!important}}</style></head>", 1)
+    for viejo, nuevo in CENSURA_JS + [x for b in bloques for x in CENSURA_TEXTO.get(b, [])]:
+        texto = texto.replace(viejo, nuevo)
+    css = ",".join(BORROSO[b] for b in bloques)
+    return texto.replace("</head>", f"<style>{css}{{filter:blur(7px);pointer-events:none;user-select:none}}</style></head>", 1)
 
 
 def barra():
