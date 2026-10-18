@@ -51,6 +51,12 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
 .poses .hueco-foto img, .galeria img, .comparar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .poses .botones { display: flex; gap: 6px; flex-wrap: wrap; }
 .poses input[type=file] { display: none; }
+.lote { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1px; padding: 1px; margin-top: 12px; }
+.lote > div { box-shadow: 0 0 0 1px var(--linea); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.lote .hueco-foto { aspect-ratio: 3 / 4; background: var(--fondo-alto); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--tinta-2); font-size: var(--t-xs); }
+.lote .hueco-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lote select { width: 100%; font: inherit; font-size: 16px; padding: 6px 8px; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); border-radius: 0; }
+.lote .repetida select { border-color: var(--acento); }
 .comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; padding: 1px; margin-top: 16px; max-width: 760px; }
 .comparar > div { box-shadow: 0 0 0 1px var(--linea); }
 .comparar .foto { aspect-ratio: 3 / 4; background: var(--fondo-alto); display: flex; align-items: center; justify-content: center; color: var(--tinta-2); font-size: var(--t-xs); }
@@ -192,7 +198,10 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
   <div id="fotos-cuerpo">
   <div class="rejilla"><div class="celda"><h3>Subir fotos</h3><p class="sub">Al elegir una foto se abre para revisarla, recortarla o girarla, y solo se guarda al pulsar Guardar foto. Se reduce en el móvil (1600 px, sin GPS ni datos de la cámara). Una pose que ya tiene foto se sustituye y la anterior se guarda aparte.</p>
     <div class="fila-form"><label class="campo"><span class="etiqueta">Fecha</span><input type="date" id="foto-fecha"></label></div>
-    <div class="poses" id="foto-poses"></div></div></div>
+    <div class="poses" id="foto-poses"></div>
+    <div class="acciones"><label class="boton">Subir varias<input type="file" accept="image/*" multiple id="foto-varias" hidden></label><span class="estado-form">Elige varias de la galería y di qué pose es cada una.</span></div>
+    <div id="lote" hidden><div class="lote" id="lote-fotos"></div>
+      <div class="acciones"><button class="boton fuerte" type="button" id="lote-guardar">Guardar</button><button class="boton" type="button" id="lote-descartar">Descartar</button><span class="estado-form" id="lote-estado"></span></div></div></div></div>
   <div class="rejilla"><div class="celda"><h3>Comparar</h3><p class="sub">Dos fechas lado a lado, misma pose</p>
     <div class="fila-form">
       <label class="campo"><span class="etiqueta">Antes</span><select id="cmp-a"></select></label>
@@ -671,7 +680,7 @@ function pintarFotos() {
   const cuerpo = document.getElementById("fotos-cuerpo");
   if (M.fotos_ocultas) { cuerpo.replaceChildren(el("div", { class: "vacio" }, "En modo privado no se enseñan las fotos.")); return; }
   const ff = document.getElementById("foto-fecha");
-  if (!ff.value) { ff.value = iso(new Date()); ff.max = iso(new Date()); ff.onchange = pintarPoses; }
+  if (!ff.value) { ff.value = iso(new Date()); ff.max = iso(new Date()); ff.onchange = () => { pintarPoses(); if (LOTE.length) pintarLote(); }; }
   pintarPoses();
   // comparar
   const fechas = M.fotos.map(x => x.fecha), sa = document.getElementById("cmp-a"), sb = document.getElementById("cmp-b");
@@ -900,6 +909,70 @@ async function visorEditar(archivo) {
   visorPie(boton("Girar ←", () => { rot = (rot + 270) % 360; dibujar(); }), boton("Girar →", () => { rot = (rot + 90) % 360; dibujar(); }), segs,
     guardar, archivo ? boton("Descartar", cerrarVisor) : boton("Cancelar", () => visorVer()), est);
   dibujar();
+}
+
+// varias fotos de una vez: se elige la pose de cada una y se guardan al confirmar
+let LOTE = [];  // [{archivo, url, pose}]
+document.getElementById("foto-varias").onchange = e => {
+  const archivos = [...e.target.files]; e.target.value = "";
+  if (!archivos.length) return;
+  const f = document.getElementById("foto-fecha").value, ya = (M.fotos.find(x => x.fecha === f) || { poses: {} }).poses;
+  // por defecto, las poses libres de esa fecha en orden; después, el orden normal
+  const orden = [...M.poses.map(p => p[0]).filter(p => !ya[p]), ...M.poses.map(p => p[0]).filter(p => ya[p])];
+  for (const a of archivos) LOTE.push({ archivo: a, url: URL.createObjectURL(a), pose: orden[LOTE.length % orden.length] });
+  pintarLote();
+};
+document.getElementById("lote-descartar").onclick = () => { for (const x of LOTE) URL.revokeObjectURL(x.url); LOTE = []; pintarLote(); };
+document.getElementById("lote-guardar").onclick = guardarLote;
+function pintarLote(msg, mal) {
+  const caja = document.getElementById("lote"), cont = document.getElementById("lote-fotos");
+  caja.hidden = !LOTE.length; cont.replaceChildren();
+  const f = document.getElementById("foto-fecha").value, ya = (M.fotos.find(x => x.fecha === f) || { poses: {} }).poses;
+  const cuenta = {}; for (const x of LOTE) cuenta[x.pose] = (cuenta[x.pose] || 0) + 1;
+  LOTE.forEach((x, i) => {
+    const c = el("div", cuenta[x.pose] > 1 ? { class: "repetida" } : {}), hueco = el("div", { class: "hueco-foto" });
+    const img = el("img", { src: x.url, alt: "" }); img.onerror = () => hueco.replaceChildren("Vista previa no disponible"); hueco.append(img);
+    const s = el("select", { "aria-label": "Pose" }); for (const [p, n] of M.poses) s.append(el("option", { value: p }, n)); s.value = x.pose;
+    s.onchange = () => { x.pose = s.value; pintarLote(); };
+    const nota = cuenta[x.pose] > 1 ? "Pose repetida" : ya[x.pose] ? "Sustituye a la que hay" : "";
+    c.append(hueco, s, el("span", { class: "estado-form" + (cuenta[x.pose] > 1 ? " mal" : "") }, nota),
+      boton("Quitar", () => { URL.revokeObjectURL(x.url); LOTE.splice(i, 1); pintarLote(); }));
+    cont.append(c);
+  });
+  const g = document.getElementById("lote-guardar");
+  g.textContent = LOTE.length === 1 ? "Guardar 1 foto" : `Guardar ${LOTE.length} fotos`;
+  g.disabled = Object.values(cuenta).some(n => n > 1);
+  estadoForm("lote-estado", msg || (g.disabled ? "Hay dos fotos con la misma pose." : `Fecha ${f ? verFecha(f) : "-"}. Aún no están guardadas.`), mal || g.disabled);
+}
+async function reducirArchivo(archivo) {
+  const img = await cargarImagen(archivo);
+  if (!img) throw new Error("no se puede leer la imagen");
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, k = Math.min(1, 1600 / Math.max(w, h));
+  const cv = document.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  return await new Promise((ok, mal) => cv.toBlob(b => b ? ok(b) : mal(new Error("no se pudo comprimir")), "image/jpeg", 0.85));
+}
+async function guardarLote() {
+  const f = document.getElementById("foto-fecha").value, g = document.getElementById("lote-guardar");
+  if (!f) { estadoForm("lote-estado", "Elige la fecha.", true); return; }
+  g.disabled = true;
+  const total = LOTE.length;
+  try {
+    for (let i = 0; LOTE.length; i++) {
+      const x = LOTE[0];
+      estadoForm("lote-estado", `Guardando ${i + 1} de ${total}…`);
+      const blob = await reducirArchivo(x.archivo);
+      const r = await fetch(`/entreno/fotos/subir?fecha=${encodeURIComponent(f)}&pose=${encodeURIComponent(x.pose)}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
+      const d = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta no válida (HTTP " + r.status + ")." }));
+      if (!d.ok) throw new Error(`${nombrePose(x.pose)}: ${d.mensaje || "no se ha guardado"}`);
+      URL.revokeObjectURL(x.url); LOTE.shift();  // las guardadas salen de la lista; si una falla, quedan las que faltan
+    }
+    await cargarMedidas(true); pintarFotos();
+    pintarLote(); estadoForm("lote-estado", "");
+  } catch (e) {
+    await cargarMedidas(true).catch(() => {}); pintarFotos();
+    pintarLote("No se ha guardado: " + e.message + ". Las que faltan siguen aquí.", true);
+  } finally { g.disabled = false; }
 }
 
 // ---------- secciones ----------
