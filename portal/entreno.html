@@ -58,6 +58,23 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
 .comparar .pie-foto { padding: 8px 12px; font-size: var(--t-xs); color: var(--tinta-2); }
 .comparar .pie-foto b { font-weight: 500; color: var(--tinta-alta); }
 #tabla-perimetros td:first-child { white-space: nowrap; }
+.mini-foto img, .poses .hueco-foto img, .comparar .foto img { cursor: zoom-in; }
+.visor { position: fixed; inset: 0; z-index: 40; background: var(--fondo); display: flex; flex-direction: column; }
+.visor[hidden] { display: none; }
+.visor-barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px var(--margen); border-bottom: 1px solid var(--linea); }
+.visor-barra h3 { font-family: var(--serif); font-size: var(--t-xl); line-height: 1.2; }
+.visor-lienzo { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden; }
+.visor-lienzo > img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.visor-pie { padding: 12px var(--margen) 20px; border-top: 1px solid var(--linea); display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.visor-pie .campo { margin-top: 0; }
+.visor-pie .campo > span { margin-bottom: 4px; }
+.visor-pie .texto-pie { width: 100%; font-size: var(--t-sm); color: var(--tinta-2); }
+.recorte { position: relative; overflow: hidden; line-height: 0; }
+.recorte canvas { display: block; max-width: 100%; max-height: calc(100dvh - 210px); }
+.caja-recorte { position: absolute; border: 1px solid #fff; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55); cursor: move; touch-action: none; }
+.caja-recorte .asa { position: absolute; width: 24px; height: 24px; border: 2px solid #fff; background: rgba(0, 0, 0, 0.25); touch-action: none; }
+.caja-recorte .nw { left: -1px; top: -1px; cursor: nwse-resize; } .caja-recorte .ne { right: -1px; top: -1px; cursor: nesw-resize; }
+.caja-recorte .sw { left: -1px; bottom: -1px; cursor: nesw-resize; } .caja-recorte .se { right: -1px; bottom: -1px; cursor: nwse-resize; }
 .galeria { display: grid; grid-template-columns: 72px repeat(4, 1fr); gap: 1px; padding: 1px; max-width: 760px; }
 .galeria > * { box-shadow: 0 0 0 1px var(--linea); }
 .galeria .fecha-g { padding: 8px; font: 300 var(--t-xs) var(--mono); color: var(--tinta-2); }
@@ -173,7 +190,7 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
 <section class="vista" id="v-fotos" hidden>
   <div class="seccion"><span class="n">08</span><h2>Fotos</h2><p>Frente, lados y espalda por fecha. Se guardan en el servidor, fuera del vault y de GitHub, y solo se ven con sesión.</p></div>
   <div id="fotos-cuerpo">
-  <div class="rejilla"><div class="celda"><h3>Subir fotos</h3><p class="sub">Se reducen en el móvil antes de enviarse (1600 px, sin GPS ni datos de la cámara). Subir otra vez la misma pose la sustituye; la anterior se guarda aparte.</p>
+  <div class="rejilla"><div class="celda"><h3>Subir fotos</h3><p class="sub">Al elegir una foto se abre para revisarla, recortarla o girarla, y solo se guarda al pulsar Guardar foto. Se reduce en el móvil (1600 px, sin GPS ni datos de la cámara). Una pose que ya tiene foto se sustituye y la anterior se guarda aparte.</p>
     <div class="fila-form"><label class="campo"><span class="etiqueta">Fecha</span><input type="date" id="foto-fecha"></label></div>
     <div class="poses" id="foto-poses"></div></div></div>
   <div class="rejilla"><div class="celda"><h3>Comparar</h3><p class="sub">Dos fechas lado a lado, misma pose</p>
@@ -183,12 +200,17 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
       <div class="segmentos" id="cmp-poses" style="margin-top:12px"></div>
     </div>
     <div class="comparar" id="comparar"></div></div></div>
-  <div class="rejilla"><div class="celda"><h3>Por fecha</h3><p class="sub" id="galeria-sub">Toca una foto para abrirla entera</p>
+  <div class="rejilla"><div class="celda"><h3>Por fecha</h3><p class="sub" id="galeria-sub">Toca una foto para verla grande, cambiarle la fecha o la pose, recortarla, girarla o eliminarla</p>
     <div class="galeria" id="galeria" style="margin-top:12px"></div></div></div>
   </div>
 </section>
 
 <p class="pie-panel" id="pie"></p>
+</div>
+<div class="visor" id="visor" hidden role="dialog" aria-modal="true" aria-labelledby="visor-fecha">
+  <div class="visor-barra"><div><span class="etiqueta" id="visor-pose"></span><h3 id="visor-fecha"></h3></div><button class="boton" id="visor-cerrar">Cerrar</button></div>
+  <div class="visor-lienzo" id="visor-lienzo"></div>
+  <div class="visor-pie" id="visor-pie"></div>
 </div>
 <div class="bocadillo" id="tip"></div>
 <script id="datos" type="application/json">/*__DATOS__*/null</script>
@@ -670,7 +692,7 @@ function pintarFotos() {
     const fg = el("div", { class: "fecha-g" }, ddmm(fecha(x.fecha))); fg.append(el("small", {}, x.fecha.slice(0, 4))); g.append(fg);
     for (const [p, n] of M.poses) {
       const c = el("div", { class: "mini-foto" });
-      if (x.poses[p]) { const a = el("a", { href: urlFoto(x.fecha, p, x.poses[p]), target: "_blank", title: `${n}, ${ddmm(fecha(x.fecha))}` }); a.append(el("img", { src: urlFoto(x.fecha, p, x.poses[p]), loading: "lazy", alt: `${n} ${x.fecha}` })); c.append(a); }
+      if (x.poses[p]) { const i = el("img", { src: urlFoto(x.fecha, p, x.poses[p]), loading: "lazy", alt: `${n} ${x.fecha}`, title: `${n}, ${ddmm(fecha(x.fecha))}` }); i.onclick = () => abrirVisor(x.fecha, p); c.append(i); }
       g.append(c);
     }
   }
@@ -681,41 +703,17 @@ function pintarPoses() {
   cont.replaceChildren();
   for (const [p, n] of M.poses) {
     const c = el("div"), hueco = el("div", { class: "hueco-foto" }), est = el("span", { class: "estado-form" });
-    if (dia.poses[p]) hueco.append(el("img", { src: urlFoto(f, p, dia.poses[p]), alt: n })); else hueco.textContent = "Sin foto";
+    if (dia.poses[p]) { const i = el("img", { src: urlFoto(f, p, dia.poses[p]), alt: n }); i.onclick = () => abrirVisor(f, p); hueco.append(i); } else hueco.textContent = "Sin foto";
     const bots = el("div", { class: "botones" });
     for (const [txt, cap] of [["Cámara", true], ["Galería", false]]) {
       const lab = el("label", { class: "boton" }, txt), inp = el("input", { type: "file", accept: "image/*" });
       if (cap) inp.setAttribute("capture", "environment");
-      inp.onchange = () => { if (inp.files[0]) subirFoto(f, p, inp.files[0], hueco, est); inp.value = ""; };
+      inp.onchange = () => { if (inp.files[0]) abrirNueva(f, p, inp.files[0]); inp.value = ""; };
       lab.append(inp); bots.append(lab);
     }
     c.append(el("span", { class: "etiqueta" }, n), hueco, bots, est);
     cont.append(c);
   }
-}
-async function reducir(file) {
-  let img;
-  try { img = await createImageBitmap(file, { imageOrientation: "from-image" }); }
-  catch (e) {
-    img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => mal(new Error("no se puede leer la imagen")); i.src = URL.createObjectURL(file); });
-  }
-  const w = img.width, h = img.height, k = Math.min(1, 1600 / Math.max(w, h));
-  const cv = document.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
-  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-  return await new Promise((ok, mal) => cv.toBlob(b => b ? ok(b) : mal(new Error("no se pudo comprimir")), "image/jpeg", 0.85));
-}
-async function subirFoto(f, pose, file, hueco, est) {
-  est.classList.remove("mal"); est.textContent = "Preparando…";
-  try {
-    const blob = await reducir(file);
-    hueco.replaceChildren(el("img", { src: URL.createObjectURL(blob), alt: pose }));
-    est.textContent = `Subiendo ${fmt(blob.size / 1024)} KB…`;
-    const r = await fetch(`/entreno/fotos/subir?fecha=${encodeURIComponent(f)}&pose=${encodeURIComponent(pose)}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
-    const d = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta no válida (HTTP " + r.status + ")." }));
-    if (!d.ok) throw new Error(d.mensaje || "no se ha guardado");
-    await cargarMedidas(true);
-    pintarFotos();
-  } catch (e) { est.classList.add("mal"); est.textContent = "No se ha subido: " + e.message; }
 }
 function comparar() {
   const cont = document.getElementById("comparar"); cont.replaceChildren();
@@ -723,13 +721,185 @@ function comparar() {
   for (const id of ["cmp-a", "cmp-b"]) {
     const f = document.getElementById(id).value, x = M.fotos.find(y => y.fecha === f), ck = M.checkins.find(c => c.fecha === f);
     const caja = el("div"), foto = el("div", { class: "foto" });
-    if (x && x.poses[cmpPose]) foto.append(el("img", { src: urlFoto(f, cmpPose, x.poses[cmpPose]), alt: f })); else foto.textContent = "Sin foto de esta pose";
+    if (x && x.poses[cmpPose]) { const i = el("img", { src: urlFoto(f, cmpPose, x.poses[cmpPose]), alt: f }); i.onclick = () => abrirVisor(f, cmpPose); foto.append(i); } else foto.textContent = "Sin foto de esta pose";
     const pie = el("div", { class: "pie-foto" }); pie.append(el("b", {}, f ? ddmm(fecha(f)) + "-" + f.slice(0, 4) : "-"));
     const dia = D.dias.find(d => d.fecha === f), peso = ck && ck.v.peso != null ? ck.v.peso : dia && dia.peso;
     const datos = [peso ? fmt(peso, 1) + " kg" : null, ck && ck.v.cintura != null ? "cintura " + fmt(ck.v.cintura, 1) : null].filter(Boolean);
     if (datos.length) pie.append(" · " + datos.join(" · "));
     caja.append(foto, pie); cont.append(caja);
   }
+}
+
+// visor: la foto grande dentro del portal, con cambiar fecha o pose, recortar o girar y eliminar
+let V = null;  // {fecha, pose}
+const nombrePose = p => (M.poses.find(x => x[0] === p) || [p, p])[1];
+const verFecha = f => ddmm(fecha(f)) + "-" + f.slice(0, 4);
+function abrirVisor(f, pose) {
+  const x = M.fotos.find(y => y.fecha === f);
+  if (!x || !x.poses[pose]) return;
+  V = { fecha: f, pose };
+  document.getElementById("visor").hidden = false;
+  document.body.style.overflow = "hidden";
+  visorVer();
+}
+function cerrarVisor() {
+  document.getElementById("visor").hidden = true;
+  document.body.style.overflow = "";
+  document.getElementById("visor-lienzo").replaceChildren();
+  V = null;
+}
+document.getElementById("visor-cerrar").onclick = cerrarVisor;
+addEventListener("keydown", e => { if (e.key === "Escape" && V) cerrarVisor(); });
+const vEl = id => document.getElementById("visor-" + id);
+function visorPie(...hijos) { vEl("pie").replaceChildren(...hijos); }
+function boton(txt, fn, fuerte) { const b = el("button", { class: "boton" + (fuerte ? " fuerte" : ""), type: "button" }, txt); b.onclick = fn; return b; }
+const versionFoto = () => { const x = M.fotos.find(y => y.fecha === V.fecha); return x && x.poses[V.pose]; };
+async function postJSON(url, body) {
+  const r = await fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return await r.json().catch(() => ({ ok: false, mensaje: "Respuesta no válida (HTTP " + r.status + ")." }));
+}
+function visorVer(msg, mal) {
+  vEl("pose").textContent = nombrePose(V.pose);
+  vEl("fecha").textContent = verFecha(V.fecha);
+  vEl("lienzo").replaceChildren(el("img", { src: urlFoto(V.fecha, V.pose, versionFoto()), alt: `${nombrePose(V.pose)} ${V.fecha}` }));
+  const est = el("span", { class: "estado-form" + (mal ? " mal" : "") }, msg || "");
+  visorPie(boton("Recortar o girar", visorEditar), boton("Cambiar fecha o pose", visorMover), boton("Eliminar", visorEliminar), est);
+}
+function visorMover() {
+  const f = el("input", { type: "date", value: V.fecha, max: iso(new Date()) });
+  const s = el("select"); for (const [p, n] of M.poses) s.append(el("option", { value: p }, n)); s.value = V.pose;
+  const lf = el("label", { class: "campo" }), lp = el("label", { class: "campo" });
+  lf.append(el("span", { class: "etiqueta" }, "Fecha"), f); lp.append(el("span", { class: "etiqueta" }, "Pose"), s);
+  const est = el("span", { class: "estado-form" });
+  const aviso = () => {
+    const x = M.fotos.find(y => y.fecha === f.value), ocupado = x && x.poses[s.value] && !(f.value === V.fecha && s.value === V.pose);
+    est.classList.remove("mal"); est.textContent = ocupado ? "Ahí ya hay una foto: se intercambian." : "";
+  };
+  f.onchange = s.onchange = aviso;
+  const guardar = boton("Guardar", async () => {
+    if (!f.value) return;
+    guardar.disabled = true; est.classList.remove("mal"); est.textContent = "Guardando…";
+    try {
+      const d = await postJSON("/entreno/fotos/mover", { fecha: V.fecha, pose: V.pose, a_fecha: f.value, a_pose: s.value });
+      await cargarMedidas(true); pintarFotos();
+      if (!d.ok) { est.classList.add("mal"); est.textContent = d.mensaje || "No se ha movido."; guardar.disabled = false; return; }
+      V = { fecha: f.value, pose: s.value };
+      visorVer("Movida.");
+    } catch (e) { est.classList.add("mal"); est.textContent = "No se ha podido mover: " + e.message; guardar.disabled = false; }
+  }, true);
+  visorPie(lf, lp, guardar, boton("Cancelar", () => visorVer()), est);
+}
+function visorEliminar() {
+  const est = el("span", { class: "estado-form" });
+  const si = boton("Eliminar", async () => {
+    si.disabled = true; est.textContent = "Eliminando…";
+    try {
+      const d = await postJSON("/entreno/fotos/eliminar", { fecha: V.fecha, pose: V.pose });
+      await cargarMedidas(true); pintarFotos();
+      if (!d.ok) { est.classList.add("mal"); est.textContent = d.mensaje || "No se ha eliminado."; si.disabled = false; return; }
+      cerrarVisor();
+    } catch (e) { est.classList.add("mal"); est.textContent = "No se ha podido eliminar: " + e.message; si.disabled = false; }
+  }, true);
+  visorPie(el("p", { class: "texto-pie" }, "Sale del panel. En el servidor se guarda aparte (/srv/entreno-fotos/.eliminadas), por si hay que recuperarla."), si, boton("Cancelar", () => visorVer()), est);
+}
+// foto nueva: se abre aquí para revisarla y solo se sube al pulsar Guardar foto
+function abrirNueva(f, pose, archivo) {
+  V = { fecha: f, pose };
+  document.getElementById("visor").hidden = false;
+  document.body.style.overflow = "hidden";
+  vEl("pose").textContent = nombrePose(pose) + ", sin guardar";
+  vEl("fecha").textContent = verFecha(f);
+  visorEditar(archivo);
+}
+async function cargarImagen(archivo) {
+  if (archivo) {
+    try { return await createImageBitmap(archivo, { imageOrientation: "from-image" }); } catch (e) {}
+  }
+  return await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => mal(); i.src = archivo ? URL.createObjectURL(archivo) : urlFoto(V.fecha, V.pose, versionFoto()); }).catch(() => null);
+}
+async function visorEditar(archivo) {
+  const lienzo = vEl("lienzo"), est = el("span", { class: "estado-form" }, "Cargando…");
+  if (!(archivo instanceof Blob)) archivo = null;
+  lienzo.replaceChildren(); visorPie(est);
+  const img = await cargarImagen(archivo);
+  if (!img) { if (archivo) { est.classList.add("mal"); est.textContent = "No se puede leer esta imagen."; visorPie(est, boton("Cerrar", cerrarVisor)); } else visorVer("No se ha podido abrir la foto para editarla.", true); return; }
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const habia = !!versionFoto();
+  const cv = document.createElement("canvas"), ctx = cv.getContext("2d");
+  const caja = el("div", { class: "caja-recorte" }), marco = el("div", { class: "recorte" });
+  for (const a of ["nw", "ne", "sw", "se"]) caja.append(el("div", { class: "asa " + a, "data-asa": a }));
+  marco.append(cv, caja); lienzo.replaceChildren(marco);
+  let rot = 0, prop = 0, R;  // prop = ancho/alto fijo (0 = libre); R = recorte en píxeles de la foto girada
+  const W = () => cv.width, H = () => cv.height;
+  function encajar() {  // recorte máximo con la proporción, centrado
+    if (!prop) { R = { x: 0, y: 0, w: W(), h: H() }; return; }
+    let w = W(), h = w / prop; if (h > H()) { h = H(); w = h * prop; }
+    R = { x: (W() - w) / 2, y: (H() - h) / 2, w, h };
+  }
+  function dibujar() {
+    const gira = rot % 180 !== 0;
+    cv.width = gira ? ih : iw; cv.height = gira ? iw : ih;
+    ctx.save(); ctx.translate(cv.width / 2, cv.height / 2); ctx.rotate(rot * Math.PI / 180);
+    ctx.drawImage(img, -iw / 2, -ih / 2); ctx.restore();
+    encajar(); pintarCaja();
+  }
+  function pintarCaja() {
+    const k = cv.clientWidth / W() || 0;
+    Object.assign(caja.style, { left: R.x * k + "px", top: R.y * k + "px", width: R.w * k + "px", height: R.h * k + "px" });
+  }
+  new ResizeObserver(pintarCaja).observe(cv);
+  let arrastre = null;
+  caja.addEventListener("pointerdown", e => {
+    e.preventDefault(); caja.setPointerCapture(e.pointerId);
+    arrastre = { modo: e.target.dataset.asa || "mover", px: e.clientX, py: e.clientY, r: { ...R }, k: cv.clientWidth / W() };
+  });
+  caja.addEventListener("pointermove", e => {
+    if (!arrastre) return;
+    const { modo, r, k } = arrastre, dx = (e.clientX - arrastre.px) / k, dy = (e.clientY - arrastre.py) / k, MIN = 60;
+    if (modo === "mover") {
+      R = { ...r, x: Math.min(Math.max(0, r.x + dx), W() - r.w), y: Math.min(Math.max(0, r.y + dy), H() - r.h) };
+    } else {
+      let l = r.x, t = r.y, d = r.x + r.w, b = r.y + r.h;
+      if (modo.includes("w")) l = Math.min(Math.max(0, l + dx), d - MIN); else d = Math.max(Math.min(W(), d + dx), l + MIN);
+      if (modo.includes("n")) t = Math.min(Math.max(0, t + dy), b - MIN); else b = Math.max(Math.min(H(), b + dy), t + MIN);
+      if (prop) {  // la altura sigue al ancho; si no cabe, se recorta el ancho
+        let w = d - l, h = w / prop;
+        const libre = modo.includes("n") ? b : H() - t;
+        if (h > libre) { h = libre; w = h * prop; }
+        if (modo.includes("n")) t = b - h; else b = t + h;
+        if (modo.includes("w")) l = d - w; else d = l + w;
+      }
+      R = { x: l, y: t, w: d - l, h: b - t };
+    }
+    pintarCaja();
+  });
+  const soltar = () => { arrastre = null; };
+  caja.addEventListener("pointerup", soltar); caja.addEventListener("pointercancel", soltar);
+  const segs = el("div", { class: "segmentos" });
+  for (const [txt, p] of [["Libre", 0], ["3:4", 3 / 4]]) {
+    const b = el("button", { type: "button", class: p === prop ? "on" : "" }, txt);
+    b.onclick = () => { prop = p; segs.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); encajar(); pintarCaja(); };
+    segs.append(b);
+  }
+  est.textContent = archivo ? "Aún no está guardada. Recorta o gira si hace falta" + (habia ? "; sustituye a la que ya hay (la anterior se guarda aparte)." : ".") : "Arrastra el recuadro o sus esquinas.";
+  const guardar = boton(archivo ? "Guardar foto" : "Guardar", async () => {
+    guardar.disabled = true; est.classList.remove("mal"); est.textContent = "Guardando…";
+    try {
+      const { fecha: fd, pose: pd } = V;  // por si se cierra el visor mientras sube
+      const x = Math.round(R.x), y = Math.round(R.y), w = Math.round(R.w), h = Math.round(R.h), k = Math.min(1, 1600 / Math.max(w, h));
+      const out = document.createElement("canvas"); out.width = Math.round(w * k); out.height = Math.round(h * k);
+      out.getContext("2d").drawImage(cv, x, y, w, h, 0, 0, out.width, out.height);
+      const blob = await new Promise((ok, mal) => out.toBlob(b => b ? ok(b) : mal(new Error("no se pudo comprimir")), "image/jpeg", 0.85));
+      const r = await fetch(`/entreno/fotos/subir?fecha=${encodeURIComponent(fd)}&pose=${encodeURIComponent(pd)}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
+      const d = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta no válida (HTTP " + r.status + ")." }));
+      if (!d.ok) throw new Error(d.mensaje || "no se ha guardado");
+      await cargarMedidas(true); pintarFotos();
+      if (V) visorVer(archivo && !habia ? "Guardada." : "Guardada. La versión anterior queda aparte en el servidor.");
+    } catch (e) { est.classList.add("mal"); est.textContent = "No se ha guardado: " + e.message; guardar.disabled = false; }
+  }, true);
+  visorPie(boton("Girar ←", () => { rot = (rot + 270) % 360; dibujar(); }), boton("Girar →", () => { rot = (rot + 90) % 360; dibujar(); }), segs,
+    guardar, archivo ? boton("Descartar", cerrarVisor) : boton("Cancelar", () => visorVer()), est);
+  dibujar();
 }
 
 // ---------- secciones ----------

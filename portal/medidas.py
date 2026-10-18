@@ -10,7 +10,9 @@ El portal no puede escribir en el vault ni en /srv: deja cada petición en /var/
 y medidas-guardar.path lanza /opt/portal/medidas-guardar.py (root).
 
 Rutas (las reparte portal.py): GET /entreno/medidas/datos, GET /entreno/fotos/AAAA-MM-DD/<pose>.jpg,
-POST /entreno/medidas/checkin, POST /entreno/fotos/subir?fecha=AAAA-MM-DD&pose=<pose>.
+POST /entreno/medidas/checkin, POST /entreno/fotos/subir?fecha=AAAA-MM-DD&pose=<pose> (también para guardar una
+foto recortada o girada: la anterior queda como -antes-), POST /entreno/fotos/mover {fecha, pose, a_fecha, a_pose}
+(si el destino tiene foto, se intercambian) y POST /entreno/fotos/eliminar {fecha, pose} (va a .eliminadas/).
 """
 import hashlib, json, math, os, re, secrets, time
 from datetime import date, timedelta
@@ -258,6 +260,27 @@ def subir_foto(query: str, cuerpo: bytes):
     return (200, {"ok": True}) if ok else (500, {"ok": False, "mensaje": error})
 
 
+def operar_foto(d: dict):
+    """mover: {fecha, pose, a_fecha, a_pose}; eliminar: {fecha, pose}."""
+    op, fecha, pose = d.get("op"), d.get("fecha"), d.get("pose")
+    if not fecha_valida(fecha) or pose not in dict(POSES):
+        return 400, {"ok": False, "mensaje": "Fecha o pose no válida."}
+    if not (FOTOS / fecha / f"{pose}.jpg").is_file():
+        return 409, {"ok": False, "mensaje": "Esa foto ya no está. Recarga."}
+    pet = {"op": op, "fecha": fecha, "pose": pose}
+    if op == "mover":
+        a_fecha, a_pose = d.get("a_fecha"), d.get("a_pose")
+        if not fecha_valida(a_fecha) or a_pose not in dict(POSES):
+            return 400, {"ok": False, "mensaje": "Fecha o pose de destino no válida."}
+        if (a_fecha, a_pose) == (fecha, pose):
+            return 200, {"ok": True}
+        pet.update(a_fecha=a_fecha, a_pose=a_pose)
+    elif op != "eliminar":
+        return 400, {"ok": False, "mensaje": "Operación desconocida."}
+    ok, error = pedir(pet)
+    return (200, {"ok": True}) if ok else (500, {"ok": False, "mensaje": error})
+
+
 # ---------- reparto de rutas (desde portal.py) ----------
 def _json(h, codigo, d):
     datos = json.dumps(d, ensure_ascii=False).encode()
@@ -296,16 +319,16 @@ def get(h, ruta: str) -> bool:
 
 def post(h, ruta: str, sesion_ok) -> bool:
     """Rutas POST. sesion_ok() comprueba la sesión (solo se llama si la ruta es mía). False = no es mía."""
-    if ruta not in ("/entreno/medidas/checkin", "/entreno/fotos/subir"):
+    if ruta not in ("/entreno/medidas/checkin", "/entreno/fotos/subir", "/entreno/fotos/mover", "/entreno/fotos/eliminar"):
         return False
     if not sesion_ok():
         _json(h, 401, {"ok": False, "mensaje": "Sesión caducada. Vuelve a entrar."})
         return True
     largo = int(h.headers.get("Content-Length") or 0)
+    if ruta.startswith("/entreno/fotos/") and privado(h):
+        _json(h, 403, {"ok": False, "mensaje": "En modo privado no se tocan las fotos."})
+        return True
     if ruta == "/entreno/fotos/subir":
-        if privado(h):
-            _json(h, 403, {"ok": False, "mensaje": "En modo privado no se suben fotos."})
-            return True
         if largo > MAX_FOTO:
             _json(h, 413, {"ok": False, "mensaje": "La foto pesa demasiado (máx. 4 MB)."})
             return True
@@ -318,6 +341,9 @@ def post(h, ruta: str, sesion_ok) -> bool:
         except ValueError:
             _json(h, 400, {"ok": False, "mensaje": "Petición no válida."})
             return True
-        codigo, r = guardar_checkin(d)
+        if ruta == "/entreno/medidas/checkin":
+            codigo, r = guardar_checkin(d)
+        else:
+            codigo, r = operar_foto({**d, "op": ruta.rsplit("/", 1)[1]})
     _json(h, codigo, r)
     return True

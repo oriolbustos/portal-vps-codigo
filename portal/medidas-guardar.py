@@ -7,6 +7,10 @@ y medidas-guardar.path lanza esto (root). Resultado en /var/lib/portal/medidas-r
   el portal; "" = nota nueva (solo si no existe). Escribe en el sitio para conservar el dueño (1000).
 - {op: foto, fecha, pose} + <id>.jpg: la deja en /srv/entreno-fotos/<fecha>/<pose>.jpg (root:portal, 640).
   Si ya había una, la vieja se queda como <pose>-antes-AAAAMMDD-HHMMSS.jpg: nunca se borra nada.
+- {op: mover, fecha, pose, a_fecha, a_pose}: cambia la foto de fecha o de pose. Si el destino ya tiene foto,
+  las dos se intercambian.
+- {op: eliminar, fecha, pose}: la mueve a /srv/entreno-fotos/.eliminadas/<fecha>-<pose>-AAAAMMDD-HHMMSS.jpg
+  (no sale en el panel; se recupera a mano).
 """
 import hashlib, json, os, pwd, re, shutil, sys, time
 from datetime import datetime
@@ -79,6 +83,51 @@ def foto(d, jpg: Path):
     tmp.replace(destino)
 
 
+def carpeta(fecha: str) -> Path:
+    """/srv/entreno-fotos/<fecha> (o .eliminadas), creada con root:portal 750."""
+    gid = portal()[1]
+    for c in (FOTOS, FOTOS / fecha):
+        c.mkdir(mode=0o750, exist_ok=True)
+        if c.is_symlink():
+            raise ValueError("carpeta de fotos no válida")
+        os.chown(c, 0, gid)
+        os.chmod(c, 0o750)
+    return FOTOS / fecha
+
+
+def origen(d) -> Path:
+    fecha, pose = d["fecha"], d["pose"]
+    if not FECHA.match(fecha) or pose not in POSES:
+        raise ValueError("fecha o pose no válida")
+    f = FOTOS / fecha / f"{pose}.jpg"
+    if not f.is_file() or f.is_symlink():
+        raise ValueError("esa foto ya no está; recarga")
+    return f
+
+
+def mover(d):
+    src = origen(d)
+    a_fecha, a_pose = d["a_fecha"], d["a_pose"]
+    if not FECHA.match(a_fecha) or a_pose not in POSES:
+        raise ValueError("fecha o pose de destino no válida")
+    dst = carpeta(a_fecha) / f"{a_pose}.jpg"
+    if dst == src:
+        return
+    if dst.exists():  # ocupado: se intercambian
+        tmp = src.with_name(f".cambio-{os.getpid()}.jpg")
+        src.rename(tmp)
+        dst.rename(src)
+        tmp.rename(dst)
+    else:
+        src.rename(dst)
+
+
+def eliminar(d):
+    src = origen(d)
+    destino = carpeta(".eliminadas") / f"{d['fecha']}-{d['pose']}-{datetime.now():%Y%m%d-%H%M%S}.jpg"
+    src.rename(destino)
+
+
 def procesar(f: Path):
     pid = f.stem
     jpg = f.with_suffix(".jpg")
@@ -89,6 +138,10 @@ def procesar(f: Path):
             checkin(d)
         elif d.get("op") == "foto":
             foto(d, jpg)
+        elif d.get("op") == "mover":
+            mover(d)
+        elif d.get("op") == "eliminar":
+            eliminar(d)
         else:
             raise ValueError("operación desconocida")
         resultado(pid, True)
