@@ -1,4 +1,5 @@
 [Unit]
+StartLimitIntervalSec=0
 Description=Aplica en el vault un cambio del panel Listas en cuanto llega
 
 [Path]

@@ -1,4 +1,6 @@
 [Unit]
+# Sin límite de arranques: varios cambios seguidos desde el portal lo lanzan muchas veces en pocos segundos
+StartLimitIntervalSec=0
 Description=Aplica en el vault los cambios del panel Listas
 
 [Service]

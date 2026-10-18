@@ -1,4 +1,5 @@
 [Unit]
+StartLimitIntervalSec=0
 Description=Guarda en el vault la nota de To Do editada en el portal en cuanto llega
 
 [Path]
