@@ -12,7 +12,8 @@ la escribe solo si la nota no ha cambiado desde que se leyó (base = sha256) o, 
 desde la plantilla 00-sistema/plantillas/diario.md.
 
 Formato de la tabla (instructions.md §2.3):
-  | Ejercicio | Serie | Reps | Peso (kg) | RIR | Agarre / altura | Notas |
+  | Ejercicio | Serie | Reps | Peso (kg) | RIR | Agarre / altura | Notas | Descanso |
+Descanso = lo descansado después de esa serie (m:ss), si se guardó con el temporizador.
 Las notas antiguas, sin columnas RIR ni Agarre, llevan el RIR en Notas ("RIR 2"): al reescribir la tabla
 se pasa a su columna; el resto de Notas se conserva tal cual.
 """
@@ -26,7 +27,7 @@ PLANTILLA = entreno.DIARIO.parent / "00-sistema" / "plantillas" / "diario.md"
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 PENDIENTE = ESTADO / "entreno-sesion-pendiente"
 RESULTADO = ESTADO / "entreno-sesion-resultado.json"
-CABECERA = ["Ejercicio", "Serie", "Reps", "Peso (kg)", "RIR", "Agarre / altura", "Notas"]
+CABECERA = ["Ejercicio", "Serie", "Reps", "Peso (kg)", "RIR", "Agarre / altura", "Notas", "Descanso"]
 # Descanso por defecto si "Estado actual" no trae columna Descanso: multiarticulares 2:30, el resto 1:30.
 MULTI = re.compile(r"dominada|jalon|remo|press|dips|fondos|prensa|peso muerto|sentadilla|hip thrust")
 SOLO_RIR = re.compile(r"^RIR\s*(\d+(?:[.,]\d)?)$", re.I)
@@ -119,7 +120,8 @@ def leer_tabla(texto: str):
                     resto.append(trozo)
             notas = ", ".join(resto)
         filas.append({"ej": entreno.col(fila, "ejercicio"), "reps": entreno.col(fila, "reps"),
-                      "peso": entreno.col(fila, "peso"), "rir": rir, "agarre": entreno.col(fila, "agarre"), "notas": notas})
+                      "peso": entreno.col(fila, "peso"), "rir": rir, "agarre": entreno.col(fila, "agarre"), "notas": notas,
+                      "descanso": entreno.col(fila, "descanso")})
     return hashlib.sha256("\n".join(crudo).encode()).hexdigest(), filas
 
 
@@ -136,7 +138,7 @@ def tabla_md(filas: list) -> list:
             continue
         n[ej] = n.get(ej, 0) + 1
         out.append("| " + " | ".join([ej, str(n[ej]), limpia(f.get("reps")), limpia(f.get("peso")), limpia(f.get("rir")),
-                                      limpia(f.get("agarre")), limpia(f.get("notas"))]) + " |")
+                                      limpia(f.get("agarre")), limpia(f.get("notas")), limpia(f.get("descanso"))]) + " |")
     return out
 
 
@@ -260,7 +262,7 @@ def guardar_nota(f: str, base: str, texto: str, crear: bool):
 
 
 def operar(d: dict):
-    """d = {fecha, huella, filas: [{ej, reps, peso, rir, agarre, notas}]} → reescribe la tabla Entreno de ese día.
+    """d = {fecha, huella, filas: [{ej, reps, peso, rir, agarre, notas, descanso}]} → reescribe la tabla Entreno de ese día.
     huella = la de la tabla que la página vio la última vez: si alguien la ha cambiado, 409 con lo que hay ahora."""
     if not isinstance(d, dict) or not isinstance(d.get("filas"), list) or len(d["filas"]) > 300:
         return 400, {"ok": False, "mensaje": "Petición no válida."}

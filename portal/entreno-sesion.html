@@ -73,9 +73,10 @@
 .crono .que { flex: 1; min-width: 0; font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .03em; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .crono .t { font-size: 34px; line-height: 1; letter-spacing: -.02em; }
 .crono.pasado .t { color: #ff8a8a; }
+.crono button#crono-guardar { background: var(--fondo); color: var(--tinta-alta); border-color: var(--fondo); }
 .crono button { font: inherit; font-size: var(--t-sm); min-height: 44px; min-width: 52px; padding: 0 10px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: inherit; border-radius: 6px; cursor: pointer; }
 .crono .barra { position: absolute; left: 0; top: 0; height: 3px; background: var(--acento); }
-@media (max-width: 420px) { .crono .que { display: none; } }
+@media (max-width: 480px) { .crono .que { display: none; } .crono { gap: 6px; padding-left: 12px; padding-right: 12px; } .crono .t { font-size: 28px; margin-right: auto; } .crono button { min-width: 0; padding: 0 8px; } }
 @media (min-width: 900px) { .ejs { max-width: 760px; } }
 </style>
 </head>
@@ -109,7 +110,7 @@
   <div class="barra" id="crono-barra"></div>
   <span class="t" id="crono-t">0:00</span>
   <span class="que" id="crono-que"></span>
-  <button id="crono-menos">−15</button><button id="crono-mas">+15</button><button id="crono-parar">Parar</button>
+  <button id="crono-menos">−15</button><button id="crono-mas">+15</button><button id="crono-guardar">Guardar</button><button id="crono-cancelar">Cancelar</button>
 </div>
 
 <script>
@@ -145,7 +146,7 @@ const mismoEj = (e, nombre) => plano(e.nombre) === plano(nombre) || (e.ej && inf
 // Junta lo que hay en el vault con lo de la página: lo guardado manda; lo apuntado aquí y aún no enviado se añade detrás.
 function fusionar(filas) {
   const grupos = new Map();
-  filas.forEach((f, i) => { if (!grupos.has(f.ej)) grupos.set(f.ej, { i, series: [] }); grupos.get(f.ej).series.push({ reps: f.reps, peso: f.peso, rir: f.rir, agarre: f.agarre, notas: f.notas, ok: true }); });
+  filas.forEach((f, i) => { if (!grupos.has(f.ej)) grupos.set(f.ej, { i, series: [] }); grupos.get(f.ej).series.push({ reps: f.reps, peso: f.peso, rir: f.rir, agarre: f.agarre, notas: f.notas, descanso: f.descanso || "", ok: true }); });
   const usados = new Set();
   for (const e of S.ejs) {
     const nombre = [...grupos.keys()].find(n => !usados.has(n) && mismoEj(e, n));
@@ -159,7 +160,7 @@ function fusionar(filas) {
 }
 function filas() {
   return S.ejs.filter(e => !e.descartado && e.series.length).sort((a, b) => a.orden - b.orden)
-    .flatMap(e => e.series.map(s => ({ ej: e.nombre, reps: s.reps, peso: s.peso, rir: s.rir, agarre: s.agarre, notas: s.notas })));
+    .flatMap(e => e.series.map(s => ({ ej: e.nombre, reps: s.reps, peso: s.peso, rir: s.rir, agarre: s.agarre, notas: s.notas, descanso: s.descanso || "" })));
 }
 const nSeries = () => S.ejs.reduce((a, e) => a + (e.descartado ? 0 : e.series.length), 0);
 const pendientes = () => S.ejs.some(e => e.series.some(s => !s.ok)) || S.version !== S.enviada;
@@ -234,8 +235,15 @@ async function pedirPantalla() {  // que no se apague la pantalla mientras hay s
 }
 function arrancar(e) {
   desbloquearAudio();
-  T = { ini: Date.now(), dur: e.descanso, ej: e.nombre, avisado: false };
+  T = { ini: Date.now(), dur: e.descanso, ej: e.nombre, eid: e.id, si: e.series.length - 1, avisado: false };
   escribir(CLAVE_T, T); programarPitido(); pedirPantalla(); tic();
+}
+// Guardar: apunta lo descansado en la columna Descanso de la serie que arrancó el temporizador. Cancelar: no apunta nada.
+function serieDelCrono() { const e = T && S.ejs.find(x => x.id === T.eid); return e && T.si >= 0 ? e.series[T.si] : null; }
+function guardarDescanso() {
+  const s = serieDelCrono();
+  if (s) { s.descanso = mmss((Date.now() - T.ini) / 1000); s.ok = false; parar(); cambiado(); pintar(); }
+  else parar();
 }
 function parar() { T = null; escribir(CLAVE_T, null); programarPitido(); tic(); }
 function ajustar(s) { if (!T) return; T.dur = Math.max(0, T.dur + s); T.avisado = false; escribir(CLAVE_T, T); programarPitido(); tic(); }
@@ -246,6 +254,7 @@ function tic() {
   const pasado = (Date.now() - T.ini) / 1000, queda = T.dur - pasado;
   $("crono-t").textContent = mmss(queda);
   $("crono-que").textContent = "Descanso " + mmss(T.dur) + " · " + T.ej;
+  $("crono-guardar").hidden = !serieDelCrono();
   c.classList.toggle("pasado", queda < 0);
   $("crono-barra").style.width = Math.min(100, pasado / Math.max(1, T.dur) * 100) + "%";
   if (queda <= 0 && !T.avisado) { T.avisado = true; escribir(CLAVE_T, T); try { navigator.vibrate?.([300, 150, 300]); } catch {} }
@@ -253,7 +262,8 @@ function tic() {
 setInterval(tic, 250);
 $("crono-menos").onclick = () => ajustar(-15);
 $("crono-mas").onclick = () => ajustar(15);
-$("crono-parar").onclick = parar;
+$("crono-guardar").onclick = guardarDescanso;
+$("crono-cancelar").onclick = parar;
 document.addEventListener("pointerdown", desbloquearAudio, { once: true });
 
 // ---------- pintar ----------
@@ -342,7 +352,7 @@ function formulario(e) {
     const x = leerForm();
     if (!x.reps) { err.textContent = "Faltan las reps."; iReps.focus(); return; }
     if (!x.peso && e.modo !== "corporal") { err.textContent = "Falta el peso. Si es sin carga, elige corporal."; iPeso.focus(); return; }
-    const serie = { reps: x.reps, peso: pesoTexto(x.peso, e.modo), rir: x.rir, agarre: x.agarre, notas: x.notas, ok: false };
+    const serie = { reps: x.reps, peso: pesoTexto(x.peso, e.modo), rir: x.rir, agarre: x.agarre, notas: x.notas, descanso: editando ? editando.descanso || "" : "", ok: false };
     if (editando) { e.series[edit.i] = serie; edit = null; }
     else {
       if (e.orden == null) e.orden = Math.max(-1, ...S.ejs.map(y => y.orden ?? -1)) + 1;
@@ -355,7 +365,7 @@ function formulario(e) {
   if (editando) {
     const acc = el("div", { class: "acciones" });
     const quitar = el("button", { type: "button", class: "boton" }, "Quitar serie");
-    quitar.onclick = () => { if (!confirm("¿Quitar esta serie de la nota de hoy?")) return; e.series.splice(edit.i, 1); edit = null; cambiado(); pintar(); };
+    quitar.onclick = () => { if (!confirm("¿Quitar esta serie de la nota de hoy?")) return; e.series.splice(edit.i, 1); if (T && T.eid === e.id) { T.si = T.si === edit.i ? -1 : T.si - (T.si > edit.i); escribir(CLAVE_T, T); } edit = null; cambiado(); pintar(); };
     const cancelar = el("button", { type: "button", class: "boton" }, "Cancelar");
     cancelar.onclick = () => { edit = null; pintar(); };
     acc.append(quitar, cancelar); f.append(acc);
@@ -392,7 +402,7 @@ function tarjeta(e, n) {
     const tb = el("table", { class: "series" });
     e.series.forEach((s, k) => {
       const tr = el("tr", { class: (edit && edit.id === e.id && edit.i === k ? "editando" : "") + (s.ok ? "" : " pend") });
-      tr.append(el("td", {}, String(k + 1)), el("td", {}, serieTxt(s)), el("td", { class: "tx" }, [s.agarre, s.notas].filter(Boolean).join(", ")));
+      tr.append(el("td", {}, String(k + 1)), el("td", {}, serieTxt(s)), el("td", { class: "tx" }, [s.agarre, s.notas, s.descanso && "descanso " + s.descanso].filter(Boolean).join(", ")));
       tr.onclick = () => { edit = edit && edit.id === e.id && edit.i === k ? null : { id: e.id, i: k }; pintar(); };
       tb.append(tr);
     });
