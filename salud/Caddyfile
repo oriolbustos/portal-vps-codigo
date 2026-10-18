@@ -13,6 +13,7 @@ testobm.duckdns.org {
         route {
             forward_auth 172.18.0.1:8791 {
                 uri /_auth
+                copy_headers X-Portal-Censura  # modo censurado del portal (1/0), lo lee la llave
             }
             uri strip_prefix /finanzas
             reverse_proxy 172.18.0.1:8790

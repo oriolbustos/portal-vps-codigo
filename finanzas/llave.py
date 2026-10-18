@@ -5,8 +5,10 @@
 - Con la caja abierta sirve panel.html. El login lo pone el portal (/opt/portal) delante: Caddy
   pregunta a su /_auth (forward_auth) antes de dejar pasar a /finanzas/.
 - Cuando cambian datos, reglas o código (Claude por el conector, o un push del PC), rehace panel.html y hace commit.
+- Modo censurado del portal (/opt/portal/censura.py): si llega X-Portal-Censura: 1 (la pone el /_auth del portal
+  y Caddy la copia), quita del panel lo que diga la clave "finanzas" de /var/lib/portal/config.json.
 """
-import html, os, subprocess, threading, time
+import html, json, os, subprocess, threading, time
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -121,6 +123,57 @@ VOLVER = ('<a href="/" style="color:var(--tinta-2);text-decoration:none;font-siz
           'width:100%;order:-1">← Portal</a>')
 
 
+# ---------- modo censurado ----------
+CONFIG_PORTAL = Path("/var/lib/portal/config.json")  # la escribe el portal desde /config/
+BLOQUES = ["patrimonio", "inversiones", "ingresos"]   # si no se puede leer la config, se quita todo
+# Lo que se esconde de cada bloque. Va por posición (tarjetas) y por id: si el panel cambia de estructura, revisar.
+CENSURA_CSS = {
+    "patrimonio": "#tiles>.tile:nth-child(1),#tiles>.tile:nth-child(4),.card:has(#ch-pat)",
+    "inversiones": "#v-inversiones",
+    "ingresos": "#tiles>.tile:nth-child(2),.card:has(#ch-aho),#mes-tiles>.tile:nth-child(3),"
+                "#mes-tiles>.tile:nth-child(4),.card:has(#mes-ing),#tabla-anual tr:last-child",
+}
+# Textos del panel que delatarían lo quitado (si ya no están, no pasa nada: los datos ya van vacíos).
+CENSURA_TEXTO = {
+    "inversiones": [('<a href="#inversiones">Inversiones</a>', ""), ("inversiones: vInversiones, ", "")],
+    "ingresos": [('<a href="#mes">Ingresos y gastos</a>', '<a href="#mes">Gastos</a>'),
+                 ("<h2>Gastos por grupo e ingresos</h2>", "<h2>Gastos por grupo</h2>"),
+                 (', [N, "Ingresos", "line"]', ""),
+                 ('lines: [{ name: "Ingresos", color: N, values: meses.map(m => m.ingresos || null) }], ', "")],
+}
+
+
+def censurar(texto: str) -> str:
+    """Quita los datos (no solo los esconde) y luego esconde los huecos, sin dejar rastro."""
+    try:
+        bloques = [b for b in json.loads(CONFIG_PORTAL.read_text()).get("finanzas", BLOQUES) if b in BLOQUES]
+    except (OSError, ValueError, AttributeError):
+        bloques = BLOQUES
+    if not bloques:
+        return texto
+    i = texto.index("let D = ") + len("let D = ")
+    D, fin = json.JSONDecoder().raw_decode(texto, i)
+    tipos_fuera = set()
+    if "patrimonio" in bloques:
+        D["patrimonio"] = [{k: (v if k == "mes" else 0) for k, v in p.items()} for p in D.get("patrimonio", [])]
+        tipos_fuera.add("interno")  # traspasos entre cuentas propias: dejan ver saldos
+    if "inversiones" in bloques:
+        D["inversiones"] = []
+        tipos_fuera.add("inversion")
+    if "ingresos" in bloques:
+        for m in D.get("meses", []):
+            m["ingresos"] = 0
+        D["ingresos"] = []
+    D["detalle"] = [f for f in D.get("detalle", []) if f[8] not in tipos_fuera
+                    and not ("ingresos" in bloques and f[8] != "gasto" and f[3] > 0)]  # entradas de dinero (los Bizums de vuelta son "gasto")
+    texto = texto[:i] + json.dumps(D, ensure_ascii=False).replace("</", "<\\/") + texto[fin:]
+    for b in bloques:
+        for viejo, nuevo in CENSURA_TEXTO.get(b, []):
+            texto = texto.replace(viejo, nuevo)
+    css = ",".join(CENSURA_CSS[b] for b in bloques)
+    return texto.replace("</head>", f"<style>{css}{{display:none!important}}</style></head>", 1)
+
+
 def barra():
     hasta = estado["hasta"]
     cuando = f"Abierta hasta las {hasta:%H:%M}" if hasta else "Abierta"
@@ -157,6 +210,12 @@ class Manejador(BaseHTTPRequestHandler):
         if not panel.exists():
             return self.enviar(f"<!doctype html><meta charset=utf-8>{ESTILO}<p class='vacio'>Abierta, pero aún no hay panel.html. Recarga en un minuto.</p>{barra()}")
         texto = panel.read_text(encoding="utf-8")
+        if self.headers.get("X-Portal-Censura") == "1":
+            try:
+                texto = censurar(texto)
+            except Exception as e:  # si falla, no se enseña nada antes que enseñarlo todo
+                print(f"llave: no se pudo censurar: {e}", flush=True)
+                return self.enviar(f"<!doctype html><meta charset=utf-8>{ESTILO}<p class='vacio'>El panel no está disponible ahora.</p>", 503)
         # Vuelta al portal arriba a la izquierda, junto al título del panel.
         texto = texto.replace("<h1>Finanzas</h1>", VOLVER + "<h1>Finanzas</h1>", 1)
         # Estilo del portal encima del propio del panel (solo aquí; el panel local no cambia).

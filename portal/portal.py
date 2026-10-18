@@ -8,6 +8,7 @@
   cuando cambian las notas diarias del vault (/entreno/clasico/ = versión anterior).
 - /estilo/: guía de estilo viva. Las reglas se leen de la nota del vault ESTILO_NOTA;
   la hoja compartida y las fuentes se sirven en /estatico/ (sin sesión).
+- Modo censurado por dispositivo (botón Censurar de la portada) y /config/: ver censura.py.
 """
 import hashlib, html, json, os, re, secrets, sys, threading, time
 from datetime import datetime
@@ -18,7 +19,7 @@ from urllib.parse import parse_qs, quote, urlsplit
 import bcrypt
 
 sys.path.insert(0, str(Path(__file__).parent))
-import entreno, listas, tareas, todo, trabajo  # noqa: E402
+import censura, entreno, listas, tareas, todo, trabajo  # noqa: E402
 import entreno_sesion  # noqa: E402  (Entreno en directo, /entreno/sesion/)
 import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
 
@@ -96,6 +97,22 @@ def sesion_valida(token: str, renovar=True):
             guardar_sesiones(s)
             return True, token
     return True, None
+
+
+def censurado(token: str) -> bool:
+    """¿Esta sesión está en modo censurado? (botón Censurar; se sale cerrando sesión)."""
+    with cerrojo:
+        v = cargar_sesiones().get(huella_token(token or ""))
+    return bool(v and v.get("censurado"))
+
+
+def censurar(token: str):
+    with cerrojo:
+        s = cargar_sesiones()
+        v = s.get(huella_token(token or ""))
+        if v and not v.get("censurado"):
+            v["censurado"] = True
+            guardar_sesiones(s)
 
 
 def borrar_sesion(token: str):
@@ -202,11 +219,14 @@ def estado_finanzas():
 PANELES = [
     {"titulo": "To Do", "ruta": "/todo/", "desc": "Mi día, listas y pendientes.", "estado": None},
     {"titulo": "Tareas", "ruta": "/tareas/", "desc": "Pendientes por ámbito y prioridad.", "estado": None},
-    {"titulo": "Listas", "ruta": "/listas/", "desc": "Compra, regalos, deseos y más.", "estado": None},
-    {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas},
+    {"titulo": "Listas", "ruta": "/listas/", "desc": "Compra, regalos, deseos y más.", "estado": None,
+     "desc_censurado": "Compra y otras listas."},  # en modo censurado, si hay listas ocultas
+    {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas,
+     "desc_censurado": "Gastos, categorías y viajes."},  # en modo censurado, si se quita algo
     {"titulo": "Entreno", "ruta": "/entreno/", "desc": "Peso, nutrición, actividad y fuerza.", "estado": None},
     {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV actual.", "estado": None},
     {"titulo": "Estilo", "ruta": "/estilo/", "desc": "Guía visual y de escritura.", "estado": None},
+    {"titulo": "Configuración", "ruta": "/config/", "desc": "Modo censurado y ajustes.", "estado": None},  # no existe en modo censurado
 ]
 
 # ---------- pasos del iPhone (Atajo de iOS) ----------
@@ -282,9 +302,12 @@ def pagina_login(siguiente="/", error=""):
 <button class="boton fuerte ancho">Entrar</button></form></div></main>""")
 
 
-def pagina_portada():
+def pagina_portada(cens=False):
     tarjetas = []
+    conf = censura.leer()
     for p in PANELES:
+        if cens and censura.panel_oculto(p["ruta"], conf):
+            continue
         try:
             est = p["estado"]() if p.get("estado") else ""
         except Exception:
@@ -293,11 +316,13 @@ def pagina_portada():
             f'<span class="insignia{" punto" if re.match(r"(Error|Fitbit)", t) else ""}">{html.escape(t)}</span>'
             for t in est.split(" · ") if t)
         ico = p["ruta"].strip("/")  # el icono se llama como la ruta: /estatico/iconos/<ruta>.svg
+        quita = {"finanzas": conf["finanzas"], "listas": conf["listas_ocultas"]}.get(ico)
+        desc = p["desc_censurado"] if cens and quita and p.get("desc_censurado") else p["desc"]
         tarjetas.append(f"""<div class="tarjeta"><h2><span class="sello"><i class="ico ico-{ico}"></i></span><a class="principal" href="{p['ruta']}">{html.escape(p['titulo'])}</a></h2>
-<p class="secundario peq">{html.escape(p['desc'])}</p>{f'<div class="pie">{insignias}</div>' if insignias else ''}</div>""")
+<p class="secundario peq">{html.escape(desc)}</p>{f'<div class="pie">{insignias}</div>' if insignias else ''}</div>""")
     return pagina("Portal", f"""<div class="pagina"><header class="cabecera">
 <div class="marca"><h1>Portal</h1></div>
-<div class="extra"><form method="post" action="/salir"><button class="boton">Cerrar sesión</button></form></div></header>
+<div class="extra">{'' if cens else '<form method="post" action="/censurar"><button class="boton">Censurar</button></form>'}<form method="post" action="/salir"><button class="boton">Cerrar sesión</button></form></div></header>
 <div class="rejilla tarjetas">{''.join(tarjetas)}</div>
 </div>""")
 
@@ -383,6 +408,25 @@ def pagina_estilo() -> str:
     return re.sub(r"<!--md:(.+?)-->", lambda m: md_bloques(partes.get(m.group(1), [])), plantilla)
 
 
+def pagina_config(guardado=False):
+    paneles = [(p["ruta"].strip("/").split("/")[0], p["titulo"]) for p in PANELES if p["ruta"] != "/config/"]
+    try:
+        nombres_listas = [listas.NOMBRES.get(p.stem, p.stem) for p in listas.notas()]
+    except OSError:
+        nombres_listas = []
+    cuerpo = censura.pagina(censura.leer(), paneles, [n for n, _ in tareas.ambitos()], todo.datos(), nombres_listas, guardado)
+    return pagina("Configuración", cuerpo, icono="config")
+
+
+def con_datos(plantilla: Path, datos) -> str:
+    """Como tareas.html() / todo.html(), pero con datos ya filtrados (modo censurado)."""
+    js = json.dumps(datos, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    return plantilla.read_text(encoding="utf-8").replace("/*__DATOS__*/null", js)
+
+
+NO_ENCONTRADO = '<div class="pagina"><p class="vacio">No existe esta página. <a class="enlace" href="/">Volver al portal</a></p></div>'
+
+
 def siguiente_seguro(s: str) -> str:
     """Solo rutas internas: evita redirecciones a otros dominios."""
     if not s or not s.startswith("/") or s.startswith("//") or "\\" in s:
@@ -447,13 +491,29 @@ class Manejador(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self.do_GET()
 
+    def no_encontrado(self):
+        self.enviar(pagina("No encontrado", NO_ENCONTRADO), 404)
+
+    def enviar_json(self, d, codigo=200):
+        datos = json.dumps(d, ensure_ascii=False).encode()
+        self.send_response(codigo)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(datos)))
+        self.cabeceras_comunes()
+        self.end_headers()
+        self.wfile.write(datos)
+
     def do_GET(self):
         ruta = urlsplit(self.path).path
         if ruta == "/_auth":  # Caddy forward_auth
             # Caddy no pasa al navegador las cabeceras de un 200, así que aquí no se renueva.
             if not sesion_valida(self.token(), renovar=False)[0]:
                 return self.a_login(self.headers.get("X-Forwarded-Uri", "/"))
+            cens = censurado(self.token())
+            if cens and censura.panel_oculto(urlsplit(self.headers.get("X-Forwarded-Uri", "/")).path, censura.leer()):
+                return self.no_encontrado()
             self.send_response(200)
+            self.send_header("X-Portal-Censura", "1" if cens else "0")  # Caddy la copia a la llave (copy_headers)
             self.send_header("Content-Length", "0")
             return self.end_headers()
         if ruta.startswith("/estatico/"):  # hoja de estilo y fuentes: públicas
@@ -466,8 +526,16 @@ class Manejador(BaseHTTPRequestHandler):
         ok, renovado = sesion_valida(self.token())
         if not ok:
             return self.a_login(self.path)
+        cens = censurado(self.token())
+        conf = censura.leer() if cens else None
+        if cens and censura.panel_oculto(ruta, conf):
+            return self.no_encontrado()
         if ruta == "/":
-            return self.enviar(pagina_portada(), renovado=renovado)
+            return self.enviar(pagina_portada(cens), renovado=renovado)
+        if ruta == "/config":
+            return self.redirigir("/config/", codigo=301)
+        if ruta == "/config/":
+            return self.enviar(pagina_config("guardado" in urlsplit(self.path).query), renovado=renovado)
         if ruta.startswith(("/entreno/medidas/", "/entreno/fotos/")) and medidas.get(self, ruta):
             return
         if ruta == "/entreno/sesion":
@@ -494,21 +562,25 @@ class Manejador(BaseHTTPRequestHandler):
         if ruta in ("/tareas", "/trabajo", "/listas"):
             return self.redirigir(ruta + "/", codigo=301)
         if ruta == "/listas/":
+            if cens and conf["listas_ocultas"]:
+                d = {"listas": censura.listas(listas.todas(), conf), "generado": time.strftime("%H:%M")}
+                return self.enviar(con_datos(AQUI / "listas.html", d), renovado=renovado)
             return self.enviar(listas.html(AQUI / "listas.html"), renovado=renovado)
         if ruta == "/tareas/":
+            if cens:
+                return self.enviar(con_datos(AQUI / "tareas.html", censura.tareas(tareas.datos(), conf)), renovado=renovado)
             return self.enviar(tareas.html(AQUI / "tareas.html"), renovado=renovado)
         if ruta == "/todo":
             return self.redirigir("/todo/", codigo=301)
         if ruta == "/todo/":
+            if cens:
+                return self.enviar(con_datos(AQUI / "todo.html", censura.todo(todo.datos(), conf)), renovado=renovado)
             return self.enviar(todo.html(AQUI / "todo.html"), renovado=renovado)
         if ruta in ("/todo/datos", "/tareas/datos"):
-            datos = json.dumps((todo if ruta == "/todo/datos" else tareas).datos(), ensure_ascii=False).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(datos)))
-            self.cabeceras_comunes()
-            self.end_headers()
-            return self.wfile.write(datos)
+            d = (todo if ruta == "/todo/datos" else tareas).datos()
+            if cens:
+                d = (censura.todo if ruta == "/todo/datos" else censura.tareas)(d, conf)
+            return self.enviar_json(d)
         if ruta in ("/tareas/matriz", "/tareas/matriz/"):  # dirección vieja (unas horas del 2026-10-18)
             return self.redirigir("/tareas/", codigo=301)
         if ruta == "/trabajo/":
@@ -520,7 +592,7 @@ class Manejador(BaseHTTPRequestHandler):
         m = re.fullmatch(r"/trabajo/cv/([0-9a-f]{16})/([\w.-]+)", ruta)
         if m and (f := trabajo.archivo(m.group(1), m.group(2))):
             return self.enviar_archivo(f, "application/pdf" if f.suffix == ".pdf" else "image/png")
-        self.enviar(pagina("No encontrado", '<div class="pagina"><p class="vacio">No existe esta página. <a class="enlace" href="/">Volver al portal</a></p></div>'), 404)
+        self.no_encontrado()
 
     def estatico(self, nombre: str):
         """Solo archivos de /opt/portal/estatico con extensión conocida, sin salir de la carpeta."""
@@ -547,6 +619,10 @@ class Manejador(BaseHTTPRequestHandler):
         origen = self.headers.get("Origin") or self.headers.get("Referer") or ""
         if origen and urlsplit(origen).hostname != DOMINIO:
             return self.enviar("Origen no permitido", 403)
+        if censurado(self.token()) and censura.panel_oculto(urlsplit(self.path).path, censura.leer()):
+            return self.no_encontrado()
+        if urlsplit(self.path).path == "/config/":
+            return self.api_config()
         if medidas.post(self, urlsplit(self.path).path, lambda: sesion_valida(self.token(), renovar=False)[0]):
             return
         if urlsplit(self.path).path == "/entreno/sesion/guardar":
@@ -579,7 +655,22 @@ class Manejador(BaseHTTPRequestHandler):
         if ruta == "/salir":
             borrar_sesion(self.token())
             return self.redirigir("/login", borrar=True)
+        if ruta == "/censurar":  # modo censurado en este dispositivo; se sale con /salir y volviendo a entrar
+            if sesion_valida(self.token(), renovar=False)[0]:
+                censurar(self.token())
+                log(f"portal: modo censurado activado desde {self.ip()}")
+            return self.redirigir("/")
         self.enviar("No encontrado", 404)
+
+    def api_config(self):
+        """Formulario de /config/ → /var/lib/portal/config.json (solo fuera del modo censurado)."""
+        if not sesion_valida(self.token(), renovar=False)[0]:
+            return self.a_login("/config/")
+        largo = min(int(self.headers.get("Content-Length") or 0), 32768)
+        campos = parse_qs(self.rfile.read(largo).decode("utf-8", "replace"))
+        censura.guardar(censura.desde_formulario(campos, censura.leer()))
+        log("portal: configuración guardada")
+        self.redirigir("/config/?guardado")
 
     def api_entreno_sesion(self):
         """Entreno en directo: {fecha, huella, filas} → tabla Entreno de la nota del día vía entreno-sesion-guardar."""
@@ -620,7 +711,16 @@ class Manejador(BaseHTTPRequestHandler):
             d = json.loads(self.rfile.read(largo))
         except ValueError:
             return responder(400, {"ok": False, "mensaje": "Petición no válida."})
-        codigo, r = tareas.operar(d)
+        if censurado(self.token()):
+            conf = censura.leer()
+            if not isinstance(d, dict) or not censura.tareas_permitida(d, conf):
+                # mismo mensaje que un ámbito que no existe: nada delata que esté oculto
+                return responder(409, {"ok": False, "mensaje": "Ese ámbito ya no está en Panel.md.", "datos": censura.tareas(tareas.datos(), conf)})
+            codigo, r = tareas.operar(d)
+            if isinstance(r.get("datos"), dict):
+                r["datos"] = censura.tareas(r["datos"], conf)
+        else:
+            codigo, r = tareas.operar(d)
         if r.get("ok"):
             log(f"portal: tareas: {d.get('op')} en {d.get('ambito')}")
         responder(codigo, r)
@@ -644,6 +744,10 @@ class Manejador(BaseHTTPRequestHandler):
                 raise ValueError
         except ValueError:
             return responder(400, {"ok": False, "mensaje": "Petición no válida."})
+        if censurado(self.token()):
+            ocultas = set(censura.leer()["listas_ocultas"])
+            if any(listas.NOMBRES.get(p.stem, p.stem) in ocultas and p.name == d.get("archivo") for p in listas.notas()):
+                return responder(400, {"ok": False, "mensaje": "Petición no válida."})
         codigo, r = listas.operar(d)
         if r.get("ok"):
             log(f"portal: lista {d.get('archivo')}: {d.get('op')}")
@@ -666,6 +770,16 @@ class Manejador(BaseHTTPRequestHandler):
             d = json.loads(self.rfile.read(largo))
         except ValueError:
             return responder(400, {"ok": False, "mensaje": "Petición no válida."})
+        if censurado(self.token()):
+            conf = censura.leer()
+            if not isinstance(d, dict) or not censura.todo_permitida(d, todo.datos(), conf):
+                return responder(409, {"ok": False, "mensaje": "Esa lista ya no está; recarga.", "datos": censura.todo(todo.datos(), conf)})
+            codigo, r = todo.operar(d)
+            if isinstance(r.get("datos"), dict):
+                r["datos"] = censura.todo(r["datos"], conf)
+            if r.get("ok"):
+                log(f"portal: to do: {d.get('op')}")
+            return responder(codigo, r)
         codigo, r = todo.operar(d)
         if r.get("ok"):
             log(f"portal: to do: {d.get('op')}")
