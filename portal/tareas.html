@@ -44,7 +44,7 @@
 .punto-t { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font: inherit; font-size: var(--t-xs); line-height: 1.2; padding: 2px 5px 2px 4px; border: 1px dotted var(--tinta-2); border-radius: 4px;
   background: var(--fondo-alto); color: var(--tinta); cursor: pointer; text-align: left; }
 /* una marca por tarea: el color dice el ámbito y la forma el estado.
-   To Do = círculo relleno (el destacado), Doing = cuadrado, Monitoring = anillo hueco (solo se vigila).
+   To Do = anillo hueco (pendiente), Doing = círculo relleno, Monitoring = triángulo.
    Ámbitos, en el orden de Panel.md y sin rojo (en el portal marca "aquí" o un aviso): azul, verde azulado y ocre
    del portal (c1, c3, c4) más morado, marrón y oliva */
 :root { --a1: var(--c1); --a2: var(--c3); --a3: var(--c4); --a4: #7a5ea8; --a5: #8a5a3c; --a6: #6f7f22; }
@@ -52,9 +52,8 @@
 :root[data-theme="dark"] { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; }
 .mks { display: inline-flex; align-items: center; flex: none; }
 .mk { --k: var(--tinta-alta); display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
-.mk.todo { width: 9px; height: 9px; }
-.mk.doing { border-radius: 1px; }
-.mk.seguimiento { background: transparent; box-shadow: inset 0 0 0 2px var(--k); }
+.mk.todo { width: 9px; height: 9px; background: transparent; box-shadow: inset 0 0 0 2px var(--k); }
+.mk.seguimiento { width: 10px; height: 9px; border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .t-texto .mks { margin-right: 8px; vertical-align: 1px; }
 .cabeza-graf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
 .cabeza-graf > div { display: flex; flex-direction: column; gap: 6px; }
@@ -67,7 +66,7 @@
 .punto-t .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .punto-t:hover { border-style: solid; color: var(--tinta-alta); }
 .punto-t.sel { border: 1px solid var(--tinta-alta); box-shadow: 0 0 0 1px var(--tinta-alta); }
-@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .mk { width: 10px; height: 10px; } .punto-t .mk.todo { width: 11px; height: 11px; }
+@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .mk { width: 10px; height: 10px; } .punto-t .mk.seguimiento { width: 12px; height: 11px; }
   .punto-t.sel { border: 1px solid var(--tinta-alta); } }
 
 /* cuadrantes y listas */
