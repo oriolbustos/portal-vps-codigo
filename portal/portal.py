@@ -115,6 +115,14 @@ def censurar(token: str):
             guardar_sesiones(s)
 
 
+def descensurar(token: str):
+    with cerrojo:
+        s = cargar_sesiones()
+        v = s.get(huella_token(token or ""))
+        if v and v.pop("censurado", None):
+            guardar_sesiones(s)
+
+
 def borrar_sesion(token: str):
     with cerrojo:
         s = cargar_sesiones()
@@ -235,7 +243,7 @@ PANELES = [
     {"titulo": "Entreno", "ruta": "/entreno/", "desc": "Peso, nutrición, actividad y fuerza.", "estado": None},
     {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV actual.", "estado": None},
     {"titulo": "Estilo", "ruta": "/estilo/", "desc": "Guía visual y de escritura.", "estado": None},
-    {"titulo": "Configuración", "ruta": "/config/", "desc": "Modo censurado y ajustes.", "estado": None},  # no existe en modo censurado
+    {"titulo": "Configuración", "ruta": "/config/", "desc": "Modo censurado y ajustes.", "estado": None},  # en modo censurado, solo "Volver al modo normal"
 ]
 
 # ---------- pasos del iPhone (Atajo de iOS) ----------
@@ -544,6 +552,8 @@ class Manejador(BaseHTTPRequestHandler):
         if ruta == "/config":
             return self.redirigir("/config/", codigo=301)
         if ruta == "/config/":
+            if cens:
+                return self.enviar(pagina("Configuración", censura.pagina_censurado(), icono="config"), renovado=renovado)
             return self.enviar(pagina_config("guardado" in urlsplit(self.path).query), renovado=renovado)
         if ruta.startswith(("/entreno/medidas/", "/entreno/fotos/")) and medidas.get(self, ruta):
             return
@@ -633,6 +643,8 @@ class Manejador(BaseHTTPRequestHandler):
                                          or urlsplit(self.path).path.startswith("/entreno/fotos/")):  # fotos: nunca
             return self.no_encontrado()
         if urlsplit(self.path).path == "/config/":
+            if censurado(self.token()):  # en modo censurado no se cambia nada
+                return self.redirigir("/config/")
             return self.api_config()
         if medidas.post(self, urlsplit(self.path).path, lambda: sesion_valida(self.token(), renovar=False)[0]):
             return
@@ -666,7 +678,12 @@ class Manejador(BaseHTTPRequestHandler):
         if ruta == "/salir":
             borrar_sesion(self.token())
             return self.redirigir("/login", borrar=True)
-        if ruta == "/censurar":  # modo censurado en este dispositivo; se sale con /salir y volviendo a entrar
+        if ruta == "/descensurar":  # vuelta al modo normal desde /config/, sin contraseña (lo pidió Oriol)
+            if sesion_valida(self.token(), renovar=False)[0]:
+                descensurar(self.token())
+                log(f"portal: modo censurado desactivado desde {self.ip()}")
+            return self.redirigir("/")
+        if ruta == "/censurar":  # modo censurado en este dispositivo; se sale en /config/ o con /salir
             if sesion_valida(self.token(), renovar=False)[0]:
                 censurar(self.token())
                 log(f"portal: modo censurado activado desde {self.ip()}")

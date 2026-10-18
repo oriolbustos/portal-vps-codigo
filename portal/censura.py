@@ -46,9 +46,9 @@ def guardar(c: dict):
 
 
 def panel_oculto(ruta: str, c: dict) -> bool:
-    """¿La ruta pertenece a un panel que no existe en modo censurado? (/config/ nunca existe)."""
+    """¿La ruta pertenece a un panel que no existe en modo censurado? (/config/ sí existe: ahí se vuelve al normal)."""
     trozo = ruta.strip("/").split("/")[0]
-    return trozo == "config" or trozo in c["paneles_ocultos"]
+    return trozo != "config" and trozo in c["paneles_ocultos"]
 
 
 # ---------- Tareas: sobre lo que devuelve tareas.datos() ----------
@@ -173,7 +173,7 @@ def pagina(c: dict, paneles: list, ambitos: list, todo_datos: dict, nombres_list
     return f"""{ESTILO}<div class="pagina"><header class="cabecera">
 <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-config"></i></span>Configuración</h1></div>
 <div class="extra"><form method="post" action="/censurar"><button class="boton">Censurar</button></form></div></header>
-<p class="peq secundario" style="max-width:68ch;padding-top:24px">Modo censurado: para enseñar el portal sin lo personal. Se activa con <b>Censurar</b> en la portada y solo afecta a este dispositivo. Lo oculto desaparece sin dejar rastro, y esta página tampoco existe. Para volver al modo completo, cierra sesión y entra con tu contraseña.</p>
+<p class="peq secundario" style="max-width:68ch;padding-top:24px">Modo censurado: para enseñar el portal sin lo personal. Se activa con <b>Censurar</b> en la portada y solo afecta a este dispositivo. Para volver al modo normal, entra aquí y pulsa <b>Volver al modo normal</b> (o cierra sesión y vuelve a entrar).</p>
 <form method="post" action="/config/">
 {_seccion(1, "Paneles", "Paneles que desaparecen enteros en modo censurado.", s1)}
 {_seccion(2, "Ámbitos", "Ámbitos cuyas tareas salen redactadas en Tareas: el ámbito se ve, pero el texto, las subtareas y las notas de sus tareas salen como ••• y no se pueden cambiar.", s2)}
@@ -182,6 +182,14 @@ def pagina(c: dict, paneles: list, ambitos: list, todo_datos: dict, nombres_list
 {_seccion(5, "Listas", "Pestañas de Listas que se ocultan.", s5)}
 <div class="acciones"><button class="boton fuerte">Guardar</button>{aviso}</div>
 </form></div>"""
+
+
+def pagina_censurado() -> str:
+    """/config/ en modo censurado: no deja tocar nada, solo volver al modo normal (sin contraseña)."""
+    return f"""{ESTILO}<div class="pagina"><header class="cabecera">
+<div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-config"></i></span>Configuración</h1></div></header>
+<p class="peq secundario" style="max-width:68ch;padding-top:24px">Estás en modo censurado. Para cambiar la configuración, vuelve al modo normal.</p>
+<form method="post" action="/descensurar" class="acciones"><button class="boton fuerte">Volver al modo normal</button></form></div>"""
 
 
 def desde_formulario(campos: dict, c: dict) -> dict:
