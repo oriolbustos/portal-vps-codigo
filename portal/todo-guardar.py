@@ -4,16 +4,14 @@
 El portal no puede escribir en el vault. Deja cada cambio como /var/lib/portal/todo-pendiente/<id>.json
 ({id, base, texto}: la nota entera ya editada) y todo-guardar.path lanza esto (root). Solo escribe esa
 nota, y solo si nadie la ha cambiado desde que el portal la leyó (base = sha256 de la versión leída).
-La versión anterior queda en HISTORIAL. Resultado en /var/lib/portal/todo-resultado.json.
+Resultado en /var/lib/portal/todo-resultado.json.
 """
-import hashlib, json, os, pwd, shutil, time
+import hashlib, json, os, pwd, shutil
 from pathlib import Path
 
 NOTA = Path("/srv/vault/30 - Personal/30 - Plan/To Do.md")
 PENDIENTE = Path("/var/lib/portal/todo-pendiente")
 RESULTADO = Path("/var/lib/portal/todo-resultado.json")
-HISTORIAL = Path("/var/lib/todo-guardar/historial")
-GUARDAR_VERSIONES = 200
 
 
 def resultado(pid, ok, error=""):
@@ -36,10 +34,6 @@ def procesar(f: Path):
         viejo = NOTA.read_bytes()
         if hashlib.sha256(viejo).hexdigest() != base:
             raise ValueError("la nota ha cambiado en el vault; recarga")
-        HISTORIAL.mkdir(parents=True, exist_ok=True)
-        (HISTORIAL / f"{time.strftime('%Y%m%d-%H%M%S')}-{pid[:6]}.md").write_bytes(viejo)
-        for sobra in sorted(HISTORIAL.iterdir())[:-GUARDAR_VERSIONES]:
-            sobra.unlink()
         with open(NOTA, "w", encoding="utf-8", newline="") as w:  # en el sitio: conserva dueño (1000) y permisos
             w.write(texto)
         resultado(pid, True)

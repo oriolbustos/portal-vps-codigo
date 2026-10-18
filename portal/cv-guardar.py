@@ -4,7 +4,7 @@
 El portal no puede escribir en el vault (systemd lo deja en solo lectura). Deja cada guardado como
 /var/lib/portal/cv-pendiente/<id>.json ({id, archivo, base, texto}) y cv-guardar.path lanza esto (root).
 Solo sobrescribe un CV que ya existe en la carpeta de CVs, y solo si nadie lo ha cambiado desde que
-se abrió el editor (base = sha256 del original). La versión anterior queda en HISTORIAL.
+se abrió el editor (base = sha256 del original).
 Resultado en /var/lib/portal/cv-resultado.json, que el portal espera para responder.
 """
 import hashlib, json, os, pwd, re, shutil, time
@@ -13,8 +13,6 @@ from pathlib import Path
 CVS = Path("/srv/vault/20 - Career/40 - Opportunities/01 - CVs")
 PENDIENTE = Path("/var/lib/portal/cv-pendiente")
 RESULTADO = Path("/var/lib/portal/cv-resultado.json")
-HISTORIAL = Path("/var/lib/cv-guardar/historial")
-GUARDAR_VERSIONES = 50
 
 
 def resultado(pid, ok, error=""):
@@ -40,10 +38,6 @@ def procesar(f: Path):
         viejo = destino.read_bytes()
         if hashlib.sha256(viejo).hexdigest() != base:
             raise ValueError("el CV ha cambiado en el vault desde que se abrió el editor")
-        HISTORIAL.mkdir(parents=True, exist_ok=True)
-        (HISTORIAL / f"{time.strftime('%Y%m%d-%H%M%S')} {pid[:6]} {archivo}").write_bytes(viejo)
-        for sobra in sorted(HISTORIAL.iterdir())[:-GUARDAR_VERSIONES]:
-            sobra.unlink()
         with open(destino, "w", encoding="utf-8") as w:  # en el sitio: conserva dueño (1000) y permisos
             w.write(texto)
         resultado(pid, True)
