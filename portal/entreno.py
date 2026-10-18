@@ -225,6 +225,7 @@ def leer_dia(ruta: Path, fecha: str) -> dict:
             avisos.append("serie sin nombre de ejercicio")
         ultimo = nombre
         reps_txt, peso_txt, notas = col(fila, "reps"), col(fila, "peso"), col(fila, "notas")
+        rir_col, agarre = num(col(fila, "rir")), col(fila, "agarre")  # columnas nuevas (desde 2026-10-19); antes, RIR en Notas
         reps, reps_tot, seg = leer_reps(reps_txt)
         kg, nota_peso = leer_peso(peso_txt)
         comun, sesion, asistido = clasificar(nombre)
@@ -233,8 +234,9 @@ def leer_dia(ruta: Path, fecha: str) -> dict:
         series.append({
             "ej": comun, "orig": nombre, "sesion": sesion, "asistido": asistido,
             "serie": col(fila, "serie"), "reps": reps, "reps_tot": reps_tot, "seg": seg,
-            "kg": kg, "nota_kg": nota_peso, "rir": rir(notas),
-            "reps_txt": reps_txt, "kg_txt": peso_txt, "notas": notas,
+            "kg": kg, "nota_kg": nota_peso, "rir": rir_col if rir_col is not None else rir(notas),
+            "reps_txt": reps_txt, "kg_txt": peso_txt, "agarre": agarre,
+            "notas": ". ".join(x for x in (agarre, notas) if x),
         })
         if reps is None:
             avisos.append(f"{nombre}: reps '{reps_txt or 'vacío'}'")
