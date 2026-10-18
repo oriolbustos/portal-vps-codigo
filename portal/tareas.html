@@ -94,6 +94,7 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 .d-notas { width: 100%; min-height: 140px; font: inherit; font-size: var(--t-sm); line-height: 1.5; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); padding: 10px 12px; resize: vertical; }
 .d-notas:focus { outline: none; border-color: var(--linea-alta); }
 .d-estado-guardado { font-family: var(--mono); font-weight: 300; }
+.d-acciones { display: flex; gap: 8px; }
 .boton.peligro:hover { color: var(--acento); border-color: var(--acento); }
 .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--tinta-alta); color: var(--fondo); padding: 8px 14px; font-size: var(--t-sm); display: none; z-index: 20; max-width: calc(100vw - 32px); }
 @media (max-width: 600px) { .detalle { border-left: 0; } }
@@ -150,7 +151,7 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
       <input class="d-nuevo-sub" id="d-nuevo-sub" placeholder="Añadir subtarea" maxlength="500"></div>
     <div class="d-bloque"><div class="etiqueta"><span>Notas</span></div><textarea class="d-notas" id="d-notas" placeholder="Detalles, enlaces, lo que haga falta"></textarea></div>
   </div>
-  <div class="d-pie"><span class="d-estado-guardado" id="d-guardado"></span><button class="boton peligro" id="d-borrar" type="button">Eliminar</button></div>
+  <div class="d-pie"><span class="d-estado-guardado" id="d-guardado"></span><span class="d-acciones"><button class="boton fuerte" id="d-hecha" type="button">Marcar hecha</button><button class="boton peligro" id="d-borrar" type="button">Eliminar</button></span></div>
 </aside>
 <div class="toast" id="toast"></div>
 <script id="datos" type="application/json">/*__DATOS__*/null</script>
@@ -336,6 +337,10 @@ $("d-borrar").onclick = () => {
   if (!confirm(`Eliminar "${x.texto}"? Se mueve a Eliminadas, al final de la nota de ${x.ambito}.`)) return;
   operar({ op: "borrar", ambito: x.ambito, base: D.bases[x.ambito], id: x.id }, "Eliminada");
 };
+$("d-hecha").onclick = () => {
+  const x = tarea(sel); if (!x) return;
+  operar({ op: "completar", ambito: x.ambito, base: D.bases[x.ambito], id: x.id }, `Hecha. Movida a Done de ${x.ambito}`);
+};
 $("d-cerrar").onclick = cerrar;
 $("velo").onclick = cerrar;
 addEventListener("keydown", e => { if (e.key === "Escape" && sel !== null) cerrar(); });
@@ -358,7 +363,7 @@ function encolar(hacer, okTxt) {
       const j = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta rara del servidor. Recarga la página." }));
       if (j.datos) D = j.datos;
       if (j.ok) {
-        if (cuerpo.op === "borrar") { sel = null; $("detalle").hidden = true; $("velo").hidden = true; }
+        if (cuerpo.op === "borrar" || cuerpo.op === "completar") { sel = null; $("detalle").hidden = true; $("velo").hidden = true; }
         else if (sel !== null && cuerpo.op === "editar" && sel === cuerpo.id) sel = j.id;
         if (okTxt) aviso(okTxt);
       } else aviso(j.mensaje || "No se ha guardado.");

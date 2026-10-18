@@ -7,6 +7,7 @@ Formato de una tarea (se puede escribir a mano en Obsidian):
   - Certi AWS [imp:: 4] [urg:: 2]      importancia y urgencia de 0 a 5 (sin ellas = sin puntuar)
   	- paso                              subtareas: viñetas con sangría (o "- - paso", formato antiguo)
   	> nota                              notas: líneas con sangría que empiezan por "> "
+  ## Done                               "Marcar hecha" la mueve aquí, arriba del todo: "- [x] ... ✅ AAAA-MM-DD"
   ## Eliminadas                         lo que se borra desde el portal acaba aquí, al final de la nota,
                                         con "(eliminada AAAA-MM-DD)". No se ve en el panel y nunca se borra.
 Las etiquetas #urgente y #importante, si una tarea no tiene puntuación, cuentan como 4.
@@ -30,6 +31,7 @@ CAMPO = re.compile(r"\s*\[(imp|urg)::\s*([0-5])\s*\]", re.I)
 TITULO = re.compile(r"^#{1,6}\s")
 CASILLA = re.compile(r"^\[[ /-]\]\s*")
 ELIMINADAS = "Eliminadas"
+HECHAS = "Done"
 
 
 class Error(Exception):
@@ -237,6 +239,21 @@ def _a_eliminadas(lineas: list, bloque: list):
     lineas[e + 1:e + 1] = bloque
 
 
+def _a_done(lineas: list, bloque: list):
+    """Tarea hecha: "- [x] ... ✅ AAAA-MM-DD" arriba del todo de "## Done" (la crea antes de Eliminadas o al final)."""
+    bloque = [re.sub(r"^- (?:\[[ /-]\] ?)?", "- [x] ", bloque[0]) + f" ✅ {time.strftime('%Y-%m-%d')}"] + bloque[1:]
+    h = next((i for i, l in enumerate(lineas) if re.match(rf"^##\s+{HECHAS}\s*$", l, re.I)), None)
+    if h is None:
+        e = next((i for i, l in enumerate(lineas) if re.match(rf"^##\s+{ELIMINADAS}\s*$", l)), None)
+        if e is None:
+            while lineas and not lineas[-1].strip():
+                lineas.pop()
+            e = len(lineas)
+        lineas[e:e] = ["", f"## {HECHAS}"] if e and lineas[e - 1].strip() else [f"## {HECHAS}"]
+        h = next(i for i, l in enumerate(lineas) if l == f"## {HECHAS}")
+    lineas[h + 1:h + 1] = bloque
+
+
 def guardar(ruta: Path, base: str, texto: str):
     """Deja la nota editada para tareas-guardar y espera su respuesta → (ok, error)."""
     pid = secrets.token_hex(8)
@@ -290,9 +307,9 @@ def aplicar(d: dict):
         raise Error("No encuentro esa tarea en la nota; la he recargado.")
     original = lineas[t["n"]:t["fin"]]
 
-    if op == "borrar":
+    if op in ("borrar", "completar"):
         del lineas[t["n"]:t["fin"]]
-        _a_eliminadas(lineas, original)
+        (_a_eliminadas if op == "borrar" else _a_done)(lineas, original)
         _escribir(ruta, base, lineas, nl, final)
         return None
 
@@ -339,7 +356,7 @@ def aplicar(d: dict):
 
 
 def operar(d: dict):
-    """d = {op: crear|editar|borrar, ambito, base, id, ...} → (código, respuesta con los datos nuevos)."""
+    """d = {op: crear|editar|completar|borrar, ambito, base, id, ...} → (código, respuesta con los datos nuevos)."""
     if not isinstance(d, dict):
         return 400, {"ok": False, "mensaje": "Petición no válida."}
     try:
