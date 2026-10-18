@@ -43,16 +43,17 @@
 .plano .nombre-y { grid-row: 2 / 8; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; justify-self: start; }
 .punto-t { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font: inherit; font-size: var(--t-xs); line-height: 1.2; padding: 2px 5px 2px 4px; border: 1px dotted var(--tinta-2); border-radius: 4px;
   background: var(--fondo-alto); color: var(--tinta); cursor: pointer; text-align: left; }
-/* marcas de color: círculo = ámbito, cuadrado = estado. Nueve colores distintos para poder enseñar las dos a la vez:
-   ámbitos con los de gráfica del portal (c1-c4) más morado y rosa; estados en tinta, gris y oliva */
-:root { --a1: var(--c1); --a2: var(--c2); --a3: var(--c3); --a4: var(--c4); --a5: #7a5ea8; --a6: #b0537f;
-  --e-doing: var(--tinta-alta); --e-todo: #9a9794; --e-seguimiento: #6f7f22; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --a5: #9a80cc; --a6: #d07aa0; --e-todo: #7d7a77; --e-seguimiento: #9aab45; } }
-:root[data-theme="dark"] { --a5: #9a80cc; --a6: #d07aa0; --e-todo: #7d7a77; --e-seguimiento: #9aab45; }
-.marcas { display: inline-flex; align-items: center; gap: 3px; flex: none; }
-.marca { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--tinta-alta); }
-.marca.est { border-radius: 1px; }
-.t-texto .marcas { margin-right: 8px; vertical-align: 1px; }
+/* marcas de color: círculo = ámbito, cuadrado = estado. Nueve colores distintos para poder enseñar las dos a la vez.
+   Estados: To Do en rojo (el destacado), Doing en tinta, Monitoring en gris. Ámbitos sin rojo: azul, verde azulado
+   y ocre del portal (c1, c3, c4) más morado, marrón y oliva */
+:root { --a1: var(--c1); --a2: var(--c3); --a3: var(--c4); --a4: #7a5ea8; --a5: #8a5a3c; --a6: #6f7f22;
+  --e-todo: var(--rojo); --e-doing: var(--tinta-alta); --e-seguimiento: #9a9794; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; --e-seguimiento: #7d7a77; } }
+:root[data-theme="dark"] { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; --e-seguimiento: #7d7a77; }
+.mks { display: inline-flex; align-items: center; gap: 3px; flex: none; }
+.mk { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--tinta-alta); }
+.mk.est { border-radius: 1px; }
+.t-texto .mks { margin-right: 8px; vertical-align: 1px; }
 .cabeza-graf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
 .cabeza-graf > div { display: flex; flex-direction: column; gap: 6px; }
 .leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: var(--t-xs); color: var(--tinta-2); margin: -8px 0 12px; }
@@ -60,11 +61,11 @@
 .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
 .leyenda .grupo { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .leyenda .grupo + .grupo { padding-left: 16px; border-left: 1px solid var(--linea); }
-.leyenda .marca { width: 8px; height: 8px; }
+.leyenda .mk { width: 8px; height: 8px; }
 .punto-t .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .punto-t:hover { border-style: solid; color: var(--tinta-alta); }
 .punto-t.sel { border: 1px solid var(--tinta-alta); box-shadow: 0 0 0 1px var(--tinta-alta); }
-@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .marca { width: 9px; height: 9px; }
+@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .mk { width: 9px; height: 9px; }
   .punto-t.sel { border: 1px solid var(--tinta-alta); } }
 
 /* cuadrantes y listas */
@@ -234,17 +235,17 @@ function multiple(c, opciones, clave) {
 }
 const unAmbito = () => F.ambitos.length === 1;
 
-// colores del gráfico: estados sin el rojo (en el portal el rojo marca "aquí" o un aviso); ámbitos en el orden de Panel.md
+// colores del gráfico: To Do en rojo, el estado destacado; ámbitos en el orden de Panel.md
 const colAmbito = a => `var(--a${D.ambitos.indexOf(a) % 6 + 1})`;
 const colEstado = e => `var(--e-${e})`;
 const conColor = () => F.colores.length > 0;
-function marca(color, est, titulo) { const i = el("i", { class: "marca" + (est ? " est" : ""), title: titulo }); i.style.background = color; return i; }
+function marca(color, est, titulo) { const i = el("i", { class: "mk" + (est ? " est" : ""), title: titulo }); i.style.background = color; return i; }
 // marcas de una tarea según "Color por"; con punto = sin color elegido sale un punto en tinta (el del gráfico)
 function marcas(x, conPunto) {
-  const m = el("span", { class: "marcas" });
+  const m = el("span", { class: "mks" });
   if (F.colores.includes("ambito")) m.append(marca(colAmbito(x.ambito), false, x.ambito));
   if (F.colores.includes("estado")) m.append(marca(colEstado(x.estado), true, EST[x.estado]));
-  if (!m.children.length && conPunto) m.append(el("i", { class: "marca" }));
+  if (!m.children.length && conPunto) m.append(el("i", { class: "mk" }));
   return m;
 }
 // "Nada" quita el color; Ámbito y Estado se encienden y apagan por separado (se pueden tener los dos)
@@ -279,7 +280,7 @@ function item(x, conAmbito = true) {
   tx.append(x.texto); izq.append(tx);
   const meta = el("div", { class: "t-meta" });
   if (conAmbito) meta.append(el("span", { class: "insignia" }, x.ambito));
-  meta.append(el("span", { class: "insignia" + (x.estado === "doing" && !conColor() ? " punto" : "") }, EST[x.estado]));
+  meta.append(el("span", { class: "insignia" + (x.estado === "todo" && !conColor() ? " punto" : "") }, EST[x.estado]));
   const extra = [];
   if (x.sub.length) extra.push(x.sub.length === 1 ? "1 subtarea" : `${x.sub.length} subtareas`);
   if (x.notas.length) extra.push("nota");
