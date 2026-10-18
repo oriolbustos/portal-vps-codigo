@@ -69,6 +69,16 @@
 @media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .mk { width: 10px; height: 10px; } .punto-t .mk.seguimiento { width: 12px; height: 11px; }
   .punto-t.sel { border: 1px solid var(--tinta-alta); } }
 
+/* mover en el gráfico: solo con el modo activado (botón discreto bajo el gráfico) */
+.pie-graf { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; margin-top: 10px; font-size: var(--t-xs); color: var(--tinta-2); }
+.pie-graf button { font: inherit; color: var(--tinta-2); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--linea); }
+.pie-graf button:hover { color: var(--tinta-alta); }
+.plano.moviendo .celda { background: var(--fondo-2); }
+.plano.moviendo .punto-t { cursor: grab; touch-action: none; border-style: solid; }
+.plano.moviendo .celda.destino { background: var(--fondo-alto); box-shadow: inset 0 0 0 1px var(--linea-alta); }
+.punto-t.arrastrando { opacity: 0.35; }
+.fantasma { position: fixed; z-index: 30; pointer-events: none; transform: translate(-50%, -50%); }
+
 /* cuadrantes y listas */
 .matriz { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 32px; }
 @media (max-width: 760px) { .matriz { grid-template-columns: 1fr; } }
@@ -150,6 +160,7 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
     <p class="que">Cada tarea según su urgencia (horizontal) e importancia (vertical), de 0 a 5. De 3 para arriba cuenta como alta. Toca una para abrirla.</p>
     <div class="leyenda" id="leyenda" hidden></div>
     <div class="plano" id="plano"></div>
+    <div class="pie-graf"><span id="mover-ayuda" hidden>Arrastra una tarea a otra casilla para cambiar su importancia y urgencia.</span><button type="button" id="mover">Mover tareas</button></div>
   </div></div>
   <div class="rejilla matriz" id="matriz"></div>
   <div class="rejilla"><div class="cuadrante" id="sin"></div></div>
@@ -203,6 +214,8 @@ if (!Array.isArray(F.colores)) F.colores = [];
 delete F.ambito; delete F.estado; delete F.color;  // filtros de antes, de una sola opción
 if (!PRIO[F.prio]) F.prio = "todas";
 let sel = null;          // id de la tarea abierta
+let moviendo = false;    // modo mover del gráfico
+let arrastre = null, movido = false;
 let pendientes = 0;
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, txt) => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; };
@@ -309,10 +322,10 @@ function plano(xs) {
     for (let u = 0; u <= 5; u++) {
       const cls = ["celda"]; if (u === 0) cls.push("izq"); if (i === 5) cls.push("arr");
       if (u === ALTO - 1) cls.push("mitad-x"); if (i === ALTO) cls.push("mitad-y");
-      const c = el("div", { class: cls.join(" "), style: `grid-row:${fila};grid-column:${u + 3}` });
+      const c = el("div", { class: cls.join(" "), style: `grid-row:${fila};grid-column:${u + 3}`, "data-u": u, "data-i": i });
       for (const x of xs.filter(x => x.imp === i && x.urg === u).sort((a, b) => a.texto.localeCompare(b.texto))) {
         const b = el("button", { type: "button", class: "punto-t" + (x.id === sel ? " sel" : ""), title: `${x.texto} (${x.ambito}, I ${x.imp} U ${x.urg})` });
-        b.append(marcas(x, true), el("span", { class: "txt" }, x.texto)); b.onclick = () => abrir(x.id); c.append(b);
+        b.dataset.id = x.id; b.append(marcas(x, true), el("span", { class: "txt" }, x.texto)); b.onclick = () => { if (!movido) abrir(x.id); }; c.append(b);
       }
       p.append(c);
     }
@@ -478,7 +491,50 @@ async function refrescar() {
   } catch (e) {}
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !pendientes) refrescar(); });
-setInterval(() => { if (!document.hidden && !pendientes && !(document.activeElement && document.activeElement.closest("#detalle, #anadir"))) refrescar(); }, 30000);
+setInterval(() => { if (!document.hidden && !pendientes && !arrastre && !(document.activeElement && document.activeElement.closest("#detalle, #anadir"))) refrescar(); }, 30000);
+/* ---------- mover en el gráfico ---------- */
+// Con el modo activado, una tarea se arrastra (ratón o dedo) a otra casilla: guarda su nueva importancia y urgencia.
+function modoMover(on) {
+  moviendo = on;
+  $("plano").classList.toggle("moviendo", on);
+  $("mover").textContent = on ? "Terminar" : "Mover tareas";
+  $("mover-ayuda").hidden = !on;
+}
+$("mover").onclick = () => modoMover(!moviendo);
+$("plano").addEventListener("pointerdown", e => {
+  const b = e.target.closest(".punto-t");
+  movido = false;
+  if (!moviendo || !b || e.button > 0) return;
+  arrastre = { b, id: b.dataset.id, x0: e.clientX, y0: e.clientY, fantasma: null, destino: null };
+  b.setPointerCapture(e.pointerId);
+});
+$("plano").addEventListener("pointermove", e => {
+  const a = arrastre; if (!a) return;
+  if (!a.fantasma) {
+    if (Math.hypot(e.clientX - a.x0, e.clientY - a.y0) < 5) return;
+    movido = true;
+    a.fantasma = a.b.cloneNode(true); a.fantasma.classList.add("fantasma"); document.body.append(a.fantasma);
+    a.b.classList.add("arrastrando");
+  }
+  a.fantasma.style.left = e.clientX + "px"; a.fantasma.style.top = e.clientY + "px";
+  const c = document.elementFromPoint(e.clientX, e.clientY)?.closest(".celda");
+  if (c !== a.destino) { a.destino?.classList.remove("destino"); a.destino = c && $("plano").contains(c) ? c : null; a.destino?.classList.add("destino"); }
+});
+function soltar(cancelar) {
+  const a = arrastre; if (!a) return;
+  arrastre = null;
+  a.fantasma?.remove(); a.b.classList.remove("arrastrando"); a.destino?.classList.remove("destino");
+  const x = tarea(a.id);
+  if (cancelar || !a.destino || !x) return;
+  const u = +a.destino.dataset.u, i = +a.destino.dataset.i;
+  if (x.urg === u && x.imp === i) return;
+  x.imp = i; x.urg = u; pintar();  // se ve ya; si no se guarda, vuelve con los datos del servidor
+  editar(x, { imp: i, urg: u });
+}
+$("plano").addEventListener("pointerup", () => soltar(false));
+$("plano").addEventListener("pointercancel", () => soltar(true));
+addEventListener("keydown", e => { if (e.key === "Escape" && arrastre) soltar(true); });
+
 addEventListener("hashchange", pintar);
 pintar();
 </script>
