@@ -1,0 +1,10 @@
+[Unit]
+StartLimitIntervalSec=0
+Description=Guarda los perímetros y fotos del panel Entreno en cuanto llegan
+
+[Path]
+DirectoryNotEmpty=/var/lib/portal/medidas-pendiente
+Unit=medidas-guardar.service
+
+[Install]
+WantedBy=paths.target

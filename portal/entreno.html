@@ -34,6 +34,37 @@ details.avisos-plan ul { margin: 8px 0 0; padding-left: 18px; color: var(--tinta
 details.avisos-plan li + li { margin-top: 6px; }
 tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid var(--linea-alta); }
 @media (max-width: 600px) { .cabecera .extra { width: 100%; } }
+/* perímetros y fotos */
+.form-medidas { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 0 12px; }
+.form-medidas .campo { margin-top: 12px; }
+.form-medidas .campo input { padding: 8px 10px; }
+.campo textarea, .campo select { width: 100%; font: inherit; font-size: 16px; padding: 8px 10px; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); border-radius: 0; }
+.campo textarea { min-height: 64px; resize: vertical; }
+.fila-form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 16px; }
+.fila-form .campo { margin-top: 12px; }
+.acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+.estado-form { font-size: var(--t-sm); color: var(--tinta-2); }
+.estado-form.mal { color: var(--acento); }
+.poses { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1px; padding: 1px; margin-top: 16px; }
+.poses > div { box-shadow: 0 0 0 1px var(--linea); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.poses .hueco-foto { aspect-ratio: 3 / 4; background: var(--fondo-alto); display: flex; align-items: center; justify-content: center; color: var(--tinta-2); font-size: var(--t-xs); overflow: hidden; }
+.poses .hueco-foto img, .galeria img, .comparar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.poses .botones { display: flex; gap: 6px; flex-wrap: wrap; }
+.poses input[type=file] { display: none; }
+.comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; padding: 1px; margin-top: 16px; max-width: 760px; }
+.comparar > div { box-shadow: 0 0 0 1px var(--linea); }
+.comparar .foto { aspect-ratio: 3 / 4; background: var(--fondo-alto); display: flex; align-items: center; justify-content: center; color: var(--tinta-2); font-size: var(--t-xs); }
+.comparar .foto img { object-fit: contain; }
+.comparar .pie-foto { padding: 8px 12px; font-size: var(--t-xs); color: var(--tinta-2); }
+.comparar .pie-foto b { font-weight: 500; color: var(--tinta-alta); }
+#tabla-perimetros td:first-child { white-space: nowrap; }
+.galeria { display: grid; grid-template-columns: 72px repeat(4, 1fr); gap: 1px; padding: 1px; max-width: 760px; }
+.galeria > * { box-shadow: 0 0 0 1px var(--linea); }
+.galeria .fecha-g { padding: 8px; font: 300 var(--t-xs) var(--mono); color: var(--tinta-2); }
+.galeria .fecha-g small { display: block; font-size: 10px; }
+.galeria .mini-foto { aspect-ratio: 3 / 4; background: var(--fondo-alto); }
+.galeria .cab { padding: 6px 8px; font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--tinta-2); }
+@media (max-width: 600px) { .galeria { grid-template-columns: 52px repeat(4, 1fr); } .galeria .cab { font-size: 10px; padding: 4px; } }
 </style>
 </head>
 <body>
@@ -42,7 +73,7 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
   <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-entreno"></i></span>Entreno</h1></div>
   <div class="extra"><div class="segmentos" id="filtros"><button data-d="30">30 d</button><button data-d="90">90 d</button><button data-d="0">Todo</button></div></div>
   <nav class="nav" id="nav">
-    <a href="#resumen">Hoy</a><a href="#cuerpo">Cuerpo</a><a href="#nutricion">Nutrición</a><a href="#actividad">Actividad</a><a href="#fuerza">Fuerza</a><a href="#diario">Diario</a>
+    <a href="#resumen">Hoy</a><a href="#cuerpo">Cuerpo</a><a href="#nutricion">Nutrición</a><a href="#actividad">Actividad</a><a href="#fuerza">Fuerza</a><a href="#diario">Diario</a><a href="#perimetros">Perímetros</a><a href="#fotos">Fotos</a>
   </nav>
 </header>
 
@@ -120,6 +151,42 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
   <div class="rejilla"><div class="celda"><details><summary id="avisos-sum">Datos que no se han podido leer</summary><ul class="avisos" id="avisos"></ul></details></div></div>
 </section>
 
+<section class="vista" id="v-perimetros" hidden>
+  <div class="seccion"><span class="n">07</span><h2>Perímetros</h2><p>Check-ins de 40 - Entreno/30-checkins, en cm. Brazo izquierdo y muslo derecho. Los ratios se calculan aquí. Cómo medir: 10-referencia/protocolo-medidas.md.</p></div>
+  <div class="rejilla cifras" id="cifras-perimetros"></div>
+  <div class="rejilla"><div class="celda"><h3>Apuntar check-in</h3><p class="sub" id="ck-sub">Rellena solo lo que hayas medido. Si ya hay check-in de esa fecha, se completa sin borrar nada.</p>
+    <form id="ck-form" autocomplete="off">
+      <div class="fila-form"><label class="campo"><span class="etiqueta">Fecha</span><input type="date" id="ck-fecha" required></label></div>
+      <div class="form-medidas" id="ck-campos"></div>
+      <label class="campo"><span class="etiqueta">Sensaciones</span><textarea id="ck-sens" placeholder="Una por línea: energía, hambre, sueño, molestias, cómo te ves"></textarea></label>
+      <div class="acciones"><button class="boton fuerte" type="submit" id="ck-guardar">Guardar check-in</button><span class="estado-form" id="ck-estado"></span></div>
+    </form></div></div>
+  <div class="rejilla"><div class="celda"><h3>Evolución</h3><p class="sub" id="per-sub">cm por check-in</p>
+    <div class="barra-grupo" style="padding:12px 0 0"><div class="segmentos" id="per-grupos"></div></div>
+    <div class="leyenda" id="per-leyenda"></div>
+    <div class="grafica" id="g-perimetros"></div></div></div>
+  <div class="rejilla"><div class="celda"><h3>Todos los check-ins</h3><p class="sub">* = % grasa Navy con el cuello de otro check-in. Los de 2024 vienen del Excel de entonces (brazo medido contraído, no comparable).</p>
+    <div class="tabla" id="tabla-perimetros" style="margin-top:12px"></div></div></div>
+</section>
+
+<section class="vista" id="v-fotos" hidden>
+  <div class="seccion"><span class="n">08</span><h2>Fotos</h2><p>Frente, lados y espalda por fecha. Se guardan en el servidor, fuera del vault y de GitHub, y solo se ven con sesión.</p></div>
+  <div id="fotos-cuerpo">
+  <div class="rejilla"><div class="celda"><h3>Subir fotos</h3><p class="sub">Se reducen en el móvil antes de enviarse (1600 px, sin GPS ni datos de la cámara). Subir otra vez la misma pose la sustituye; la anterior se guarda aparte.</p>
+    <div class="fila-form"><label class="campo"><span class="etiqueta">Fecha</span><input type="date" id="foto-fecha"></label></div>
+    <div class="poses" id="foto-poses"></div></div></div>
+  <div class="rejilla"><div class="celda"><h3>Comparar</h3><p class="sub">Dos fechas lado a lado, misma pose</p>
+    <div class="fila-form">
+      <label class="campo"><span class="etiqueta">Antes</span><select id="cmp-a"></select></label>
+      <label class="campo"><span class="etiqueta">Después</span><select id="cmp-b"></select></label>
+      <div class="segmentos" id="cmp-poses" style="margin-top:12px"></div>
+    </div>
+    <div class="comparar" id="comparar"></div></div></div>
+  <div class="rejilla"><div class="celda"><h3>Por fecha</h3><p class="sub" id="galeria-sub">Toca una foto para abrirla entera</p>
+    <div class="galeria" id="galeria" style="margin-top:12px"></div></div></div>
+  </div>
+</section>
+
 <p class="pie-panel" id="pie"></p>
 </div>
 <div class="bocadillo" id="tip"></div>
@@ -128,7 +195,7 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
 "use strict";
 const D = JSON.parse(document.getElementById("datos").textContent);
 const SES = { push: "Push", pull: "Pull", pierna: "Pierna", otros: "Otros" };
-const VISTAS = ["resumen", "cuerpo", "nutricion", "actividad", "fuerza", "diario"];
+const VISTAS = ["resumen", "cuerpo", "nutricion", "actividad", "fuerza", "diario", "perimetros", "fotos"];
 let dias = 90, grupo = "push";
 try { dias = +(localStorage.getItem("entreno.dias") ?? 90); grupo = localStorage.getItem("entreno.tab") || "push"; } catch (e) {}
 
@@ -466,6 +533,204 @@ function planEntreno(f, d) {
 }
 const plano = s => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+// ---------- perímetros y fotos (datos aparte: /entreno/medidas/datos) ----------
+let M = null, perGrupo = "tronco", cmpPose = "frente", cmpElegido = false;
+try { perGrupo = localStorage.getItem("entreno.per") || "tronco"; } catch (e) {}
+const GRUPOS_PER = {
+  tronco: { nombre: "Tronco", campos: [["hombros", "--c1"], ["pecho", "--c2"], ["cintura", "--c3"], ["cadera", "--c4"]] },
+  brazos: { nombre: "Brazo, muslo y cuello", campos: [["brazo", "--c1"], ["brazo_flex", "--c2"], ["muslo", "--c3"], ["cuello", "--c4"]] },
+  grasa: { nombre: "% grasa Navy", campos: [["navy", "--c-tinta"]] },
+};
+async function cargarMedidas(forzar) {
+  if (M && !forzar) return M;
+  const r = await fetch("/entreno/medidas/datos", { cache: "no-store", credentials: "same-origin" });
+  if (r.status === 401 || r.redirected) { location.reload(); throw new Error("sesión"); }
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  M = await r.json();
+  return M;
+}
+const nombreCampo = k => k === "navy" ? "% grasa Navy" : (M.campos.find(c => c[0] === k) || [k, k])[1];
+const valorCk = (c, k) => k === "navy" ? (c.r.navy ?? null) : (c.v[k] ?? null);
+function errorMedidas(id, e) { document.getElementById(id).replaceChildren(el("div", { class: "aviso" }, "No se han podido cargar los datos (" + e.message + "). Recarga la página.")); }
+
+function perimetros() {
+  cargarMedidas().then(pintarPerimetros, e => errorMedidas("cifras-perimetros", e));
+}
+function pintarPerimetros() {
+  const cks = M.checkins, ult = cks[cks.length - 1], ant = cks[cks.length - 2];
+  const dif = k => ult && ant && valorCk(ult, k) != null && valorCk(ant, k) != null ? `${signo(+(valorCk(ult, k) - valorCk(ant, k)).toFixed(1), 1)} vs ${ddmm(fecha(ant.fecha))}` : "";
+  cifras("cifras-perimetros", [
+    ["Último check-in", ult ? ddmm(fecha(ult.fecha)) : "-", "", ult ? `${cks.length} en total` : "ninguno todavía"],
+    ["Cintura", ult && ult.v.cintura != null ? fmt(ult.v.cintura, 1) : "-", "cm", dif("cintura")],
+    ["Pecho", ult && ult.v.pecho != null ? fmt(ult.v.pecho, 1) : "-", "cm", dif("pecho")],
+    ["Brazo flex", ult && ult.v.brazo_flex != null ? fmt(ult.v.brazo_flex, 1) : "-", "cm", dif("brazo_flex")],
+    ["% grasa Navy", ult && ult.r.navy != null ? fmt(ult.r.navy, 1) + (ult.r.cuello_prestado ? "*" : "") : "-", "%", dif("navy")],
+  ]);
+  formCheckin();
+  // gráfica
+  const segs = document.getElementById("per-grupos"); segs.replaceChildren();
+  for (const [k, g] of Object.entries(GRUPOS_PER)) {
+    const b = el("button", k === perGrupo ? { class: "on" } : {}, g.nombre);
+    b.onclick = () => { perGrupo = k; try { localStorage.setItem("entreno.per", k); } catch (e) {} pintarPerimetros(); };
+    segs.append(b);
+  }
+  const g = GRUPOS_PER[perGrupo] || GRUPOS_PER.tronco;
+  const ley = document.getElementById("per-leyenda"); ley.replaceChildren();
+  if (g.campos.length > 1) for (const [k, c] of g.campos) { const s = el("span"), i = el("i", { class: "linea" }); i.style.background = `var(${c})`; s.append(i, nombreCampo(k)); ley.append(s); }
+  const enR = cks.filter(c => enRango(c.fecha));
+  document.getElementById("per-sub").textContent = perGrupo === "grasa" ? "% por check-in. Fórmula Navy con la altura de datos-y-constantes.md: sirve para la tendencia, error de ±3-4 %" : "cm por check-in. Pasa por encima para ver los valores";
+  lineas("g-perimetros", g.campos.map(([k, c]) => ({
+    nombre: nombreCampo(k), color: c,
+    puntos: enR.filter(x => valorCk(x, k) != null).map(x => ({ f: x.fecha, y: valorCk(x, k), info: k === "navy" && x.r.cuello_prestado ? "Cuello de otro check-in" : (x.importado ? "Importado de 2024" : undefined) })),
+  })), { hueco: 120, alto: 260, fmtY: v => fmt(v, 1) + (perGrupo === "grasa" ? " %" : " cm"), etiqueta: g.campos.length === 1 });
+  // tabla
+  const c1 = (x, k) => x.v[k] != null ? fmt(x.v[k], 1) : "-", r2 = v => v != null ? fmt(v, 2) : "-";
+  tabla("tabla-perimetros", ["Fecha", "Peso#", "Cuello#", "Hombros#", "Pecho#", "Cintura#", "Cadera#", "Brazo#", "Flex#", "Muslo#", "Homb/cint#", "Cint/alt#", "Cint/cad#", "Pecho/cint#", "% Navy#"],
+    cks.slice().reverse().map(x => [ddmm(fecha(x.fecha)) + "-" + x.fecha.slice(2, 4),
+      c1(x, "peso"), c1(x, "cuello"), c1(x, "hombros"), c1(x, "pecho"), c1(x, "cintura"), c1(x, "cadera"), c1(x, "brazo"), c1(x, "brazo_flex"), c1(x, "muslo"),
+      r2(x.r.hombros_cintura), r2(x.r.cintura_altura), r2(x.r.cintura_cadera), r2(x.r.pecho_cintura), x.r.navy != null ? fmt(x.r.navy, 1) + (x.r.cuello_prestado ? "*" : "") : "-"]),
+    "Aún no hay check-ins");
+}
+
+function formCheckin() {
+  const f = document.getElementById("ck-fecha"), cont = document.getElementById("ck-campos");
+  if (!cont.children.length) {
+    for (const [k, n] of M.campos) {
+      const l = el("label", { class: "campo" }), i = el("input", { type: "text", inputmode: "decimal", id: "ck-" + k, placeholder: k === "peso" ? "kg" : "cm" });
+      l.append(el("span", { class: "etiqueta" }, n), i); cont.append(l);
+    }
+    f.value = iso(new Date());
+    f.max = iso(new Date());
+    f.onchange = () => rellenarCheckin();
+    document.getElementById("ck-form").onsubmit = guardarCheckin;
+  }
+  rellenarCheckin();
+}
+function rellenarCheckin() {
+  const f = document.getElementById("ck-fecha").value, ck = M.checkins.find(c => c.fecha === f);
+  const dia = D.dias.find(d => d.fecha === f);
+  for (const [k] of M.campos) {
+    const i = document.getElementById("ck-" + k);
+    i.value = ck && ck.v[k] != null ? String(ck.v[k]).replace(".", ",") : (k === "peso" && dia && dia.peso ? String(dia.peso).replace(".", ",") : "");
+  }
+  document.getElementById("ck-sub").textContent = ck ? `Ya hay check-in del ${ddmm(fecha(f))}: cambia lo que quieras y se completa la nota (las sensaciones se añaden al final).` :
+    "Rellena solo lo que hayas medido. El peso sale del diario de ese día si lo hay.";
+  document.getElementById("ck-guardar").textContent = ck ? "Guardar cambios" : "Guardar check-in";
+  estadoForm("ck-estado", "");
+}
+function estadoForm(id, txt, mal) { const e = document.getElementById(id); e.textContent = txt; e.classList.toggle("mal", !!mal); }
+async function guardarCheckin(ev) {
+  ev.preventDefault();
+  const f = document.getElementById("ck-fecha").value, ck = M.checkins.find(c => c.fecha === f);
+  const valores = {};
+  for (const [k] of M.campos) { const v = document.getElementById("ck-" + k).value.trim(); if (v) valores[k] = v.replace(",", "."); }
+  const sensaciones = document.getElementById("ck-sens").value;
+  const b = document.getElementById("ck-guardar"); b.disabled = true; estadoForm("ck-estado", "Guardando…");
+  try {
+    const r = await fetch("/entreno/medidas/checkin", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fecha: f, base: ck ? ck.base : "", valores, sensaciones }) });
+    const d = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta no válida (HTTP " + r.status + ")." }));
+    await cargarMedidas(true);
+    if (!d.ok) { pintarPerimetros(); estadoForm("ck-estado", d.mensaje || "No se ha guardado.", true); return; }
+    document.getElementById("ck-sens").value = "";
+    pintarPerimetros();
+    estadoForm("ck-estado", (d.nuevo ? "Check-in creado: " : "Check-in actualizado: ") + `30-checkins/${f}.md`);
+  } catch (e) { estadoForm("ck-estado", "No se ha podido guardar: " + e.message + ". Prueba otra vez.", true); }
+  finally { b.disabled = false; }
+}
+
+// fotos
+const urlFoto = (f, pose, v) => `/entreno/fotos/${f}/${pose}.jpg?v=${v}`;
+function fotosVista() {
+  cargarMedidas().then(pintarFotos, e => errorMedidas("foto-poses", e));
+}
+function pintarFotos() {
+  const cuerpo = document.getElementById("fotos-cuerpo");
+  if (M.fotos_ocultas) { cuerpo.replaceChildren(el("div", { class: "vacio" }, "En modo privado no se enseñan las fotos.")); return; }
+  const ff = document.getElementById("foto-fecha");
+  if (!ff.value) { ff.value = iso(new Date()); ff.max = iso(new Date()); ff.onchange = pintarPoses; }
+  pintarPoses();
+  // comparar
+  const fechas = M.fotos.map(x => x.fecha), sa = document.getElementById("cmp-a"), sb = document.getElementById("cmp-b");
+  const va = sa.value, vb = sb.value;
+  for (const s of [sa, sb]) { s.replaceChildren(); for (const f of fechas) s.append(el("option", { value: f }, ddmm(fecha(f)) + "-" + f.slice(0, 4))); }
+  sa.value = cmpElegido && fechas.includes(va) ? va : fechas[0] || ""; sb.value = cmpElegido && fechas.includes(vb) ? vb : fechas[fechas.length - 1] || "";
+  sa.onchange = sb.onchange = () => { cmpElegido = true; comparar(); };
+  const segs = document.getElementById("cmp-poses"); segs.replaceChildren();
+  for (const [p, n] of M.poses) { const b = el("button", p === cmpPose ? { class: "on" } : {}, n); b.onclick = () => { cmpPose = p; pintarFotos(); }; segs.append(b); }
+  comparar();
+  // galería
+  const g = document.getElementById("galeria"); g.replaceChildren();
+  if (!M.fotos.length) { g.style.display = "block"; g.append(el("div", { class: "vacio" }, "Aún no hay fotos")); return; }
+  g.style.display = "";
+  g.append(el("div", { class: "cab" }, ""));
+  for (const [, n] of M.poses) g.append(el("div", { class: "cab" }, n));
+  for (const x of M.fotos.slice().reverse()) {
+    const fg = el("div", { class: "fecha-g" }, ddmm(fecha(x.fecha))); fg.append(el("small", {}, x.fecha.slice(0, 4))); g.append(fg);
+    for (const [p, n] of M.poses) {
+      const c = el("div", { class: "mini-foto" });
+      if (x.poses[p]) { const a = el("a", { href: urlFoto(x.fecha, p, x.poses[p]), target: "_blank", title: `${n}, ${ddmm(fecha(x.fecha))}` }); a.append(el("img", { src: urlFoto(x.fecha, p, x.poses[p]), loading: "lazy", alt: `${n} ${x.fecha}` })); c.append(a); }
+      g.append(c);
+    }
+  }
+}
+function pintarPoses() {
+  const f = document.getElementById("foto-fecha").value, cont = document.getElementById("foto-poses");
+  const dia = M.fotos.find(x => x.fecha === f) || { poses: {} };
+  cont.replaceChildren();
+  for (const [p, n] of M.poses) {
+    const c = el("div"), hueco = el("div", { class: "hueco-foto" }), est = el("span", { class: "estado-form" });
+    if (dia.poses[p]) hueco.append(el("img", { src: urlFoto(f, p, dia.poses[p]), alt: n })); else hueco.textContent = "Sin foto";
+    const bots = el("div", { class: "botones" });
+    for (const [txt, cap] of [["Cámara", true], ["Galería", false]]) {
+      const lab = el("label", { class: "boton" }, txt), inp = el("input", { type: "file", accept: "image/*" });
+      if (cap) inp.setAttribute("capture", "environment");
+      inp.onchange = () => { if (inp.files[0]) subirFoto(f, p, inp.files[0], hueco, est); inp.value = ""; };
+      lab.append(inp); bots.append(lab);
+    }
+    c.append(el("span", { class: "etiqueta" }, n), hueco, bots, est);
+    cont.append(c);
+  }
+}
+async function reducir(file) {
+  let img;
+  try { img = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+  catch (e) {
+    img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => mal(new Error("no se puede leer la imagen")); i.src = URL.createObjectURL(file); });
+  }
+  const w = img.width, h = img.height, k = Math.min(1, 1600 / Math.max(w, h));
+  const cv = document.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  return await new Promise((ok, mal) => cv.toBlob(b => b ? ok(b) : mal(new Error("no se pudo comprimir")), "image/jpeg", 0.85));
+}
+async function subirFoto(f, pose, file, hueco, est) {
+  est.classList.remove("mal"); est.textContent = "Preparando…";
+  try {
+    const blob = await reducir(file);
+    hueco.replaceChildren(el("img", { src: URL.createObjectURL(blob), alt: pose }));
+    est.textContent = `Subiendo ${fmt(blob.size / 1024)} KB…`;
+    const r = await fetch(`/entreno/fotos/subir?fecha=${encodeURIComponent(f)}&pose=${encodeURIComponent(pose)}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
+    const d = await r.json().catch(() => ({ ok: false, mensaje: "Respuesta no válida (HTTP " + r.status + ")." }));
+    if (!d.ok) throw new Error(d.mensaje || "no se ha guardado");
+    await cargarMedidas(true);
+    pintarFotos();
+  } catch (e) { est.classList.add("mal"); est.textContent = "No se ha subido: " + e.message; }
+}
+function comparar() {
+  const cont = document.getElementById("comparar"); cont.replaceChildren();
+  if (!M.fotos.length) return;
+  for (const id of ["cmp-a", "cmp-b"]) {
+    const f = document.getElementById(id).value, x = M.fotos.find(y => y.fecha === f), ck = M.checkins.find(c => c.fecha === f);
+    const caja = el("div"), foto = el("div", { class: "foto" });
+    if (x && x.poses[cmpPose]) foto.append(el("img", { src: urlFoto(f, cmpPose, x.poses[cmpPose]), alt: f })); else foto.textContent = "Sin foto de esta pose";
+    const pie = el("div", { class: "pie-foto" }); pie.append(el("b", {}, f ? ddmm(fecha(f)) + "-" + f.slice(0, 4) : "-"));
+    const dia = D.dias.find(d => d.fecha === f), peso = ck && ck.v.peso != null ? ck.v.peso : dia && dia.peso;
+    const datos = [peso ? fmt(peso, 1) + " kg" : null, ck && ck.v.cintura != null ? "cintura " + fmt(ck.v.cintura, 1) : null].filter(Boolean);
+    if (datos.length) pie.append(" · " + datos.join(" · "));
+    caja.append(foto, pie); cont.append(caja);
+  }
+}
+
 // ---------- secciones ----------
 const VISTA = {
   resumen(ds) {
@@ -554,6 +819,8 @@ const VISTA = {
     ejercicios();
     tablaSesiones("sesiones", ds);
   },
+  perimetros() { perimetros(); },
+  fotos() { fotosVista(); },
   diario(ds) {
     const cols = [["Peso", "peso", 1], ["Comidas", "kcal_consumidas"], ["Gastadas", "kcal_gastadas"], ["Balance", "balance"], ["P", "prot_total"], ["C", "carb_total"], ["G", "grasa_total"], ["Pasos", "pasos"]];
     tabla("tabla-dias", ["Fecha", ...cols.map(c => c[0] + "#"), "Sueño#", "Fuerza"], ds.slice().reverse().map(d => [

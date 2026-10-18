@@ -19,6 +19,7 @@ import bcrypt
 
 sys.path.insert(0, str(Path(__file__).parent))
 import entreno, listas, tareas, todo, trabajo  # noqa: E402
+import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
 
 USUARIO = "oriol"
 CLAVE = Path(os.environ.get("PORTAL_CLAVE", "/etc/portal/clave"))
@@ -466,6 +467,8 @@ class Manejador(BaseHTTPRequestHandler):
             return self.a_login(self.path)
         if ruta == "/":
             return self.enviar(pagina_portada(), renovado=renovado)
+        if ruta.startswith(("/entreno/medidas/", "/entreno/fotos/")) and medidas.get(self, ruta):
+            return
         if ruta == "/entreno":
             return self.redirigir("/entreno/", codigo=301)
         if ruta in ("/entreno/", "/entreno/index.html"):
@@ -539,6 +542,8 @@ class Manejador(BaseHTTPRequestHandler):
         origen = self.headers.get("Origin") or self.headers.get("Referer") or ""
         if origen and urlsplit(origen).hostname != DOMINIO:
             return self.enviar("Origen no permitido", 403)
+        if medidas.post(self, urlsplit(self.path).path, lambda: sesion_valida(self.token(), renovar=False)[0]):
+            return
         if urlsplit(self.path).path == "/tareas/operar":
             return self.api_tareas()
         if urlsplit(self.path).path == "/listas/operar":

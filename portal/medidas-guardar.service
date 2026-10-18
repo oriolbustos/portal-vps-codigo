@@ -1,0 +1,8 @@
+[Unit]
+# Sin límite de arranques: varios cambios seguidos desde el portal lo lanzan muchas veces en pocos segundos
+StartLimitIntervalSec=0
+Description=Guarda en el vault los perímetros y en /srv/entreno-fotos las fotos que llegan del panel Entreno
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/portal/medidas-guardar.py
