@@ -3,12 +3,14 @@
 
 Formato de la nota (se puede editar a mano en Obsidian):
   ### Tareas                       una lista ("### "); las tareas sin título encima también van a "Tareas"
-  ## Personal                      un grupo de listas ("## ") con sus "### " debajo
+  ### Casa %%color: verde%%        color elegido de la lista (comentario de Obsidian, no se ve); sin él, uno fijo por nombre
+  ## Personal                      un grupo de listas ("## ") con sus "### " debajo; el orden de la nota es el del panel
   - [ ] Llamar al casero ⭐ ☀️ 2026-10-18 📅 2026-10-20 ✅ 2026-10-21
         ⭐ importante · ☀️ fecha = en Mi día ese día · 📅 vence · ✅ completada ese día
   	- [ ] paso                     pasos: casillas con sangría debajo de la tarea
   	> nota                         nota: líneas con sangría que empiezan por "> "
-  ## Eliminadas                    lo que se borra desde el portal acaba aquí (no se ve en el panel)
+  ## Eliminadas                    lo que se borra desde el portal acaba aquí (no se ve en el panel): las tareas sueltas
+                                   arriba y las listas y grupos borrados como "### Lista (Grupo) · eliminada AAAA-MM-DD"
 
 Escribir: el portal no puede tocar el vault. Cada cambio se aplica aquí sobre la nota entera y se deja en
 /var/lib/portal/todo-pendiente/; todo-guardar.path → /opt/portal/todo-guardar.py (root) la escribe solo si
@@ -29,6 +31,14 @@ TITULO = re.compile(r"^(#{1,6})\s+(.*?)\s*$")
 F = r"(\d{4}-\d{2}-\d{2})"
 MARCAS = {"midia": "☀️", "vence": "📅", "hecha": "✅"}
 ES_FECHA = re.compile(r"\d{4}-\d{2}-\d{2}")
+COLOR = re.compile(r"\s*%%\s*color:\s*([a-z]+)\s*%%")
+COLORES = ("azul", "indigo", "verde", "marron", "morado", "rosa", "oliva", "rojo", "gris")
+
+
+def _sin_color(titulo):
+    """"Casa %%color: verde%%" → ("Casa", "verde")."""
+    m = COLOR.search(titulo)
+    return (COLOR.sub("", titulo).strip(), m.group(1)) if m else (titulo, "")
 
 
 # ---------- leer ----------
@@ -65,7 +75,7 @@ def analizar(lineas: list) -> dict:
     def lista_implicita(n):
         nonlocal actual
         titulo = grupo or BANDEJA
-        actual = {"titulo": titulo, "grupo": "", "n": n, "fin": n, "tareas": []}
+        actual = {"titulo": titulo, "grupo": "", "n": n, "fin": n, "tareas": [], "color": ""}
         listas.append(actual)
 
     titulo_grupo = -1
@@ -81,7 +91,8 @@ def analizar(lineas: list) -> dict:
                     grupos.append(grupo)
                 actual, titulo_grupo = None, i
             elif not eliminadas:
-                actual = {"titulo": titulo, "grupo": grupo, "n": i, "fin": i, "tareas": []}
+                titulo, color = _sin_color(titulo)
+                actual = {"titulo": titulo, "grupo": grupo, "n": i, "fin": i, "tareas": [], "color": color}
                 listas.append(actual)
             continue
         if eliminadas:
@@ -109,10 +120,10 @@ def analizar(lineas: list) -> dict:
         m = TITULO.match(l)
         if m and len(m.group(1)) <= 2 and m.group(2) != ELIMINADAS and \
                 not any(x["grupo"] == m.group(2) or (x["n"] == i) for x in listas):
-            listas.append({"titulo": m.group(2), "grupo": "", "n": i, "fin": i, "tareas": []})
+            listas.append({"titulo": m.group(2), "grupo": "", "n": i, "fin": i, "tareas": [], "color": ""})
     grupos = [g for g in grupos if any(x["grupo"] == g for x in listas)]
     if not any(x["titulo"] == BANDEJA and not x["grupo"] for x in listas):
-        listas.insert(0, {"titulo": BANDEJA, "grupo": "", "n": -1, "fin": -1, "tareas": []})
+        listas.insert(0, {"titulo": BANDEJA, "grupo": "", "n": -1, "fin": -1, "tareas": [], "color": ""})
     listas.sort(key=lambda x: (x["titulo"] != BANDEJA or bool(x["grupo"]), x["n"]))
     return {"grupos": grupos, "listas": listas}
 
@@ -181,6 +192,148 @@ def _insertar_en_lista(lineas, lista, bloque):
     lineas[pos:pos] = bloque
 
 
+# --- secciones de la nota (listas y grupos) ---
+
+def _nivel(l):
+    m = TITULO.match(l)
+    return (len(m.group(1)), m.group(2)) if m else (0, "")
+
+
+def _fin(lineas, i, hasta=6):
+    """Dónde acaba la sección que empieza en i: el siguiente título de nivel <= hasta (o el final)."""
+    return next((j for j in range(i + 1, len(lineas)) if 0 < _nivel(lineas[j])[0] <= hasta), len(lineas))
+
+
+def _titulos(lineas, titulo):
+    """Líneas "# "/"## " con ese título (un grupo puede salir dos veces si se escribió así a mano)."""
+    return [i for i, l in enumerate(lineas) if 0 < (x := _nivel(l))[0] <= 2 and x[1] == titulo]
+
+
+def _recortar(bloque):
+    bloque = list(bloque)
+    while bloque and not bloque[0].strip():
+        bloque.pop(0)
+    while bloque and not bloque[-1].strip():
+        bloque.pop()
+    return bloque
+
+
+def _quitar(lineas, a, b):
+    """Quita lineas[a:b] y deja una línea en blanco entre lo de antes y lo de después."""
+    fuera = lineas[a:b]
+    del lineas[a:b]
+    if 0 < a < len(lineas) and lineas[a - 1].strip() and lineas[a].strip() and not _nivel(lineas[a - 1])[0]:
+        lineas.insert(a, "")
+    return fuera
+
+
+def _meter(lineas, pos, bloque):
+    """Mete un bloque (lista o grupo con su título) en pos, separado por líneas en blanco."""
+    while pos > 0 and not lineas[pos - 1].strip():
+        pos -= 1
+    lineas[pos:pos] = ([""] if pos else []) + bloque + ([""] if pos < len(lineas) and lineas[pos].strip() else [])
+
+
+def _sueltas(lineas):
+    """Dónde acaban las listas sin grupo: antes del primer "## " (un "###" debajo sería de ese grupo)."""
+    return next((i for i, l in enumerate(lineas) if 0 < _nivel(l)[0] <= 2), len(lineas))
+
+
+def _antes_de_eliminadas(lineas):
+    return (_titulos(lineas, ELIMINADAS) or [len(lineas)])[0]
+
+
+def _eliminadas(lineas):
+    """Línea de "## Eliminadas" (la crea al final si no está)."""
+    hay = _titulos(lineas, ELIMINADAS)
+    if hay:
+        return hay[0]
+    while lineas and not lineas[-1].strip():
+        lineas.pop()
+    lineas += (["", f"## {ELIMINADAS}"] if lineas else [f"## {ELIMINADAS}"])
+    return len(lineas) - 1
+
+
+def _a_eliminadas(lineas, bloques):
+    """Lleva listas borradas (cada una con su título "### ...") al final de "## Eliminadas"."""
+    for b in bloques:
+        e = _eliminadas(lineas)
+        _meter(lineas, _fin(lineas, e, 2), b)
+
+
+def _encabezado(lista, hoy, grupo=None):
+    grupo = lista["grupo"] if grupo is None else grupo
+    return f"### {lista['titulo']}" + (f" ({grupo})" if grupo else "") + f" · eliminada {hoy}"
+
+
+def _linea_lista(titulo, color, nivel=3):
+    return "#" * nivel + f" {titulo}" + (f" %%color: {color}%%" if color else "")
+
+
+def _limpiar_grupo(lineas, grupo):
+    """Un "## Grupo" que se queda sin nada debajo se quita (si no, se leería como una lista vacía)."""
+    if not grupo:
+        return
+    for i in reversed(_titulos(lineas, grupo)):
+        if not any(x.strip() for x in lineas[i + 1:_fin(lineas, i, 2)]):
+            _quitar(lineas, i, _fin(lineas, i, 2))
+
+
+def _libre(modelo, titulo, grupo, salvo=None):
+    if titulo == ELIMINADAS or (titulo == BANDEJA and not grupo):
+        raise Error(f"«{titulo}» está reservado.")
+    if any(l is not salvo and l["titulo"] == titulo and l["grupo"] == grupo for l in modelo["listas"]):
+        raise Error(f"Ya hay una lista «{titulo}»" + (f" en {grupo}." if grupo else " sin grupo."))
+
+
+def _nombre_grupo(modelo, s):
+    s = _limpio(s, 100)
+    if s == ELIMINADAS or s == BANDEJA:
+        raise Error(f"«{s}» está reservado.")
+    return s
+
+
+def _sacar_lista(lineas, modelo, lista):
+    """Quita una lista de la nota y devuelve (sus líneas sin título, sus otros datos). No toca la bandeja."""
+    if lista["titulo"] == BANDEJA and not lista["grupo"]:
+        raise Error("La lista Tareas no se puede cambiar.")
+    n = lista["n"]
+    nivel = _nivel(lineas[n])[0]
+    b = _fin(lineas, n)
+    cuerpo = _recortar(lineas[n + 1:b])
+    if nivel <= 2 and any(x["grupo"] == lista["titulo"] for x in modelo["listas"]):
+        _quitar(lineas, n + 1, b)  # tareas sueltas bajo un "## Grupo": el título es del grupo y se queda
+    else:
+        _quitar(lineas, n, b)
+    _limpiar_grupo(lineas, lista["grupo"])
+    return cuerpo
+
+
+def _secciones_grupo(lineas, grupo):
+    """Quita de la nota todas las secciones "## grupo" y devuelve sus trozos [(título o None, líneas)]."""
+    trozos = []
+    for i in reversed(_titulos(lineas, grupo)):
+        cuerpo = _quitar(lineas, i, _fin(lineas, i, 2))[1:]
+        parte = [[None, []]]
+        for l in cuerpo:
+            if _nivel(l)[0]:
+                parte.append([_nivel(l)[1], []])
+            else:
+                parte[-1][1].append(l)
+        trozos[0:0] = [(t, _recortar(ls)) for t, ls in parte if t is not None or _recortar(ls)]
+    return trozos
+
+
+def _poner_lista(lineas, modelo, bloque, grupo):
+    """Mete una lista ("### ..." + tareas) al final de su grupo, de las sueltas o en un grupo nuevo."""
+    if not grupo:
+        _meter(lineas, _sueltas(lineas), bloque)
+    elif _titulos(lineas, grupo):
+        _meter(lineas, _fin(lineas, _titulos(lineas, grupo)[-1], 2), bloque)
+    else:
+        _meter(lineas, _antes_de_eliminadas(lineas), [f"## {grupo}"] + bloque)
+
+
 def aplicar(lineas: list, d: dict) -> list:
     """Aplica la operación d sobre las líneas de la nota y devuelve las nuevas líneas."""
     lineas = list(lineas)
@@ -196,21 +349,98 @@ def aplicar(lineas: list, d: dict) -> list:
 
     if op == "lista_nueva":
         titulo, grupo = _limpio(d.get("titulo"), 100), re.sub(r"\s+", " ", str(d.get("grupo") or "")).strip()
-        if titulo in (ELIMINADAS,) or any(l["titulo"] == titulo and l["grupo"] == grupo for l in modelo["listas"]):
-            raise Error("Ya hay una lista con ese nombre.")
-        fin = len(lineas)
-        elim = next((i for i, l in enumerate(lineas) if (m := TITULO.match(l)) and len(m.group(1)) <= 2 and m.group(2) == ELIMINADAS), None)
-        if grupo and grupo in modelo["grupos"]:
-            ini = next(i for i, l in enumerate(lineas) if (m := TITULO.match(l)) and len(m.group(1)) <= 2 and m.group(2) == grupo)
-            fin = next((i for i in range(ini + 1, len(lineas)) if (m := TITULO.match(lineas[i])) and len(m.group(1)) <= 2), len(lineas))
-            nuevo = [f"### {titulo}"]
-        else:
-            if elim is not None:
-                fin = elim
-            nuevo = ([f"## {grupo}"] if grupo else []) + [f"### {titulo}"]
-        while fin > 0 and not lineas[fin - 1].strip():
-            fin -= 1
-        lineas[fin:fin] = ([""] if fin else []) + nuevo + ([""] if fin < len(lineas) else [])
+        if grupo:
+            grupo = _nombre_grupo(modelo, grupo)
+        _libre(modelo, titulo, grupo)
+        _poner_lista(lineas, modelo, [f"### {titulo}"], grupo)
+        return lineas
+
+    if op in ("lista_renombrar", "lista_color", "lista_borrar", "lista_mover_grupo", "lista_ordenar"):
+        lista = _lista(modelo, d.get("lista"), d.get("grupo"))
+        if lista["titulo"] == BANDEJA and not lista["grupo"]:
+            raise Error("La lista Tareas no se puede cambiar.")
+        n, nivel = lista["n"], _nivel(lineas[lista["n"]])[0]
+        compartida = nivel <= 2 and any(x["grupo"] == lista["titulo"] for x in modelo["listas"])
+        if op == "lista_renombrar":
+            titulo = _limpio(d.get("titulo"), 100)
+            _libre(modelo, titulo, lista["grupo"], salvo=lista)
+            if compartida:
+                raise Error("Esta lista es el propio título de su grupo; cámbiala en Obsidian.")
+            lineas[n] = _linea_lista(titulo, lista["color"], nivel)
+        elif op == "lista_color":
+            color = d.get("color") or ""
+            if color and color not in COLORES:
+                raise Error("Color no válido.")
+            if compartida:
+                raise Error("Esta lista es el propio título de su grupo; cámbiala en Obsidian.")
+            lineas[n] = _linea_lista(lista["titulo"], color, nivel)
+        elif op == "lista_borrar":
+            cuerpo = _sacar_lista(lineas, modelo, lista)
+            _a_eliminadas(lineas, [[_encabezado(lista, hoy)] + cuerpo])
+        elif op == "lista_mover_grupo":
+            destino = re.sub(r"\s+", " ", str(d.get("destino") or "")).strip()
+            if destino == lista["grupo"]:
+                return lineas
+            if destino:
+                destino = _nombre_grupo(modelo, destino)
+            _libre(modelo, lista["titulo"], destino, salvo=lista)
+            cuerpo = _sacar_lista(lineas, modelo, lista)
+            _poner_lista(lineas, analizar(lineas), [_linea_lista(lista["titulo"], lista["color"])] + cuerpo, destino)
+        else:  # lista_ordenar: junto a otra lista (antes o después), pasando a su grupo
+            junto = d.get("junto") or {}
+            otra = _lista(modelo, junto.get("lista"), junto.get("grupo"))
+            if otra is lista:
+                return lineas
+            _libre(modelo, lista["titulo"], otra["grupo"], salvo=lista)
+            bloque = [_linea_lista(lista["titulo"], lista["color"])] + _sacar_lista(lineas, modelo, lista)
+            otra = _lista(analizar(lineas), otra["titulo"], otra["grupo"])
+            if otra["n"] == -1 or (otra["titulo"] == BANDEJA and not otra["grupo"]):
+                pos = _fin(lineas, otra["n"])  # nada va encima de la bandeja
+            elif _nivel(lineas[otra["n"]])[0] <= 2:
+                pos = _sueltas(lineas)  # una lista escrita como "## " sin "###": va con las sueltas
+            else:
+                pos = _fin(lineas, otra["n"]) if d.get("despues") else otra["n"]
+            _meter(lineas, pos, bloque)
+        return lineas
+
+    if op in ("grupo_renombrar", "grupo_desagrupar", "grupo_borrar", "grupo_ordenar"):
+        grupo = d.get("grupo")
+        if grupo not in modelo["grupos"]:
+            raise Error("Ese grupo ya no está; recarga.")
+        suyas = [x for x in modelo["listas"] if x["grupo"] == grupo]
+        if op == "grupo_renombrar":
+            titulo = _nombre_grupo(modelo, d.get("titulo"))
+            if titulo != grupo and titulo in modelo["grupos"]:
+                raise Error("Ya hay un grupo con ese nombre.")
+            for i in _titulos(lineas, grupo):
+                lineas[i] = "#" * _nivel(lineas[i])[0] + f" {titulo}"
+        elif op == "grupo_desagrupar":
+            sueltas = {x["titulo"] for x in modelo["listas"] if not x["grupo"]} | {BANDEJA}
+            if choque := [x["titulo"] for x in suyas if x["titulo"] in sueltas]:
+                raise Error(f"Ya hay una lista «{choque[0]}» sin grupo; renombra una antes.")
+            bloque = []
+            for t, ls in _secciones_grupo(lineas, grupo):
+                bloque += ([""] if bloque else []) + [f"### {t}" if t else f"### {grupo}"] + ls
+            if bloque:
+                _meter(lineas, _sueltas(lineas), bloque)
+        elif op == "grupo_borrar":
+            bloques = []
+            for t, ls in _secciones_grupo(lineas, grupo):
+                lista = {"titulo": _sin_color(t)[0] if t else grupo, "grupo": grupo}
+                bloques.append([_encabezado(lista, hoy)] + ls)
+            _a_eliminadas(lineas, bloques)
+        else:  # grupo_ordenar: antes o después de otro grupo
+            junto = d.get("junto")
+            if junto == grupo:
+                return lineas
+            if junto not in modelo["grupos"]:
+                raise Error("Ese grupo ya no está; recarga.")
+            partes = []
+            for i in reversed(_titulos(lineas, grupo)):
+                partes.insert(0, _recortar(_quitar(lineas, i, _fin(lineas, i, 2))))
+            bloque = partes[0] + [x for p in partes[1:] for x in [""] + p[1:]]
+            otro = _titulos(lineas, junto)
+            _meter(lineas, _fin(lineas, otro[-1], 2) if d.get("despues") else otro[0], bloque)
         return lineas
 
     n = d.get("n")
@@ -267,12 +497,12 @@ def aplicar(lineas: list, d: dict) -> list:
         if op == "mover":
             destino = _lista(analizar(lineas), d.get("lista"), d.get("grupo"))
             _insertar_en_lista(lineas, destino, bloque)
-        else:
-            if not any((m := TITULO.match(l)) and len(m.group(1)) <= 2 and m.group(2) == ELIMINADAS for l in lineas):
-                while lineas and not lineas[-1].strip():
-                    lineas.pop()
-                lineas += ["", f"## {ELIMINADAS}"]
-            lineas += bloque
+        else:  # las tareas sueltas van arriba de Eliminadas, antes de las listas borradas
+            e = _eliminadas(lineas)
+            pos = _fin(lineas, e)
+            while pos > e + 1 and not lineas[pos - 1].strip():
+                pos -= 1
+            lineas[pos:pos] = bloque + ([""] if pos < len(lineas) and lineas[pos].strip() else [])
     else:
         raise Error("Operación desconocida.")
     return lineas

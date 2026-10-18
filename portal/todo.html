@@ -147,6 +147,28 @@ ul.tareas { list-style: none; margin: 0; padding: 0; display: flex; flex-directi
 .det-pie button { display: flex; padding: 8px; color: var(--texto-2); border-radius: 4px; }
 .det-pie button:hover { background: var(--hover); color: var(--rojo); }
 
+/* menú de clic derecho (pulsación larga en el móvil), como el de To Do */
+.tarea, .item { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.menu { position: fixed; z-index: 60; min-width: 230px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto; background: var(--carta); border-radius: 4px; padding: 6px 0;
+  box-shadow: 0 6.4px 14.4px rgba(0,0,0,.13), 0 1.2px 3.6px rgba(0,0,0,.11); }
+@media (prefers-color-scheme: dark) { .menu { box-shadow: 0 6.4px 14.4px rgba(0,0,0,.5), 0 1.2px 3.6px rgba(0,0,0,.4); border: 1px solid var(--borde); } }
+.menu button { display: flex; align-items: center; gap: 14px; width: 100%; height: 36px; padding: 0 16px 0 14px; text-align: left; color: var(--texto); white-space: nowrap; }
+.menu button:hover, .menu button:focus-visible, .menu button.abierto { background: var(--hover); outline: 0; }
+.menu button svg { width: 16px; height: 16px; }
+.menu .lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.menu .flecha { color: var(--texto-2); }
+.menu .rojo { color: var(--rojo); }
+.menu hr { border: 0; border-top: 1px solid var(--borde); margin: 6px 0; }
+.menu .colores { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 14px 8px; max-width: 230px; }
+.menu .colores button { width: 22px; height: 22px; padding: 0; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.menu .colores button.on { box-shadow: 0 0 0 2px var(--carta), 0 0 0 4px var(--c); }
+.menu .colores button:hover { transform: scale(1.12); background: var(--c); }
+.menu .rotulo { font-size: 12px; color: var(--texto-2); padding: 6px 14px 0; }
+.item input.renombrar { flex: 1; min-width: 0; height: 28px; border: 0; outline: 2px solid var(--acento); border-radius: 2px; padding: 0 6px; background: var(--carta); font-weight: 400; }
+.item.antes { box-shadow: inset 0 2px 0 var(--acento); }
+.item.despues { box-shadow: inset 0 -2px 0 var(--acento); }
+.item.arrastrando { opacity: .4; }
+
 .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: #323130; color: #fff; padding: 10px 16px; border-radius: 4px; font-size: 13px; display: none; z-index: 30; box-shadow: var(--sombra); max-width: calc(100vw - 32px); }
 .guardando { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: var(--acento); transform-origin: left; animation: barra 1s ease-in-out infinite; display: none; z-index: 40; }
 @keyframes barra { 0% { transform: scaleX(0); } 60% { transform: scaleX(.8); } 100% { transform: scaleX(1); opacity: 0; } }
@@ -213,8 +235,19 @@ const ICO = {
   nota: '<path d="M6 4h9l4 4v12H6z"/><path d="M9 12h6M9 16h4"/>',
   carpetaMas: '<path d="M3.5 7.5a2 2 0 012-2h4l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2h-13a2 2 0 01-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>',
   mover: '<path d="M4 12h12M12 8l4 4-4 4M20 5v14"/>',
+  circulo: '<circle cx="12" cy="12" r="8"/>',
+  circuloCheck: '<circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>',
+  solQuitar: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 6.7l1.4-1.4M3.5 20.5l17-17"/>',
+  estrellaQuitar: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9zM3.5 20.5l17-17"/>',
+  calHoy: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M10.5 13h3v3h-3z"/>',
+  calManana: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4M8.5 14.5h7M13 12l2.5 2.5L13 17"/>',
+  calQuitar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4M10 12.5l4 4M14 12.5l-4 4"/>',
+  lapiz: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  desagrupar: '<path d="M3.5 7.5a2 2 0 012-2h4l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2h-13a2 2 0 01-2-2z"/><path d="M12 16.5v-5.5M9.5 13.5L12 11l2.5 2.5"/>',
+  paleta: '<path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.9 1.4-1.9-.5-1.1.2-2.3 1.4-2.3h1.7a4 4 0 004-4c0-4.9-3.8-8.8-8.5-8.8z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/>',
 };
-const COLORES = ["#2564cf", "#5b6fb7", "#2f7d6d", "#9a5b2d", "#7a4fa3", "#b4466f", "#3a7a3a", "#a4373a"];
+const PALETA = { azul: "#2564cf", indigo: "#5b6fb7", verde: "#2f7d6d", marron: "#9a5b2d", morado: "#7a4fa3", rosa: "#b4466f", oliva: "#3a7a3a", rojo: "#a4373a", gris: "#69797e" };
+const COLORES = Object.values(PALETA).slice(0, 8);  // color automático por nombre (si la lista no tiene uno elegido)
 const LISTA_TODAS = { midia: { t: "Mi día", ico: "sol", c: "#5b6fb7" }, importante: { t: "Importante", ico: "estrella", c: "#b4466f" },
   planeado: { t: "Planeado", ico: "calendario", c: "#2f7d6d" }, tareas: { t: "Tareas", ico: "casa", c: "#2564cf" } };
 const BANDEJA = "Tareas";
@@ -241,7 +274,7 @@ const sumar = (n) => { const d = hoyD(); d.setDate(d.getDate() + n); return iso(
 const aFecha = s => { const [a, m, d] = s.split("-").map(Number); return new Date(a, m - 1, d); };
 const fmtCorta = s => aFecha(s).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }).replace(/\./g, "");
 const plano = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-function colorLista(l) { let h = 0; for (const c of l.grupo + "/" + l.titulo) h = (h * 31 + c.charCodeAt(0)) >>> 0; return l.titulo === BANDEJA && !l.grupo ? LISTA_TODAS.tareas.c : COLORES[h % COLORES.length]; }
+function colorLista(l) { if (PALETA[l.color]) return PALETA[l.color]; let h = 0; for (const c of l.grupo + "/" + l.titulo) h = (h * 31 + c.charCodeAt(0)) >>> 0; return l.titulo === BANDEJA && !l.grupo ? LISTA_TODAS.tareas.c : COLORES[h % COLORES.length]; }
 const claveLista = l => (l.grupo || "") + "\u0001" + l.titulo;
 
 // ---------- estado de la vista ----------
@@ -278,7 +311,7 @@ const movil = () => matchMedia("(max-width: 760px)").matches;
 
 // ---------- guardar en el servidor (en cola, cada operación sobre la última versión) ----------
 let cola = Promise.resolve(), pendientes = 0;
-function op(construir, optimista) {
+function op(construir, optimista, luego) {
   if (optimista) { optimista(); pintar(); }
   pendientes++; $("guardando").style.display = "block";
   cola = cola.then(async () => {
@@ -292,6 +325,7 @@ function op(construir, optimista) {
       const j = await r.json();
       if (j.datos) cargar(j.datos);
       if (!j.ok) aviso(j.mensaje || "No se ha guardado.");
+      else if (luego) luego();
     } catch (e) { aviso("Sin conexión: no se ha guardado."); await refrescar(); }
   }).finally(() => { if (--pendientes === 0) $("guardando").style.display = "none"; });
 }
@@ -308,10 +342,25 @@ function opTarea(t, campos, optimista) {
 // ---------- barra lateral ----------
 function pendientesDe(f) { return TODAS.filter(t => !t.hecho && f(t)).length; }
 function itemNav(href, nombre, icono, color, num, aqui, sub) {
-  const a = el("a", { class: "item" + (aqui ? " aqui" : "") + (sub ? " sub" : ""), href, style: `--c:${color}`, "data-destino": href.slice(1) },
+  const a = el("a", { class: "item" + (aqui ? " aqui" : "") + (sub ? " sub" : ""), href, style: `--c:${color}`, "data-destino": href.slice(1), draggable: "false" },
     el("span", { class: "ic" }, ico(icono)), el("span", { class: "nombre" }, nombre), num ? el("span", { class: "num" }, String(num)) : null);
   a.onclick = () => { if (location.hash === href) pintar(); };
   return a;
+}
+// nombre de una lista o un grupo editable en la propia barra lateral, como en To Do
+let renombrando = null;  // "l" + clave de la lista, o "g" + nombre del grupo
+function campoRenombrar(clase, icono, valor, guardarNombre, sub) {
+  const inp = el("input", { class: "renombrar", maxlength: "100", "aria-label": "Nombre", value: valor });
+  let hecho = false;
+  const fin = ok => {
+    if (hecho) return; hecho = true; renombrando = null;
+    const v = inp.value.replace(/\s+/g, " ").trim();
+    if (ok && v && v !== valor) guardarNombre(v);
+    pintarLado();
+  };
+  inp.onkeydown = e => { e.stopPropagation(); if (e.key === "Enter") fin(true); if (e.key === "Escape") fin(false); };
+  inp.onblur = () => fin(true);
+  return el("div", { class: "item " + clase + (sub ? " sub" : "") }, el("span", { class: "ic" }, icono), inp);
 }
 function pintarLado() {
   const v = vista(), nav = $("navs"); nav.replaceChildren();
@@ -322,19 +371,107 @@ function pintarLado() {
   nav.append(el("div", { class: "sep" }));
   const actual = v.tipo === "lista" ? v.lista : null;
   const hechoGrupo = new Set();
+  const itemLista = (l, sub) => {
+    if (renombrando === "l" + claveLista(l))
+      return campoRenombrar("", ico("lista"), l.titulo, titulo => op(() => ({ op: "lista_renombrar", lista: l.titulo, grupo: l.grupo, titulo }), null,
+        tras(x => x === l ? { titulo, grupo: l.grupo } : null)), sub);
+    const a = itemNav("#l/" + encodeURIComponent(claveLista(l)), l.titulo, "lista", colorLista(l), l.tareas.filter(t => !t.hecho).length, l === actual && !busqueda, sub);
+    a.dataset.lista = claveLista(l);
+    if (l.grupo) a.dataset.deGrupo = l.grupo;
+    alMenu(a, () => menuLista(l));
+    a.onpointerdown = e => arrastrarLado(e, a, { lista: l });
+    return a;
+  };
   for (const l of D.listas) {
     if (l === bandeja()) continue;
-    if (!l.grupo) { nav.append(itemNav("#l/" + encodeURIComponent(claveLista(l)), l.titulo, "lista", colorLista(l), l.tareas.filter(t => !t.hecho).length, l === actual && !busqueda)); continue; }
+    if (!l.grupo) { nav.append(itemLista(l)); continue; }
     if (hechoGrupo.has(l.grupo)) continue;
     hechoGrupo.add(l.grupo);
-    const abierto = !guardar.plegados[l.grupo] || (actual && actual.grupo === l.grupo);
-    const b = el("button", { class: "item grupo", "aria-expanded": String(abierto) }, el("span", { class: "ic" }, ico("carpeta")),
-      el("span", { class: "nombre" }, l.grupo), ico("flecha", false, "flecha"));
-    b.onclick = () => { guardar.plegados[l.grupo] = abierto; persistir(); pintarLado(); };
-    nav.append(b);
-    if (abierto) for (const x of D.listas.filter(x => x.grupo === l.grupo))
-      nav.append(itemNav("#l/" + encodeURIComponent(claveLista(x)), x.titulo, "lista", colorLista(x), x.tareas.filter(t => !t.hecho).length, x === actual && !busqueda, true));
+    const g = l.grupo;
+    const abierto = !guardar.plegados[g] || (actual && actual.grupo === g);
+    if (renombrando === "g" + g) {
+      nav.append(campoRenombrar("grupo", ico("carpeta"), g, titulo => {
+        const seguir = tras(x => x.grupo === g ? { titulo: x.titulo, grupo: titulo } : null);
+        op(() => ({ op: "grupo_renombrar", grupo: g, titulo }), null, () => {
+          if (guardar.plegados[g]) { guardar.plegados[titulo] = true; delete guardar.plegados[g]; persistir(); }
+          seguir();
+        });
+      }));
+    } else {
+      const b = el("button", { class: "item grupo", "aria-expanded": String(abierto), "data-grupo": g }, el("span", { class: "ic" }, ico("carpeta")),
+        el("span", { class: "nombre" }, g), ico("flecha", false, "flecha"));
+      b.onclick = () => { guardar.plegados[g] = abierto; persistir(); pintarLado(); };
+      alMenu(b, () => menuGrupo(g));
+      b.onpointerdown = e => arrastrarLado(e, b, { grupo: g });
+      nav.append(b);
+    }
+    if (abierto) for (const x of D.listas.filter(x => x.grupo === g)) nav.append(itemLista(x, true));
   }
+  const campo = nav.querySelector("input.renombrar");
+  if (campo) { campo.focus(); campo.select(); }
+}
+
+// Después de renombrar, mover o borrar listas: la vista y el detalle siguen a su lista.
+// cambia(lista) → {titulo, grupo} nuevos, false si se ha borrado, o nada si no le afecta. Se llama ANTES de la operación.
+function tras(cambia) {
+  const v = vista(), actual = v.tipo === "lista" ? v.lista : null;
+  const selL = sel && D.listas.find(x => claveLista(x) === sel.lista);
+  const nuevaActual = actual && cambia(actual), nuevaSel = selL && cambia(selL);
+  return () => {
+    if (nuevaSel) sel.lista = claveLista(nuevaSel);
+    if (nuevaActual) history.replaceState(null, "", "#l/" + encodeURIComponent(claveLista(nuevaActual)));
+    else if (nuevaActual === false) { history.replaceState(null, "", location.pathname); sel = null; }
+    pintar();
+  };
+}
+
+// Arrastrar (con ratón) listas y grupos en la barra lateral para ordenarlos.
+// Lista sobre lista: antes o después de ella (y pasa a su grupo). Lista sobre grupo: al final del grupo.
+// Grupo sobre grupo: antes o después.
+function arrastrarLado(e, item, que) {
+  if (e.pointerType !== "mouse" || e.button !== 0 || movil() || renombrando) return;
+  const x0 = e.clientX, y0 = e.clientY, caja = item.getBoundingClientRect();
+  let fantasma = null, destino = null, marcado = null;
+  const limpiar = () => { marcado?.classList.remove("antes", "despues", "soltar"); marcado = null; };
+  const mover = ev => {
+    if (!fantasma) {
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      fantasma = item.cloneNode(true); fantasma.classList.add("fantasma"); fantasma.style.width = caja.width + "px"; fantasma.style.background = "var(--carta)";
+      document.body.append(fantasma); item.classList.add("arrastrando"); document.body.classList.add("arrastrando");
+    }
+    ev.preventDefault();
+    fantasma.style.left = caja.left + "px"; fantasma.style.top = ev.clientY - (y0 - caja.top) + "px";
+    const sobre = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("#navs [data-lista], #navs [data-grupo]") || null;
+    limpiar(); destino = null;
+    if (!sobre || sobre === item) return;
+    const r = sobre.getBoundingClientRect(), arriba = ev.clientY < r.top + r.height / 2;
+    if (que.lista) {
+      if (sobre.dataset.lista) { destino = { junto: sobre.dataset.lista, despues: !arriba }; marcado = sobre; marcado.classList.add(arriba ? "antes" : "despues"); }
+      else if (sobre.dataset.grupo !== que.lista.grupo) { destino = { grupo: sobre.dataset.grupo }; marcado = sobre; marcado.classList.add("soltar"); }
+    } else {
+      const g = sobre.dataset.grupo || sobre.dataset.deGrupo;
+      if (!g || g === que.grupo) return;
+      const delGrupo = [...$("navs").querySelectorAll("[data-grupo], [data-de-grupo]")].filter(x => (x.dataset.grupo || x.dataset.deGrupo) === g);
+      const cab = delGrupo[0], ultimo = delGrupo[delGrupo.length - 1];
+      const antes = ev.clientY < (cab.getBoundingClientRect().top + ultimo.getBoundingClientRect().bottom) / 2;
+      destino = { junto: g, despues: !antes }; marcado = antes ? cab : ultimo; marcado.classList.add(antes ? "antes" : "despues");
+    }
+  };
+  const fin = () => {
+    removeEventListener("pointermove", mover); removeEventListener("pointerup", fin); removeEventListener("pointercancel", fin);
+    if (!fantasma) return;
+    fantasma.remove(); item.classList.remove("arrastrando"); document.body.classList.remove("arrastrando"); limpiar();
+    tragarHasta = Date.now() + 300;
+    if (!destino) return;
+    if (que.grupo) return op(() => ({ op: "grupo_ordenar", grupo: que.grupo, junto: destino.junto, despues: destino.despues }));
+    const l = que.lista;
+    if (destino.grupo) return moverAGrupo(l, destino.grupo);
+    const otra = D.listas.find(x => claveLista(x) === destino.junto);
+    if (!otra) return;
+    op(() => ({ op: "lista_ordenar", lista: l.titulo, grupo: l.grupo, junto: { lista: otra.titulo, grupo: otra.grupo }, despues: destino.despues }), null,
+      tras(x => x === l ? { titulo: l.titulo, grupo: otra.grupo } : null));
+  };
+  addEventListener("pointermove", mover); addEventListener("pointerup", fin); addEventListener("pointercancel", fin);
 }
 
 // nueva lista (con grupo opcional)
@@ -386,6 +523,7 @@ function filaTarea(t, v) {
   li.append(circ, el("div", { class: "txt" }, el("div", { class: "tit" }, t.titulo), meta.length ? el("div", { class: "meta" }, meta) : null), est);
   li.onclick = () => { if (soltado) { soltado = false; return; } abrir(t); };
   li.onpointerdown = e => arrastrar(e, t, li);
+  alMenu(li, () => menuTarea(t));
   return li;
 }
 
@@ -421,11 +559,147 @@ function soltar(t, destino) {
   if (destino === "midia") { if (t.midia !== h) opTarea(t, { op: "midia", valor: true }, () => { t.midia = h; }); aviso("Agregada a Mi día"); return; }
   if (destino === "importante") { if (!t.importante) opTarea(t, { op: "importante", valor: true }, () => { t.importante = true; }); aviso("Marcada como importante"); return; }
   if (destino === "planeado") { if (!t.vence) opTarea(t, { op: "vence", fecha: h }, () => { t.vence = h; }); aviso(t.vence === h ? "Vence hoy" : "Ya tenía fecha"); return; }
-  const l = destino === "tareas" ? bandeja() : D.listas.find(x => "l/" + encodeURIComponent(claveLista(x)) === destino);
+  moverA(t, destino === "tareas" ? bandeja() : D.listas.find(x => "l/" + encodeURIComponent(claveLista(x)) === destino));
+}
+function moverA(t, l) {
   if (!l || l === t.lista) return;
   opTarea(t, { op: "mover", lista: l.titulo, grupo: l.grupo });  // sin cambio optimista: la tarea se busca por su lista al enviar
   if (sel && buscarTarea(sel) === t) { sel.lista = claveLista(l); sel.k = 0; }
   aviso(`Movida a ${l.titulo}`);
+}
+
+// ---------- menú de clic derecho (pulsación larga en el móvil) ----------
+// items: {t, ico, f, rojo, color, sub: [items]}, "-" (separador) o {colores: lista}
+let menus = [], tragarHasta = 0, menuEn = 0, largoEn = 0;
+function cerrarMenu() { menus.forEach(m => m.remove()); menus = []; }
+function abrirMenu(x, y, items, nivel = 0, padre = null) {
+  if (!nivel) { cerrarMenu(); menuEn = Date.now(); }
+  menus.splice(nivel).forEach(m => m.remove());
+  if (padre) { padre.parentNode.querySelectorAll(".abierto").forEach(b => b.classList.remove("abierto")); padre.classList.add("abierto"); }
+  const m = el("div", { class: "menu", role: "menu" });
+  for (const it of items) {
+    if (it === "-") { m.append(el("hr")); continue; }
+    if (it.colores) { m.append(filaColores(it.colores)); continue; }
+    const i = ico(it.ico, it.relleno); if (it.color) i.style.color = it.color;
+    const b = el("button", { role: "menuitem", class: it.rojo ? "rojo" : null, "aria-haspopup": it.sub ? "menu" : null }, i, el("span", { class: "lbl" }, it.t), it.sub ? ico("flecha", false, "flecha") : null);
+    const abreSub = () => { const r = b.getBoundingClientRect(); abrirMenu(r.right - 2, r.top - 6, it.sub, nivel + 1, b); };
+    b.onmouseenter = () => { if (it.sub) abreSub(); else { menus.splice(nivel + 1).forEach(x => x.remove()); m.querySelectorAll(".abierto").forEach(x => x.classList.remove("abierto")); } };
+    b.onclick = e => { e.stopPropagation(); if (it.sub) return abreSub(); cerrarMenu(); it.f(); };
+    m.append(b);
+  }
+  document.body.append(m); menus.push(m);
+  const w = m.offsetWidth, h = m.offsetHeight;
+  let left = x, top = y;
+  if (padre && left + w > innerWidth - 8) left = padre.getBoundingClientRect().left - w + 2;  // submenú a la izquierda si no cabe
+  m.style.left = Math.max(8, Math.min(left, innerWidth - w - 8)) + "px";
+  m.style.top = Math.max(8, Math.min(top, innerHeight - h - 8)) + "px";
+  if (nivel) m.querySelector("button")?.focus({ preventScroll: true });
+}
+// clic derecho con ratón; pulsación larga con el dedo
+function alMenu(elem, items) {
+  elem.addEventListener("contextmenu", e => {
+    e.preventDefault(); e.stopPropagation();
+    if (Date.now() - largoEn > 1000) abrirMenu(e.clientX, e.clientY, items());  // Android también lanza contextmenu al mantener
+  });
+  elem.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse") return;
+    const x0 = e.clientX, y0 = e.clientY;
+    let largo = false;
+    const t = setTimeout(() => { largo = true; navigator.vibrate?.(15); if (Date.now() - menuEn > 1000) abrirMenu(x0 + 4, y0 + 4, items()); largoEn = Date.now(); }, 500);
+    const mov = ev => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) fuera(); };
+    const fuera = ev => {
+      clearTimeout(t); removeEventListener("pointermove", mov); removeEventListener("pointerup", fuera); removeEventListener("pointercancel", fuera);
+      if (largo && ev && ev.type === "pointerup") tragarHasta = Date.now() + 400;  // que soltar el dedo no abra la tarea
+    };
+    addEventListener("pointermove", mov); addEventListener("pointerup", fuera); addEventListener("pointercancel", fuera);
+  });
+}
+document.addEventListener("click", e => { if (Date.now() < tragarHasta && !e.target.closest(".menu")) { e.preventDefault(); e.stopPropagation(); } }, true);
+document.addEventListener("pointerdown", e => { if (menus.length && !e.target.closest(".menu")) cerrarMenu(); }, true);
+addEventListener("resize", cerrarMenu); addEventListener("blur", cerrarMenu); addEventListener("hashchange", cerrarMenu);
+document.addEventListener("scroll", e => { if (menus.length && !e.target.closest?.(".menu")) cerrarMenu(); }, true);
+document.addEventListener("keydown", e => {
+  if (!menus.length) return;
+  const m = menus[menus.length - 1], bs = [...m.querySelectorAll(":scope > button")], i = bs.indexOf(document.activeElement);
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); menus.length > 1 ? (menus.pop().remove(), menus[menus.length - 1].querySelector(".abierto")?.focus()) : cerrarMenu(); }
+  else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation(); bs[(i + (e.key === "ArrowDown" ? 1 : bs.length - 1)) % bs.length]?.focus(); }
+  else if (e.key === "ArrowRight" && document.activeElement?.getAttribute("aria-haspopup")) { e.preventDefault(); document.activeElement.click(); }
+  else if (e.key === "ArrowLeft" && menus.length > 1) { e.preventDefault(); menus.pop().remove(); menus[menus.length - 1].querySelector(".abierto")?.focus(); }
+  else if (e.key !== "Enter" && e.key !== " " && e.key !== "Tab") e.stopPropagation();
+}, true);
+
+function menuTarea(t) {
+  const h = hoy(), enDia = t.midia === h;
+  const otras = D.listas.filter(l => l !== t.lista).map(l => ({ t: (l.grupo ? l.grupo + " › " : "") + l.titulo, ico: l === bandeja() ? "casa" : "lista", color: colorLista(l), f: () => moverA(t, l) }));
+  return [
+    enDia ? { t: "Quitar de Mi día", ico: "solQuitar", f: () => opTarea(t, { op: "midia", valor: false }, () => { t.midia = ""; }) }
+          : { t: "Agregar a Mi día", ico: "sol", f: () => opTarea(t, { op: "midia", valor: true }, () => { t.midia = h; }) },
+    t.importante ? { t: "Quitar importancia", ico: "estrellaQuitar", f: () => opTarea(t, { op: "importante", valor: false }, () => { t.importante = false; }) }
+                 : { t: "Marcar como importante", ico: "estrella", f: () => opTarea(t, { op: "importante", valor: true }, () => { t.importante = true; }) },
+    t.hecho ? { t: "Marcar como no completada", ico: "circulo", f: () => opTarea(t, { op: "marcar", hecho: false }, () => { t.hecho = false; }) }
+            : { t: "Marcar como completada", ico: "circuloCheck", f: () => opTarea(t, { op: "marcar", hecho: true }, () => { t.hecho = true; }) },
+    "-",
+    { t: "Vence hoy", ico: "calHoy", f: () => opTarea(t, { op: "vence", fecha: h }, () => { t.vence = h; }) },
+    { t: "Vence mañana", ico: "calManana", f: () => { const m = sumar(1); opTarea(t, { op: "vence", fecha: m }, () => { t.vence = m; }); } },
+    t.vence ? { t: "Quitar fecha de vencimiento", ico: "calQuitar", f: () => opTarea(t, { op: "vence", fecha: "" }, () => { t.vence = ""; }) } : null,
+    "-",
+    { t: "Mover tarea a…", ico: "mover", sub: otras },
+    "-",
+    { t: "Eliminar tarea", ico: "papelera", rojo: true, f: () => borrarTarea(t) },
+  ].filter(Boolean);
+}
+function borrarTarea(t) {
+  if (!confirm(`Se eliminará «${t.titulo}».`)) return;
+  if (sel && buscarTarea(sel) === t) sel = null;
+  opTarea(t, { op: "borrar" });
+  pintar();
+}
+
+function filaColores(l) {
+  const fila = el("div", { class: "colores" });
+  for (const [nombre, c] of Object.entries(PALETA)) {
+    const on = colorLista(l) === c;
+    const b = el("button", { class: on ? "on" : null, style: `--c:${c}`, "aria-label": "Color " + nombre, title: on && l.color ? "Volver al color automático" : nombre });
+    b.onclick = e => { e.stopPropagation(); cerrarMenu(); const color = on && l.color ? "" : nombre;
+      op(() => ({ op: "lista_color", lista: l.titulo, grupo: l.grupo, color }), () => { l.color = color; }); };
+    fila.append(b);
+  }
+  return el("div", {}, el("div", { class: "rotulo" }, "Color"), fila);
+}
+const tareasDe = ls => ls.reduce((n, l) => n + l.tareas.length, 0);
+function moverAGrupo(l, grupo) {
+  op(() => ({ op: "lista_mover_grupo", lista: l.titulo, grupo: l.grupo, destino: grupo }), null, tras(x => x === l ? { titulo: l.titulo, grupo } : null));
+  if (grupo && guardar.plegados[grupo]) { delete guardar.plegados[grupo]; persistir(); }
+}
+function menuLista(l) {
+  const grupos = D.grupos.filter(g => g !== l.grupo).map(g => ({ t: g, ico: "carpeta", f: () => moverAGrupo(l, g) }));
+  grupos.push({ t: "Nuevo grupo…", ico: "carpetaMas", f: () => { const g = (prompt("Nombre del grupo nuevo") || "").trim(); if (g) moverAGrupo(l, g); } });
+  return [
+    { t: "Renombrar lista", ico: "lapiz", f: () => { renombrando = "l" + claveLista(l); pintarLado(); } },
+    { colores: l },
+    "-",
+    { t: "Mover a grupo…", ico: "carpeta", sub: grupos },
+    l.grupo ? { t: "Sacar del grupo", ico: "desagrupar", f: () => moverAGrupo(l, "") } : null,
+    "-",
+    { t: "Eliminar lista", ico: "papelera", rojo: true, f: () => {
+      const n = l.tareas.length;
+      if (n && !confirm(`Se eliminará la lista «${l.titulo}» con ${n} tarea${n > 1 ? "s" : ""}. Quedarán en «Eliminadas» al final de la nota.`)) return;
+      op(() => ({ op: "lista_borrar", lista: l.titulo, grupo: l.grupo }), null, tras(x => x === l ? false : null));
+    } },
+  ].filter(Boolean);
+}
+function menuGrupo(g) {
+  const suyas = D.listas.filter(x => x.grupo === g);
+  return [
+    { t: "Renombrar grupo", ico: "lapiz", f: () => { renombrando = "g" + g; pintarLado(); } },
+    { t: "Desagrupar listas", ico: "desagrupar", f: () => op(() => ({ op: "grupo_desagrupar", grupo: g }), null, tras(x => x.grupo === g ? { titulo: x.titulo, grupo: "" } : null)) },
+    "-",
+    { t: "Eliminar grupo", ico: "papelera", rojo: true, f: () => {
+      const n = tareasDe(suyas);
+      if (n && !confirm(`Se eliminará el grupo «${g}» con ${suyas.length > 1 ? `sus ${suyas.length} listas` : "su lista"} (${n} tarea${n > 1 ? "s" : ""}). Quedarán en «Eliminadas» al final de la nota.`)) return;
+      op(() => ({ op: "grupo_borrar", grupo: g }), null, tras(x => x.grupo === g ? false : null));
+    } },
+  ];
 }
 
 function prepararAnadir() {
@@ -614,7 +888,7 @@ addEventListener("keydown", e => {
 let eraMovil = movil();
 addEventListener("resize", () => { if (movil() !== eraMovil) { eraMovil = movil(); pintar(); } });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !pendientes) refrescar(); });
-setInterval(() => { if (!document.hidden && !pendientes && !document.activeElement.closest("#detalle")) refrescar(); }, 30000);
+setInterval(() => { if (!document.hidden && !pendientes && !renombrando && !menus.length && !document.activeElement.closest("#detalle")) refrescar(); }, 30000);
 
 if (D.error) aviso(D.error);
 pintarNueva();
