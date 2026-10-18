@@ -19,6 +19,10 @@
 .anadir input:focus, .anadir select:focus { outline: none; }
 .anadir:focus-within { border-color: var(--linea-alta); }
 .anadir select { border-left: 1px solid var(--linea); cursor: pointer; }
+/* la lista que abre el desplegable la pinta el sistema: sin esto, en modo oscuro sale texto claro sobre blanco */
+.anadir select option { background: var(--fondo-alto); color: var(--tinta-alta); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .anadir select { color-scheme: dark; } }
+:root[data-theme="dark"] .anadir select { color-scheme: dark; }
 .anadir .boton { margin: 6px; }
 
 /* gráfico */
@@ -39,11 +43,21 @@
 .plano .nombre-y { grid-row: 2 / 8; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; justify-self: start; }
 .punto-t { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font: inherit; font-size: var(--t-xs); line-height: 1.2; padding: 2px 5px 2px 4px; border: 1px dotted var(--tinta-2); border-radius: 4px;
   background: var(--fondo-alto); color: var(--tinta); cursor: pointer; text-align: left; }
-.punto-t::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--tinta-alta); }
+.punto-t::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--col, var(--tinta-alta)); }
+/* colores de gráfica del portal (c1-c4) y dos más para llegar a seis ámbitos */
+:root { --c5: #7a5ea8; --c6: #6f6d6a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c5: #9a80cc; --c6: #a09d9a; } }
+:root[data-theme="dark"] { --c5: #9a80cc; --c6: #a09d9a; }
+.cabeza-graf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
+.cabeza-graf > div { display: flex; flex-direction: column; gap: 6px; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: var(--t-xs); color: var(--tinta-2); margin: -8px 0 12px; }
+.leyenda[hidden] { display: none; }
+.leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda i { width: 8px; height: 8px; border-radius: 50%; }
 .punto-t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .punto-t:hover { border-style: solid; color: var(--tinta-alta); }
-.punto-t.sel { border: 1px solid var(--tinta-alta); }
-.punto-t.sel::before { background: var(--acento); }
+.punto-t.sel { border: 1px solid var(--tinta-alta); box-shadow: 0 0 0 1px var(--tinta-alta); }
+.punto-t.sel::before { box-shadow: 0 0 0 2px var(--fondo-alto), 0 0 0 3px var(--tinta-alta); }
 @media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t span { display: none; } .punto-t::before { width: 9px; height: 9px; } }
 
 /* cuadrantes y listas */
@@ -122,8 +136,10 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 
 <section class="vista" id="v-matriz">
   <div class="rejilla"><div class="grafico">
-    <h2 class="titulo-3">Matriz</h2>
+    <div class="cabeza-graf"><h2 class="titulo-3">Matriz</h2>
+      <div><span class="etiqueta">Color por</span><div class="segmentos" id="f-color"></div></div></div>
     <p class="que">Cada tarea según su urgencia (horizontal) e importancia (vertical), de 0 a 5. De 3 para arriba cuenta como alta. Toca una para abrirla.</p>
+    <div class="leyenda" id="leyenda" hidden></div>
     <div class="plano" id="plano"></div>
   </div></div>
   <div class="rejilla matriz" id="matriz"></div>
@@ -167,8 +183,13 @@ const CUAD = [
   { id: "despues", t: "Más adelante", q: "Ni urgente ni importante", f: x => x.urg < ALTO && x.imp < ALTO },
 ];
 const PRIO = { todas: "Todas", puntuadas: "Puntuadas", sin: "Sin puntuar" };
-const F = { ambito: "", estado: "", prio: "todas" };
+// ambitos / estados: los elegidos (vacío = todos); color: "" | "estado" | "ambito"
+const F = { ambitos: [], estados: [], prio: "todas", color: "" };
 try { Object.assign(F, JSON.parse(localStorage.getItem("tareas.filtros") || "{}")); } catch (e) {}
+if (!Array.isArray(F.ambitos)) F.ambitos = [];
+if (!Array.isArray(F.estados)) F.estados = [];
+F.ambitos = F.ambitos.filter(a => D.ambitos.includes(a)); F.estados = F.estados.filter(e => EST[e]);
+delete F.ambito; delete F.estado;  // filtros de antes, de una sola opción
 if (!PRIO[F.prio]) F.prio = "todas";
 let sel = null;          // id de la tarea abierta
 let pendientes = 0;
@@ -188,9 +209,34 @@ function segmentos(c, opciones, actual, fn) {
   }
 }
 const filtro = (clave, v) => { F[clave] = v; try { localStorage.setItem("tareas.filtros", JSON.stringify(F)); } catch (e) {} pintar(); };
+// "Todos" vacía la selección; cada opción se añade o se quita (se pueden elegir varias)
+function multiple(c, opciones, clave) {
+  c.replaceChildren();
+  const elegidos = F[clave];
+  const todos = el("button", { type: "button", ...(elegidos.length ? {} : { class: "on" }) }, "Todos");
+  todos.onclick = () => filtro(clave, []);
+  c.append(todos);
+  for (const [v, t] of opciones) {
+    const on = elegidos.includes(v);
+    const b = el("button", { type: "button", "aria-pressed": String(on), ...(on ? { class: "on" } : {}) }, t);
+    b.onclick = () => { const n = on ? elegidos.filter(x => x !== v) : [...elegidos, v]; filtro(clave, n.length === opciones.length ? [] : n); };
+    c.append(b);
+  }
+}
+const unAmbito = () => F.ambitos.length === 1;
+
+// colores del gráfico: estados sin el rojo (en el portal el rojo marca "aquí" o un aviso); ámbitos en el orden de Panel.md
+const COL_EST = { doing: "var(--c1)", todo: "var(--c3)", seguimiento: "var(--c4)" };
+const colAmbito = a => `var(--c${D.ambitos.indexOf(a) % 6 + 1})`;
+const colorDe = x => F.color === "estado" ? COL_EST[x.estado] : F.color === "ambito" ? colAmbito(x.ambito) : "";
+function leyenda() {
+  const l = $("leyenda"); l.replaceChildren(); l.hidden = !F.color;
+  const pares = F.color === "estado" ? Object.entries(EST).map(([k, t]) => [t, COL_EST[k]]) : F.color === "ambito" ? D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a)).map(a => [a, colAmbito(a)]) : [];
+  for (const [t, c] of pares) { const s = el("span"), i = el("i"); i.style.background = c; s.append(i, t); l.append(s); }
+}
 
 function filtradas(conPrio) {
-  return D.tareas.filter(x => (!F.ambito || x.ambito === F.ambito) && (!F.estado || x.estado === F.estado) &&
+  return D.tareas.filter(x => (!F.ambitos.length || F.ambitos.includes(x.ambito)) && (!F.estados.length || F.estados.includes(x.estado)) &&
     (!conPrio || F.prio === "todas" || (F.prio === "puntuadas" && puntuada(x)) || (F.prio === "sin" && !puntuada(x))));
 }
 
@@ -230,6 +276,7 @@ function plano(xs) {
       const c = el("div", { class: cls.join(" "), style: `grid-row:${fila};grid-column:${u + 3}` });
       for (const x of xs.filter(x => x.imp === i && x.urg === u).sort((a, b) => a.texto.localeCompare(b.texto))) {
         const b = el("button", { type: "button", class: "punto-t" + (x.id === sel ? " sel" : ""), title: `${x.texto} (${x.ambito}, I ${x.imp} U ${x.urg})` });
+        if (F.color) b.style.setProperty("--col", colorDe(x));
         b.append(el("span", {}, x.texto)); b.onclick = () => abrir(x.id); c.append(b);
       }
       p.append(c);
@@ -248,19 +295,19 @@ function matriz() {
     const caja = el("div", { class: "cuadrante" }), h = el("header"), s = xs.filter(x => puntuada(x) && c.f(x));
     h.append(el("h2", {}, c.t), el("span", { class: "cuenta" }, String(s.length)));
     caja.append(h, el("p", { class: "que" }, c.q));
-    const ul = el("ul", { class: "tareas" }); lista(ul, s, !F.ambito); caja.append(ul); m.append(caja);
+    const ul = el("ul", { class: "tareas" }); lista(ul, s, !unAmbito()); caja.append(ul); m.append(caja);
   }
   const sin = xs.filter(x => !puntuada(x)), s = $("sin"); s.replaceChildren();
   const h = el("header"); h.append(el("h2", {}, "Sin puntuar"), el("span", { class: "cuenta" }, String(sin.length)));
   s.append(h, el("p", { class: "que" }, "Ábrela y ponle importancia y urgencia para colocarla en la matriz."));
-  const ul = el("ul", { class: "tareas" }); lista(ul, sin, !F.ambito); s.append(ul);
+  const ul = el("ul", { class: "tareas" }); lista(ul, sin, !unAmbito()); s.append(ul);
 }
 
 function porAmbito() {
   const xs = filtradas(true), c = $("lista"); c.replaceChildren();
-  for (const a of D.ambitos.filter(a => !F.ambito || a === F.ambito)) {
+  for (const a of D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a))) {
     const s = xs.filter(x => x.ambito === a);
-    if (!s.length && F.ambito !== a) continue;
+    if (!s.length && !F.ambitos.includes(a)) continue;
     const g = el("div", { class: "grupo-amb" }), h = el("header");
     h.append(el("h2", {}, a), el("span", { class: "cuenta" }, String(s.length)));
     const ul = el("ul", { class: "tareas" }); lista(ul, s, false); g.append(h, ul); c.append(g);
@@ -275,12 +322,14 @@ function pintar() {
   $("v-lista").hidden = v !== "lista";
   $("f-prio-caja").hidden = v !== "lista";
   for (const a of document.querySelectorAll("#nav a")) a.classList.toggle("aqui", a.getAttribute("href") === "#" + v);
-  segmentos($("f-ambito"), [["", "Todos"], ...D.ambitos.map(a => [a, a])], F.ambito, v => filtro("ambito", v));
-  segmentos($("f-estado"), [["", "Todos"], ...Object.entries(EST)], F.estado, v => filtro("estado", v));
+  multiple($("f-ambito"), D.ambitos.map(a => [a, a]), "ambitos");
+  multiple($("f-estado"), Object.entries(EST), "estados");
   segmentos($("f-prio"), Object.entries(PRIO), F.prio, v => filtro("prio", v));
+  segmentos($("f-color"), [["", "Nada"], ["estado", "Estado"], ["ambito", "Ámbito"]], F.color, v => filtro("color", v));
+  leyenda();
   const sa = $("a-ambito"), previo = sa.value;
   sa.replaceChildren(...D.ambitos.map(a => el("option", { value: a }, a)));
-  sa.value = F.ambito || (D.ambitos.includes(previo) ? previo : D.ambitos[0]);
+  sa.value = (unAmbito() && F.ambitos[0]) || (D.ambitos.includes(previo) ? previo : D.ambitos[0]);
   v === "matriz" ? matriz() : porAmbito();
   $("pie").textContent = `${D.tareas.length} tareas de ${D.ambitos.length} ámbitos, leídas de 30 - Plan a las ${D.generado.slice(11)}` + (D.avisos.length ? `. Avisos: ${D.avisos.join(", ")}` : "");
   rellenar();
