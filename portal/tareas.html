@@ -43,16 +43,18 @@
 .plano .nombre-y { grid-row: 2 / 8; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; justify-self: start; }
 .punto-t { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font: inherit; font-size: var(--t-xs); line-height: 1.2; padding: 2px 5px 2px 4px; border: 1px dotted var(--tinta-2); border-radius: 4px;
   background: var(--fondo-alto); color: var(--tinta); cursor: pointer; text-align: left; }
-/* marcas de color: círculo = ámbito, cuadrado = estado. Nueve colores distintos para poder enseñar las dos a la vez.
-   Estados: To Do en rojo (el destacado), Doing en tinta, Monitoring en gris. Ámbitos sin rojo: azul, verde azulado
-   y ocre del portal (c1, c3, c4) más morado, marrón y oliva */
-:root { --a1: var(--c1); --a2: var(--c3); --a3: var(--c4); --a4: #7a5ea8; --a5: #8a5a3c; --a6: #6f7f22;
-  --e-todo: var(--rojo); --e-doing: var(--tinta-alta); --e-seguimiento: #9a9794; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; --e-seguimiento: #7d7a77; } }
-:root[data-theme="dark"] { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; --e-seguimiento: #7d7a77; }
-.mks { display: inline-flex; align-items: center; gap: 3px; flex: none; }
-.mk { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--tinta-alta); }
-.mk.est { border-radius: 1px; }
+/* una marca por tarea: el color dice el ámbito y la forma el estado.
+   To Do = círculo relleno (el destacado), Doing = cuadrado, Monitoring = anillo hueco (solo se vigila).
+   Ámbitos, en el orden de Panel.md y sin rojo (en el portal marca "aquí" o un aviso): azul, verde azulado y ocre
+   del portal (c1, c3, c4) más morado, marrón y oliva */
+:root { --a1: var(--c1); --a2: var(--c3); --a3: var(--c4); --a4: #7a5ea8; --a5: #8a5a3c; --a6: #6f7f22; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; } }
+:root[data-theme="dark"] { --a4: #9a80cc; --a5: #b98563; --a6: #9aab45; }
+.mks { display: inline-flex; align-items: center; flex: none; }
+.mk { --k: var(--tinta-alta); display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
+.mk.todo { width: 9px; height: 9px; }
+.mk.doing { border-radius: 1px; }
+.mk.seguimiento { background: transparent; box-shadow: inset 0 0 0 2px var(--k); }
 .t-texto .mks { margin-right: 8px; vertical-align: 1px; }
 .cabeza-graf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
 .cabeza-graf > div { display: flex; flex-direction: column; gap: 6px; }
@@ -61,11 +63,11 @@
 .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
 .leyenda .grupo { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .leyenda .grupo + .grupo { padding-left: 16px; border-left: 1px solid var(--linea); }
-.leyenda .mk { width: 8px; height: 8px; }
+.leyenda .grupo > b { font-weight: 500; color: var(--tinta-2); }
 .punto-t .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .punto-t:hover { border-style: solid; color: var(--tinta-alta); }
 .punto-t.sel { border: 1px solid var(--tinta-alta); box-shadow: 0 0 0 1px var(--tinta-alta); }
-@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .mk { width: 9px; height: 9px; }
+@media (max-width: 760px) { .punto-t { padding: 4px; border: 0; background: none; } .punto-t .txt { display: none; } .punto-t .mk { width: 10px; height: 10px; } .punto-t .mk.todo { width: 11px; height: 11px; }
   .punto-t.sel { border: 1px solid var(--tinta-alta); } }
 
 /* cuadrantes y listas */
@@ -145,7 +147,7 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
 <section class="vista" id="v-matriz">
   <div class="rejilla"><div class="grafico">
     <div class="cabeza-graf"><h2 class="titulo-3">Matriz</h2>
-      <div><span class="etiqueta">Color por</span><div class="segmentos" id="f-color"></div></div></div>
+      <div><span class="etiqueta">Marcar</span><div class="segmentos" id="f-color"></div></div></div>
     <p class="que">Cada tarea según su urgencia (horizontal) e importancia (vertical), de 0 a 5. De 3 para arriba cuenta como alta. Toca una para abrirla.</p>
     <div class="leyenda" id="leyenda" hidden></div>
     <div class="plano" id="plano"></div>
@@ -235,20 +237,20 @@ function multiple(c, opciones, clave) {
 }
 const unAmbito = () => F.ambitos.length === 1;
 
-// colores del gráfico: To Do en rojo, el estado destacado; ámbitos en el orden de Panel.md
+// marca de una tarea: color = ámbito (en el orden de Panel.md), forma = estado. Sin nada elegido, punto en tinta
 const colAmbito = a => `var(--a${D.ambitos.indexOf(a) % 6 + 1})`;
-const colEstado = e => `var(--e-${e})`;
 const conColor = () => F.colores.length > 0;
-function marca(color, est, titulo) { const i = el("i", { class: "mk" + (est ? " est" : ""), title: titulo }); i.style.background = color; return i; }
-// marcas de una tarea según "Color por"; con punto = sin color elegido sale un punto en tinta (el del gráfico)
+function marca(ambito, estado, titulo) {
+  const i = el("i", { class: "mk" + (estado ? " " + estado : ""), title: titulo || "" });
+  if (ambito) i.style.setProperty("--k", colAmbito(ambito));
+  return i;
+}
 function marcas(x, conPunto) {
-  const m = el("span", { class: "mks" });
-  if (F.colores.includes("ambito")) m.append(marca(colAmbito(x.ambito), false, x.ambito));
-  if (F.colores.includes("estado")) m.append(marca(colEstado(x.estado), true, EST[x.estado]));
-  if (!m.children.length && conPunto) m.append(el("i", { class: "mk" }));
+  const m = el("span", { class: "mks" }), a = F.colores.includes("ambito"), e = F.colores.includes("estado");
+  if (a || e || conPunto) m.append(marca(a && x.ambito, e && x.estado, [a && x.ambito, e && EST[x.estado]].filter(Boolean).join(", ")));
   return m;
 }
-// "Nada" quita el color; Ámbito y Estado se encienden y apagan por separado (se pueden tener los dos)
+// "Nada" quita las marcas; Ámbito (color) y Estado (forma) se encienden y apagan por separado
 function colorPor() {
   const c = $("f-color"); c.replaceChildren();
   const nada = el("button", { type: "button", ...(conColor() ? {} : { class: "on" }) }, "Nada");
@@ -263,9 +265,9 @@ function colorPor() {
 }
 function leyenda() {
   const l = $("leyenda"); l.replaceChildren(); l.hidden = !conColor();
-  const grupo = (pares, est) => { const g = el("span", { class: "grupo" }); for (const [t, c] of pares) { const s = el("span"); s.append(marca(c, est), t); g.append(s); } l.append(g); };
-  if (F.colores.includes("ambito")) grupo(D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a)).map(a => [a, colAmbito(a)]), false);
-  if (F.colores.includes("estado")) grupo(Object.entries(EST).filter(([k]) => !F.estados.length || F.estados.includes(k)).map(([k, t]) => [t, colEstado(k)]), true);
+  const grupo = (titulo, items) => { const g = el("span", { class: "grupo" }); g.append(el("b", {}, titulo)); for (const [t, m] of items) { const s = el("span"); s.append(m, t); g.append(s); } l.append(g); };
+  if (F.colores.includes("ambito")) grupo("Color", D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a)).map(a => [a, marca(a, "", a)]));
+  if (F.colores.includes("estado")) grupo("Forma", Object.entries(EST).filter(([k]) => !F.estados.length || F.estados.includes(k)).map(([k, t]) => [t, marca("", k, t)]));
 }
 
 function filtradas(conPrio) {
