@@ -381,6 +381,9 @@ def pagina_portada(cens=False):
 def pagina_trabajo(elegido="", editar=False):
     estilo = """<style>.barra-cv { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 24px 0 8px; }
 .barra-cv form, .fila-botones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nuevo-cv { border: 1px solid var(--linea); background: var(--fondo-alto); padding: 4px 16px 16px; margin: 8px 0 4px; max-width: 520px; }
+.nuevo-cv input, .nuevo-cv select { width: 100%; font: inherit; font-size: 16px; padding: 7px 10px; color: var(--tinta-alta); background: var(--fondo); border: 1px solid var(--linea); border-radius: 6px; margin-top: 4px; }
+.nuevo-cv .fila-botones { margin-top: 16px; } .nuevo-cv p { margin-top: 10px; }
 .editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1px; padding: 1px; margin-top: 8px; }
 .editor > * { box-shadow: 0 0 0 1px var(--linea); background: var(--fondo); min-width: 0; }
 .editor textarea { width: 100%; height: calc(100vh - 220px); min-height: 420px; resize: vertical; border: 0; padding: 16px; font: 300 13px/1.55 var(--mono);
@@ -751,7 +754,7 @@ class Manejador(BaseHTTPRequestHandler):
             return self.api_listas()
         if urlsplit(self.path).path == "/todo/operar":
             return self.api_todo()
-        if urlsplit(self.path).path in ("/trabajo/compilar", "/trabajo/guardar"):
+        if urlsplit(self.path).path in ("/trabajo/compilar", "/trabajo/guardar", "/trabajo/nuevo"):
             return self.api_cv(urlsplit(self.path).path.rsplit("/", 1)[1])
         largo = min(int(self.headers.get("Content-Length") or 0), 4096)
         campos = parse_qs(self.rfile.read(largo).decode("utf-8", "replace"))
@@ -1010,6 +1013,11 @@ class Manejador(BaseHTTPRequestHandler):
             except Exception as e:
                 c = {"error": str(e), "log": "", "paginas": 0, "huella": ""}
             return responder(200, c)
+        if accion == "nuevo":
+            codigo, r = trabajo.crear(str(d.get("nombre", "")), str(d.get("desde", "")))
+            if r.get("ok"):
+                log(f"portal: CV nuevo {r['cv']} (desde {d.get('desde')})")
+            return responder(codigo, r)
         codigo, r = trabajo.guardar(str(d.get("cv", "")), str(d.get("base", "")), texto)
         if r.get("ok"):
             log(f"portal: CV guardado ({d.get('cv')})")

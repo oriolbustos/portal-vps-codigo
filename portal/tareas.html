@@ -90,6 +90,7 @@
 /* la hoja común da a .leyenda i esquinas de 2 px: aquí las marcas tienen que ser iguales que en la matriz */
 .leyenda i.mk { width: 8px; height: 8px; border-radius: 50%; margin-right: 0; vertical-align: 0; }
 .leyenda i.mk.todo { width: 9px; height: 9px; }
+.leyenda i.mk.cuadro { width: 9px; height: 9px; border-radius: 2px; }
 .leyenda i.mk.seguimiento { width: 10px; height: 9px; border-radius: 0; }
 .leyenda i.mk.tam { width: var(--s); height: var(--s); }
 .leyenda i.mk.tam.seguimiento { width: calc(var(--s) + 2px); }
@@ -369,11 +370,12 @@ function marcas(x, tam) {
 function leyenda() {
   const l = $("leyenda"); l.replaceChildren();
   const grupo = (titulo, items) => { const g = el("span", { class: "grupo" }); g.append(el("b", {}, titulo)); for (const [t, m] of items) { const s = el("span"); s.append(...m, t); g.append(s); } l.append(g); };
-  grupo("Color", D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a)).map(a => [a, [marca(a, "", a)]]));
-  grupo("Forma", Object.entries(EST).filter(([k]) => !F.estados.length || F.estados.includes(k)).map(([k, t]) => [t, [marca("", k, t)]]));
+  // ámbito = color (cuadrados, para no confundirlos con el círculo de Doing); estado = forma
+  grupo("Ámbito (color)", D.ambitos.filter(a => !F.ambitos.length || F.ambitos.includes(a)).map(a => [a, [marca(a, "cuadro", a)]]));
+  grupo("Estado (forma)", Object.entries(EST).filter(([k]) => !F.estados.length || F.estados.includes(k)).map(([k, t]) => [t, [marca("", k, t)]]));
   if ($("v-matriz").hidden || G.dim !== 2 || !G.tam) return;
   const z = tercero();
-  grupo("Tamaño", [[`${EJES[z]} 0 a 5`, [marca("", "doing", "0", 0), marca("", "doing", "5", 5)]]]);
+  grupo("Tamaño", [[`${EJES[z]} de 0 a 5`, [marca("", "doing", "0", 0), marca("", "doing", "5", 5)]]]);
 }
 
 let busca = "";  // buscador: no se recuerda, al recargar sale vacío

@@ -99,7 +99,30 @@ def pagina(elegido: str = "") -> str:
     opciones = "".join(f'<option value="{html.escape(n)}"{" selected" if n == nombre else ""}>{html.escape(n)}</option>' for n, _ in cvs)
     cab = f"""<div class="barra-cv"><form method="get"><label class="etiqueta" for="cv">Versión</label>
 <select id="cv" name="cv" onchange="this.form.submit()">{opciones}</select></form>
-<a class="boton" href="/trabajo/editar?cv={quote(nombre)}">Editar</a>"""
+<a class="boton" href="/trabajo/editar?cv={quote(nombre)}">Editar</a>
+<button class="boton" type="button" id="b-nuevo" aria-expanded="false" aria-controls="nuevo-cv">Nuevo</button>"""
+    desde = "".join(f'<option value="{html.escape(n)}"{" selected" if n == nombre else ""}>{html.escape(n)}</option>' for n, _ in cvs)
+    cab += f"""<form class="nuevo-cv" id="nuevo-cv" hidden autocomplete="off">
+<label class="campo"><span class="etiqueta">Nombre del CV nuevo</span><input id="n-nombre" value="{html.escape(nombre_libre())}" maxlength="60" required></label>
+<label class="campo"><span class="etiqueta">A partir de</span><select id="n-desde">{desde}</select></label>
+<div class="fila-botones"><button class="boton fuerte">Crear y editar</button><button class="boton" type="button" id="n-cancelar">Cancelar</button><span class="mini secundario" id="n-estado"></span></div>
+<p class="mini secundario">Se guarda como <code>01 - CVs/nombre.md</code>. El original no se toca.</p></form>
+<script>
+(() => {{
+  const f = document.getElementById("nuevo-cv"), b = document.getElementById("b-nuevo"), est = document.getElementById("n-estado");
+  const abrir = v => {{ f.hidden = !v; b.setAttribute("aria-expanded", v); if (v) document.getElementById("n-nombre").select(); }};
+  b.onclick = () => abrir(f.hidden); document.getElementById("n-cancelar").onclick = () => abrir(false);
+  f.onsubmit = async e => {{
+    e.preventDefault(); est.textContent = "Creando...";
+    try {{
+      const r = await fetch("/trabajo/nuevo", {{ method: "POST", headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ texto: "", nombre: document.getElementById("n-nombre").value, desde: document.getElementById("n-desde").value }}) }});
+      const d = await r.json();
+      if (d.ok) location.href = "/trabajo/editar?cv=" + encodeURIComponent(d.cv); else est.textContent = d.mensaje || "No se ha podido crear.";
+    }} catch (err) {{ est.textContent = "No se ha podido crear: sin conexión."; }}
+  }};
+}})();
+</script>"""
     if c["error"]:
         return cab + f"""</div><div class="aviso">No compila: {html.escape(c['error'])}</div>
 <details style="margin-top:12px"><summary>Ver el final del log</summary><pre class="mono mini">{html.escape(c['log'])}</pre></details>"""
@@ -133,10 +156,20 @@ def guardar(nombre: str, base: str, texto: str):
     nuevo = texto.encode("utf-8")
     if sha(nuevo) == actual:
         return 200, {"ok": True, "mensaje": "Sin cambios.", "base": actual}
+    r = pedir({"archivo": p.name, "base": actual, "texto": texto})
+    if r is None:
+        return 504, {"ok": False, "mensaje": "El guardado no responde. Revisa cv-guardar en el servidor."}
+    if r.get("ok"):
+        return 200, {"ok": True, "mensaje": f"Guardado en el vault a las {time.strftime('%H:%M')}.", "base": sha(nuevo)}
+    return 500, {"ok": False, "mensaje": "No se ha guardado: " + r.get("error", "error desconocido")}
+
+
+def pedir(peticion: dict):
+    """Deja la petición a cv-guardar (root) y espera su resultado. → dict o None si no responde."""
     pid = secrets.token_hex(8)
     PENDIENTE.mkdir(exist_ok=True)
     tmp = ESTADO / f"cv-{pid}.tmp"
-    tmp.write_text(json.dumps({"id": pid, "archivo": p.name, "base": actual, "texto": texto}, ensure_ascii=False), encoding="utf-8")
+    tmp.write_text(json.dumps(dict(peticion, id=pid), ensure_ascii=False), encoding="utf-8")
     tmp.replace(PENDIENTE / f"{pid}.json")
     for _ in range(40):  # cv-guardar.path lo recoge en menos de un segundo
         time.sleep(0.25)
@@ -145,10 +178,41 @@ def guardar(nombre: str, base: str, texto: str):
         except (OSError, ValueError):
             continue
         if r.get("id") == pid:
-            if r.get("ok"):
-                return 200, {"ok": True, "mensaje": f"Guardado en el vault a las {time.strftime('%H:%M')}.", "base": sha(nuevo)}
-            return 500, {"ok": False, "mensaje": "No se ha guardado: " + r.get("error", "error desconocido")}
-    return 504, {"ok": False, "mensaje": "El guardado no responde. Revisa cv-guardar en el servidor."}
+            return r
+    return None
+
+
+NOMBRE_CV = re.compile(r"[\w][\w .()-]{0,59}")
+
+
+def nombre_libre() -> str:
+    """Propuesta para un CV nuevo: CV-AA-MM, o CV-AA-MM-2... si ya existe."""
+    base = time.strftime("CV-%y-%m")
+    n, k = base, 2
+    while (CVS / f"{n}.md").exists():
+        n, k = f"{base}-{k}", k + 1
+    return n
+
+
+def crear(nombre: str, desde: str):
+    """Copia un CV existente con otro nombre (vía cv-guardar). → (código HTTP, {ok, mensaje, cv})."""
+    nombre = (nombre or "").strip()
+    if nombre.lower().endswith(".md"):
+        nombre = nombre[:-3].strip()
+    if not NOMBRE_CV.fullmatch(nombre):
+        return 400, {"ok": False, "mensaje": "Nombre no válido: letras, números, espacios, guiones o puntos, hasta 60."}
+    if (CVS / f"{nombre}.md").exists():
+        return 409, {"ok": False, "mensaje": f"Ya existe {nombre}.md. Elige otro nombre."}
+    origen = buscar(desde)
+    if not origen:
+        return 404, {"ok": False, "mensaje": "No encuentro el CV de partida."}
+    texto = origen.read_text(encoding="utf-8", errors="replace")
+    r = pedir({"archivo": f"{nombre}.md", "base": "", "texto": texto, "nuevo": True})
+    if r is None:
+        return 504, {"ok": False, "mensaje": "La creación no responde. Revisa cv-guardar en el servidor."}
+    if not r.get("ok"):
+        return 500, {"ok": False, "mensaje": "No se ha creado: " + r.get("error", "error desconocido")}
+    return 200, {"ok": True, "mensaje": f"Creado {nombre} a partir de {desde}.", "cv": nombre}
 
 
 def editor(nombre: str) -> str:
