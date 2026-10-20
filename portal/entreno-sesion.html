@@ -30,11 +30,25 @@
 .musc .figs { display: flex; gap: 2px; flex: none; }
 .musc svg { width: 56px; height: 112px; display: block; }
 .musc svg polygon { fill: var(--linea); stroke: var(--fondo); stroke-width: 6; }
-.musc svg polygon.sec { fill: var(--tinta-2); opacity: .55; }
+.musc svg polygon.sec { fill: var(--tinta-2); opacity: .9; }
 .musc svg polygon.pri { fill: var(--tinta-alta); }
 .musc .tx { font-size: var(--t-sm); min-width: 0; }
 .musc .tx p { margin-top: 2px; } .musc .tx .peq { color: var(--tinta-2); font-size: var(--t-xs); }
 @media (min-width: 600px) { .musc svg { width: 66px; height: 132px; } }
+.musc .figs { cursor: zoom-in; }
+.zoom { position: fixed; inset: 0; z-index: 40; background: var(--fondo); display: flex; flex-direction: column; padding: 16px; }
+.zoom .cab { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.zoom h3 { font-family: var(--serif); font-size: var(--t-2xl); font-weight: 400; }
+.zoom .figs { flex: 1; min-height: 0; display: flex; justify-content: center; gap: 4%; padding: 12px 0; cursor: zoom-out; }
+.zoom .figs figure { flex: 0 1 45%; display: flex; flex-direction: column; align-items: center; min-height: 0; margin: 0; }
+.zoom .figs svg { width: 100%; height: 100%; max-height: 70vh; }
+.zoom figcaption { font-size: var(--t-xs); color: var(--tinta-2); margin-top: 6px; text-transform: uppercase; letter-spacing: .05em; }
+.zoom svg polygon { fill: var(--linea); stroke: var(--fondo); stroke-width: 6; }
+.zoom svg polygon.sec { fill: var(--tinta-2); opacity: .9; }
+.zoom svg polygon.pri { fill: var(--tinta-alta); }
+.zoom .ley { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--t-sm); justify-content: center; }
+.zoom .ley i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+.zoom .notar { text-align: center; font-size: var(--t-sm); margin-top: 8px; color: var(--tinta-2); }
 .dato { font-size: var(--t-sm); margin-top: 6px; }
 .dato b { font-weight: 500; color: var(--tinta-alta); }
 .dato .peq { color: var(--tinta-2); }
@@ -154,10 +168,31 @@ function muneco(m) {
   }
   return figs;
 }
+function ampliar(e, m) {
+  const z = el("div", { class: "zoom", role: "dialog", "aria-label": "Músculos de " + e.nombre });
+  const x = el("button", { type: "button", class: "boton" }, "Cerrar");
+  const cab = el("div", { class: "cab" }); cab.append(el("h3", {}, e.nombre), x);
+  const figs = muneco(m), grande = el("div", { class: "figs" });
+  [...figs.children].forEach((svg, k) => { const f = el("figure"); f.append(svg, el("figcaption", {}, k ? "Espalda" : "Frente")); grande.append(f); });
+  const ley = el("div", { class: "ley" });
+  const item = (cls, txt) => { const s = el("span"); const i = el("i"); i.style.background = cls === "pri" ? "var(--tinta-alta)" : "var(--tinta-2)"; if (cls === "sec") i.style.opacity = ".9"; s.append(i, txt); return s; };
+  ley.append(item("pri", "Principales: " + (m.pri.join(", ") || "-")));
+  if (m.sec.length) ley.append(item("sec", "Secundarios: " + m.sec.join(", ")));
+  z.append(cab, grande, ley);
+  if (m.notar) z.append(el("p", { class: "notar" }, m.notar));
+  const cerrar = () => { z.remove(); document.removeEventListener("keydown", tecla); };
+  const tecla = ev => { if (ev.key === "Escape") cerrar(); };
+  x.onclick = cerrar; grande.onclick = cerrar;
+  document.addEventListener("keydown", tecla);
+  document.body.append(z); x.focus();
+}
 function bloqueMusculos(e) {
   const m = musculosDe(e), c = el("div", { class: "musc" }), tx = el("div", { class: "tx" });
   if (!m) { tx.append(el("p", { class: "peq" }, "Sin mapear. Añádelo en 10-referencia/musculos.md.")); c.append(tx); return c; }
-  c.append(muneco(m));
+  const figs = muneco(m); figs.title = "Ver en grande"; figs.setAttribute("role", "button"); figs.tabIndex = 0;
+  figs.onclick = ev => { ev.stopPropagation(); ampliar(e, m); };
+  figs.onkeydown = ev => { if (ev.key === "Enter") ampliar(e, m); };
+  c.append(figs);
   if (m.notar) tx.append(el("p", {}, m.notar));
   tx.append(el("p", { class: "peq" }, "Principales: " + (m.pri.join(", ") || "-")));
   if (m.sec.length) tx.append(el("p", { class: "peq" }, "Secundarios: " + m.sec.join(", ")));
