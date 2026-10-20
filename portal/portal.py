@@ -26,6 +26,7 @@ import apariencia, escritura  # noqa: E402  (/config/: Apariencia, Portada y Esc
 import entreno_sesion  # noqa: E402  (Entreno en directo, /entreno/sesion/)
 import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
 import sistema  # noqa: E402  (Sistema: estado del VPS y mapa)
+import archivos  # noqa: E402  (Vault y archivos del VPS: exploradores con su propia contraseña)
 
 USUARIO = "oriol"
 CLAVE = Path(os.environ.get("PORTAL_CLAVE", "/etc/portal/clave"))
@@ -124,6 +125,32 @@ def descensurar(token: str):
         s = cargar_sesiones()
         v = s.get(huella_token(token or ""))
         if v and v.pop("censurado", None):
+            guardar_sesiones(s)
+
+
+def explorador_abierto(token: str, raiz: str) -> bool:
+    """¿Esta sesión desbloqueó el explorador (vault o vps) hace menos de 30 min? Si sí, renueva el plazo."""
+    with cerrojo:
+        s = cargar_sesiones()
+        v = s.get(huella_token(token or ""))
+        clave = f"abierto_{raiz}"
+        if not v or v.get(clave, 0) < time.time():
+            return False
+        if v[clave] - time.time() < archivos.DURACION - 60:
+            v[clave] = time.time() + archivos.DURACION
+            guardar_sesiones(s)
+    return True
+
+
+def abrir_explorador(token: str, raiz: str, abrir=True):
+    with cerrojo:
+        s = cargar_sesiones()
+        v = s.get(huella_token(token or ""))
+        if v:
+            if abrir:
+                v[f"abierto_{raiz}"] = time.time() + archivos.DURACION
+            else:
+                v.pop(f"abierto_{raiz}", None)
             guardar_sesiones(s)
 
 
@@ -246,6 +273,7 @@ PANELES = [
     {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas},
     {"titulo": "Entreno", "ruta": "/entreno/", "desc": "Peso, nutrición, actividad y fuerza.", "estado": None},
     {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV actual.", "estado": None},
+    {"titulo": "Vault", "ruta": "/vault/", "desc": "Notas de Obsidian para leer.", "estado": None},
     {"titulo": "Sistema", "ruta": "/sistema/", "desc": "Estado del servidor y cómo está montado todo.", "estado": None},
     {"titulo": "Configuración", "ruta": "/config/", "desc": "Apariencia, portada, escritura y censura.", "estado": None},  # en modo censurado, solo "Volver al modo normal"
 ]
@@ -606,6 +634,25 @@ class Manejador(BaseHTTPRequestHandler):
             return self.enviar(sistema.html(AQUI / "sistema.html"), renovado=renovado)
         if ruta == "/sistema/datos":
             return self.enviar_json(sistema.datos())
+        if ruta in ("/vault", "/sistema/archivos"):
+            return self.redirigir(ruta + "/", codigo=301)
+        if ruta in ("/vault/", "/sistema/archivos/"):
+            if cens:  # los exploradores no existen en modo censurado
+                return self.no_encontrado()
+            raiz = "vault" if ruta == "/vault/" else "vps"
+            if not explorador_abierto(self.token(), raiz):
+                return self.enviar(archivos.pagina_abrir(raiz), renovado=renovado)
+            codigo, tipo, datos, extra = archivos.responder(raiz, parse_qs(urlsplit(self.path).query))
+            if tipo.startswith("text/html"):
+                return self.enviar(datos.decode("utf-8"), codigo, renovado=renovado)
+            self.send_response(codigo)
+            self.send_header("Content-Type", tipo)
+            self.send_header("Content-Length", str(len(datos)))
+            self.cabeceras_comunes()
+            for k, v in extra.items():
+                self.send_header(k, v)
+            self.end_headers()
+            return self.wfile.write(datos)
         if ruta in ("/tareas", "/trabajo", "/listas"):
             return self.redirigir(ruta + "/", codigo=301)
         if ruta == "/listas/":
@@ -723,6 +770,27 @@ class Manejador(BaseHTTPRequestHandler):
             apuntar_fallo(ip)
             time.sleep(1)
             return self.enviar(pagina_login(siguiente, "Usuario o contraseña incorrectos."), 401)
+        if ruta in ("/vault/abrir", "/sistema/archivos/abrir", "/vault/cerrar", "/sistema/archivos/cerrar"):
+            if not sesion_valida(self.token(), renovar=False)[0]:
+                return self.a_login("/")
+            if censurado(self.token()):
+                return self.no_encontrado()
+            raiz = "vault" if ruta.startswith("/vault/") else "vps"
+            vuelta = archivos.PREFIJO[raiz]
+            if ruta.endswith("/cerrar"):
+                abrir_explorador(self.token(), raiz, abrir=False)
+                return self.redirigir("/" if raiz == "vault" else "/sistema/")
+            ip = self.ip()
+            espera = bloqueado(ip)
+            if espera:
+                return self.enviar(archivos.pagina_abrir(raiz, f"Demasiados intentos. Prueba otra vez en {espera // 60 + 1} min."), 429)
+            if archivos.comprobar(raiz, campos.get("clave", [""])[0]):
+                abrir_explorador(self.token(), raiz)
+                log(f"portal: explorador {raiz} abierto desde {ip}")
+                return self.redirigir(vuelta)
+            apuntar_fallo(ip)
+            time.sleep(1)
+            return self.enviar(archivos.pagina_abrir(raiz, "Contraseña incorrecta."), 401)
         if ruta == "/salir":
             borrar_sesion(self.token())
             return self.redirigir("/login", borrar=True)
