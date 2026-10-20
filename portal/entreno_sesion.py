@@ -24,6 +24,7 @@ from pathlib import Path
 import entreno
 
 PLANTILLA = entreno.DIARIO.parent / "00-sistema" / "plantillas" / "diario.md"
+MUSCULOS = entreno.DIARIO.parent / "10-referencia" / "musculos.md"   # qué trabaja cada ejercicio (lo edita Oriol)
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 PENDIENTE = ESTADO / "entreno-sesion-pendiente"
 RESULTADO = ESTADO / "entreno-sesion-resultado.json"
@@ -31,6 +32,22 @@ CABECERA = ["Ejercicio", "Serie", "Reps", "Peso (kg)", "RIR", "Agarre / altura",
 # Descanso por defecto si "Estado actual" no trae columna Descanso: multiarticulares 2:30, el resto 1:30.
 MULTI = re.compile(r"dominada|jalon|remo|press|dips|fondos|prensa|peso muerto|sentadilla|hip thrust")
 SOLO_RIR = re.compile(r"^RIR\s*(\d+(?:[.,]\d)?)$", re.I)
+
+
+def musculos() -> dict:
+    """Tabla de 10-referencia/musculos.md → {plano(ejercicio): {pri, sec, notar}}."""
+    try:
+        texto = MUSCULOS.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    out = {}
+    lista = lambda t: [m.strip().lower() for m in t.split(",") if m.strip()]
+    for linea in texto.splitlines():
+        c = [x.strip() for x in linea.strip().strip("|").split("|")]
+        if not linea.lstrip().startswith("|") or len(c) < 4 or c[0].lower() == "ejercicio" or set(c[0]) <= set("-: "):
+            continue
+        out[entreno.plano(entreno.sin_md(c[0]))] = {"pri": lista(c[1]), "sec": lista(c[2]), "notar": entreno.sin_md(c[3])}
+    return out
 
 
 class Error(Exception):
@@ -237,7 +254,7 @@ def datos(f: str = None) -> dict:
     existe = ruta.is_file()
     huella, filas_hoy = leer_tabla(ruta.read_text(encoding="utf-8")) if existe else (hashlib.sha256(b"").hexdigest(), [])
     return {"fecha": f, "toca": toca, "ultima": {"fecha": ultima["fecha"], "sesiones": ultima["sesiones"]} if ultima else None,
-            "tipos": tipos, "ejercicios": por_ej, "catalogo": catalogo,
+            "tipos": tipos, "ejercicios": por_ej, "catalogo": catalogo, "musculos": musculos(),
             "hoy": {"existe": existe, "huella": huella, "filas": filas_hoy}}
 
 
