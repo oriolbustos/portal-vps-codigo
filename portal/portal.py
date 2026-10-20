@@ -379,8 +379,8 @@ def pagina_portada(cens=False):
 </div>""")
 
 
-PESTANAS_TRABAJO = [("cv", "CV", "/trabajo/"), ("ntt", "NTT", "/trabajo/ntt"), ("carrera", "Carrera", "/trabajo/carrera"),
-                    ("proyectos", "Proyectos", "/trabajo/proyectos")]
+PESTANAS_TRABAJO = [("ntt", "NTT", "/trabajo/"), ("carrera", "Carrera", "/trabajo/carrera"), ("cv", "CV", "/trabajo/cv"),
+                    ("proyectos", "Proyectos", "/trabajo/proyectos")]  # NTT es la de entrada; /trabajo/?cv=X sigue abriendo el CV
 
 
 def pagina_trabajo(elegido="", editar=False, pestana="cv", cens=False, qs=None):
@@ -709,10 +709,14 @@ class Manejador(BaseHTTPRequestHandler):
             return self.enviar_json(d)
         if ruta in ("/tareas/matriz", "/tareas/matriz/"):  # dirección vieja (unas horas del 2026-10-18)
             return self.redirigir("/tareas/", codigo=301)
-        if ruta == "/trabajo/":
-            elegido = parse_qs(urlsplit(self.path).query).get("cv", [""])[0]
-            return self.enviar(pagina_trabajo(elegido, cens=cens), renovado=renovado)
-        if ruta in ("/trabajo/ntt", "/trabajo/carrera", "/trabajo/proyectos", "/trabajo/comparar"):
+        if ruta == "/trabajo/ntt":
+            return self.redirigir("/trabajo/", codigo=301)
+        if ruta in ("/trabajo/", "/trabajo/cv"):
+            q = parse_qs(urlsplit(self.path).query)
+            if ruta == "/trabajo/" and "cv" not in q:
+                return self.enviar(pagina_trabajo(pestana="ntt", cens=cens), renovado=renovado)
+            return self.enviar(pagina_trabajo(q.get("cv", [""])[0], cens=cens), renovado=renovado)
+        if ruta in ("/trabajo/carrera", "/trabajo/proyectos", "/trabajo/comparar"):
             pestana = ruta.rsplit("/", 1)[1]
             if cens and pestana == "carrera":  # Carrera no existe en modo censurado
                 return self.no_encontrado()
