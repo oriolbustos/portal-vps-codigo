@@ -10,6 +10,9 @@
 .filtros { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; padding: 24px 0 16px; }
 .filtros > div { display: flex; flex-direction: column; gap: 6px; }
 .filtros > div[hidden] { display: none; }
+.f-buscar { flex: 1 1 220px; max-width: 360px; }
+.f-buscar input { font: inherit; font-size: 16px; padding: 6px 10px; color: var(--tinta-alta); background: var(--fondo-alto); border: 1px solid var(--linea); border-radius: 6px; width: 100%; }
+.f-buscar input:focus { outline: none; border-color: var(--linea-alta); }
 .segmentos { flex-wrap: wrap; }
 
 /* añadir */
@@ -207,6 +210,7 @@ ul.tareas > li.sel .t-texto::before { content: ""; display: inline-block; width:
   <div><span class="etiqueta">Ámbito</span><div class="segmentos" id="f-ambito"></div></div>
   <div><span class="etiqueta">Estado</span><div class="segmentos" id="f-estado"></div></div>
   <div id="f-prio-caja"><span class="etiqueta">Puntuación</span><div class="segmentos" id="f-prio"></div></div>
+  <div class="f-buscar"><span class="etiqueta">Buscar</span><input id="f-buscar" type="search" placeholder="Texto, subtareas o notas" aria-label="Buscar tareas" enterkeyhint="search" autocomplete="off"></div>
 </div>
 
 <form class="anadir" id="anadir" autocomplete="off">
@@ -366,8 +370,11 @@ function leyenda() {
   grupo("Tamaño", [[`${EJES[z]} 0 a 5`, [marca("", "doing", "0", 0), marca("", "doing", "5", 5)]]]);
 }
 
+let busca = "";  // buscador: no se recuerda, al recargar sale vacío
+const sinAcentos = t => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const casa = x => !busca || busca.split(/\s+/).every(p => sinAcentos([x.texto, ...(x.sub || []), ...[].concat(x.notas || [])].join(" ")).includes(p));
 function filtradas(conPrio) {
-  return D.tareas.filter(x => (!F.ambitos.length || F.ambitos.includes(x.ambito)) && (!F.estados.length || F.estados.includes(x.estado)) &&
+  return D.tareas.filter(x => casa(x) && (!F.ambitos.length || F.ambitos.includes(x.ambito)) && (!F.estados.length || F.estados.includes(x.estado)) &&
     (!conPrio || F.prio === "todas" || (F.prio === "puntuadas" && puntuada(x)) || (F.prio === "sin" && !puntuada(x))));
 }
 
@@ -496,7 +503,7 @@ $("g-editar").onclick = () => {
 // hechas de un ámbito (de "## Done", la más reciente arriba): círculo relleno, tocarlo la devuelve a To Do
 const abiertas = new Set();  // ámbitos con "Hechas" desplegado (al cargar, todas plegadas)
 function hechas(a) {
-  const hs = (D.hechas || []).filter(x => x.ambito === a);
+  const hs = (D.hechas || []).filter(x => x.ambito === a && casa(x));
   if (!hs.length) return null;
   const d = el("details", { class: "hechas" }); d.open = abiertas.has(a);
   d.ontoggle = () => d.open ? abiertas.add(a) : abiertas.delete(a);
@@ -530,6 +537,12 @@ function porAmbito() {
 }
 
 const vistaActual = () => location.hash === "#lista" ? "lista" : "matriz";
+$("f-buscar").addEventListener("input", e => { busca = sinAcentos(e.target.value.trim()); pintar(); });
+document.addEventListener("keydown", e => {  // "/" lleva al buscador, Esc lo vacía
+  const t = e.target, escribiendo = t.matches && t.matches("input, textarea, select, [contenteditable]");
+  if (e.key === "/" && !escribiendo) { e.preventDefault(); $("f-buscar").focus(); }
+  else if (e.key === "Escape" && t.id === "f-buscar" && t.value) { t.value = ""; busca = ""; pintar(); }
+});
 function pintar() {
   const v = vistaActual();
   $("v-matriz").hidden = v !== "matriz";
