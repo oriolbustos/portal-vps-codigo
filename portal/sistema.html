@@ -23,6 +23,39 @@ td.cmd { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2)
 .est::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--tinta-2); margin-right: 8px; vertical-align: 1px; }
 .est.mal::before { background: var(--acento); }
 .est.mal { color: var(--acento); }
+.cifra.ok, .cifra.regular, .cifra.mal, .cifra.info { box-shadow: inset 0 3px 0 var(--est); }
+.cifra.ok { --est: var(--c3); } .cifra.regular { --est: var(--c4); } .cifra.mal { --est: var(--c2); } .cifra.info { --est: var(--c1); }
+.cifra .etiqueta::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--est, var(--tinta-2)); margin-right: 7px; vertical-align: 1px; }
+.cifra .barra i { background: var(--est, var(--tinta-alta)); }
+.cifra.mal .valor { color: var(--c2); }
+.general { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-top: 4px; border: 1px solid var(--linea); border-left: 4px solid var(--est); background: var(--fondo-alto); }
+.general.ok { --est: var(--c3); } .general.regular { --est: var(--c4); } .general.mal { --est: var(--c2); }
+.general b { font-family: var(--serif); font-size: var(--t-xl); font-weight: 400; color: var(--tinta-alta); }
+.general span { font-size: var(--t-sm); color: var(--tinta-2); }
+.est.ok::before { background: var(--c3); } .est.regular::before { background: var(--c4); } .est.regular { color: var(--c4); }
+.diagrama { overflow: auto; border: 1px solid var(--linea); background: var(--fondo-alto); padding: 12px; margin-top: 8px; -webkit-overflow-scrolling: touch; }
+.diagrama svg { display: block; margin: 0 auto; width: 100%; min-width: 860px; height: auto; }
+.diagrama.grande svg { min-width: 1000px; max-width: 1600px; }
+.mapa-svg .m { fill: none; stroke: var(--linea); stroke-width: 1; }
+.mapa-svg .m.vps { fill: var(--fondo-2); fill-opacity: .35; }
+.mapa-svg .mt { font-family: var(--sans); font-size: 10.5px; letter-spacing: .06em; fill: var(--tinta-2); font-weight: 500; }
+.mapa-svg .n rect { fill: var(--fondo); stroke: var(--linea-alta); stroke-width: 1; }
+.mapa-svg .n.dato rect { fill: var(--fondo-2); }
+.mapa-svg .t { font-family: var(--sans); font-size: 14px; font-weight: 550; fill: var(--tinta-alta); }
+.mapa-svg .s { font-family: var(--sans); font-size: 11px; fill: var(--tinta-2); }
+.mapa-svg .el { font-family: var(--sans); font-size: 10.5px; fill: var(--tinta-2); paint-order: stroke; stroke: var(--fondo-alto); stroke-width: 4px; }
+.mapa-svg .e { fill: none; stroke-width: 1.5; }
+.mapa-svg .https { stroke: var(--c-tinta); fill: var(--c-tinta); } .mapa-svg .ssh { stroke: var(--c1); fill: var(--c1); }
+.mapa-svg .int { stroke: var(--c-eje); fill: var(--c-eje); } .mapa-svg .sal { stroke: var(--c3); fill: var(--c3); }
+.mapa-svg .temp { stroke: var(--c4); fill: var(--c4); }
+.mapa-svg .e.sal, .mapa-svg .e.temp { stroke-dasharray: 5 4; } .mapa-svg .e { fill: none !important; } .mapa-svg .fl { stroke: none; }
+.diagrama .cargando { color: var(--tinta-2); font-size: var(--t-sm); padding: 24px; text-align: center; }
+.ley-diag { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: var(--t-xs); color: var(--tinta-2); margin-top: 10px; }
+.ley-diag i { display: inline-block; width: 22px; height: 0; border-top: 2px solid; vertical-align: 3px; margin-right: 6px; }
+.zoom-diag { margin-top: 8px; }
+.desliza { margin-top: 6px; } @media (min-width: 900px) { .desliza { display: none; } }
+.diagrama.grande { position: fixed; inset: 0; z-index: 40; margin: 0; border: 0; padding: 48px 12px 12px; }
+.diagrama.grande .cerrar { position: fixed; top: 10px; right: 12px; z-index: 41; }
 .pie-panel { margin-top: 32px; font-size: var(--t-xs); color: var(--tinta-2); }
 .mapa { grid-template-columns: 1fr; }
 @media (min-width: 900px) { .mapa { grid-template-columns: 1fr 1.6fr 1fr; } }
@@ -54,6 +87,7 @@ td.cmd { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2)
 
 <section class="vista" id="v-resumen">
   <div class="seccion"><span class="n">01</span><h2>Resumen</h2><p id="res-sub"></p></div>
+  <div class="general" id="res-general"></div>
   <div class="rejilla cifras" id="res-cifras"></div>
   <div id="res-avisos" style="margin-top:16px"></div>
 </section>
@@ -93,44 +127,16 @@ td.cmd { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2)
 
 <section class="vista" id="v-mapa">
   <div class="seccion"><span class="n">07</span><h2>Mapa</h2><p>Cómo encaja todo: dispositivos, servidor y servicios de fuera. El vault del VPS es la fuente de verdad.</p></div>
-  <div class="rejilla mapa">
-    <div class="col">
-      <span class="etiqueta">Dispositivos</span>
-      <div class="nodo"><b>iPhone</b><p>Obsidian, app de Claude y portal en el navegador. El Atajo manda los pasos a las 23:15.</p><span class="via">Obsidian Sync → Remotely Save</span></div>
-      <div class="nodo"><b>Mac del trabajo</b><p>Obsidian y Claude Code. Entra al servidor por SSH (<code>vps</code>, <code>vps-claude</code>).</p><span class="via">Obsidian Sync → Remotely Save</span></div>
-      <div class="nodo"><b>Lenovo personal</b><p>Obsidian y Claude Code.</p><span class="via">Remotely Save (WebDAV)</span></div>
-      <div class="nodo"><b>Fitbit</b><p>Sueño, HRV, FC en reposo y pasos.</p><span class="via">API de Fitbit</span></div>
-    </div>
-    <div class="col">
-      <span class="etiqueta">VPS Hetzner · testobm.duckdns.org</span>
-      <div class="grupo"><span class="mini">Entrada</span>
-        <div class="nodo"><b>Caddy</b><p>HTTPS para todo. Reparte a portal, Finanzas, WebDAV y los MCP (rutas secretas).</p></div>
-      </div>
-      <div class="grupo"><span class="mini">Datos</span>
-        <div class="nodo"><b>Vault</b><p><code>/srv/vault</code>, uid 1000. Backup horario a GitHub.</p></div>
-        <div class="nodo"><b>Caja de Finanzas</b><p>gocryptfs, se abre con su propia contraseña y se cierra a las 12 h.</p></div>
-      </div>
-      <div class="grupo"><span class="mini">Servicios</span>
-        <div class="nodo"><b>Portal</b><p>Login, To Do, Tareas, Listas, Entreno, Trabajo, Vault, Sistema. Vault y Archivos del VPS llevan su propia contraseña. Lee el vault y escribe a través de los escritores (root).</p></div>
-        <div class="nodo"><b>WebDAV</b><p>Sync de Obsidian con Remotely Save.</p></div>
-        <div class="nodo"><b>Obsidian (contenedor)</b><p>Puente con Obsidian Sync mientras dure la suscripción.</p></div>
-        <div class="nodo"><b>MCP vault y MCP Finanzas</b><p>Conectores para Claude del móvil y la web.</p></div>
-        <div class="nodo"><b>salud-sync</b><p>Fitbit y pasos del iPhone al diario de Entreno, 10:30 y 21:30.</p></div>
-        <div class="nodo"><b>Claude Code</b><p>Usuario <code>claude</code>, siempre en marcha con Remote Control. Sin root ni secretos.</p></div>
-      </div>
-      <div class="grupo"><span class="mini">Mantenimiento</span>
-        <div class="nodo"><b>Cron</b><p>Latido cada 10 min y backup del vault.</p></div>
-      </div>
-    </div>
-    <div class="col">
-      <span class="etiqueta">Fuera</span>
-      <div class="nodo"><b>Claude (Anthropic)</b><p>App y web: usan los MCP. Claude Code: Remote Control por conexión saliente.</p></div>
-      <div class="nodo"><b>GitHub</b><p><code>portal-vps-codigo</code> (código de /opt) y el backup del vault.</p></div>
-      <div class="nodo saliente"><b>Obsidian Sync</b><p>Cancelado, termina en noviembre. Después se apaga el contenedor obsidian.</p></div>
-      <div class="nodo"><b>1Password</b><p>Claves y contraseñas. Nunca en el vault.</p></div>
-      <div class="nodo"><b>DuckDNS</b><p>Nombre del servidor.</p></div>
-    </div>
+  <div class="diagrama" id="diagrama"><svg class="mapa-svg" viewBox="0 0 1000 640" role="img" aria-label="Mapa del sistema: quién entra, servicios del VPS, datos y servicios de fuera"><defs><marker id="f-https" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fl https" d="M0,0 L8,4 L0,8 z"/></marker><marker id="f-ssh" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fl ssh" d="M0,0 L8,4 L0,8 z"/></marker><marker id="f-int" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fl int" d="M0,0 L8,4 L0,8 z"/></marker><marker id="f-sal" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fl sal" d="M0,0 L8,4 L0,8 z"/></marker><marker id="f-temp" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fl temp" d="M0,0 L8,4 L0,8 z"/></marker></defs><rect class="m" x="8" y="10" width="200" height="620"/><text class="mt" x="18" y="30">QUIÉN ENTRA</text><rect class="m vps" x="232" y="10" width="610" height="620"/><text class="mt" x="242" y="30">VPS HETZNER · TESTOBM.DUCKDNS.ORG</text><text class="mt" x="262" y="62">ENTRADA</text><text class="mt" x="472" y="62">SERVICIOS</text><text class="mt" x="702" y="62">DATOS</text><rect class="m" x="858" y="10" width="134" height="620"/><text class="mt" x="868" y="30">FUERA</text><path class="e https" d="M196,107.0 C226.0,107.0 226.0,164.0 256,164.0" marker-end="url(#f-https)"/><text class="el" x="217.0" y="122.95" text-anchor="middle">HTTPS</text><path class="e https" d="M196,197.0 C226.0,197.0 226.0,178.0 256,178.0" marker-end="url(#f-https)"/><path class="e https" d="M196,287.0 C226.0,287.0 226.0,192.0 256,192.0" marker-end="url(#f-https)"/><path class="e https" d="M196,427.0 C226.0,427.0 226.0,209.5 256,209.5" marker-end="url(#f-https)"/><text class="el" x="220.0" y="336.0" text-anchor="middle">conectores</text><path class="e ssh" d="M196,210.5 C226.0,210.5 226.0,306.2 256,306.2" marker-end="url(#f-ssh)"/><text class="el" x="232.0" y="263.92" text-anchor="middle">ssh</text><path class="e ssh" d="M196,300.5 C226.0,300.5 226.0,322.4 256,322.4" marker-end="url(#f-ssh)"/><path class="e int" d="M406,164.0 C436.0,164.0 436.0,101.0 466,101.0" marker-end="url(#f-int)"/><path class="e int" d="M406,178.0 C436.0,178.0 436.0,169.0 466,169.0" marker-end="url(#f-int)"/><path class="e int" d="M406,192.0 C436.0,192.0 436.0,237.0 466,237.0" marker-end="url(#f-int)"/><path class="e int" d="M406,206.0 C436.0,206.0 436.0,305.0 466,305.0" marker-end="url(#f-int)"/><path class="e int" d="M406,317.0 C436.0,317.0 436.0,373.0 466,373.0" marker-end="url(#f-int)"/><text class="el" x="436.0" y="341.0" text-anchor="middle">shell</text><path class="e int" d="M642,101.0 C669.0,101.0 669.0,138.0 696,138.0" marker-end="url(#f-int)"/><text class="el" x="666.3" y="113.65" text-anchor="middle">escritores</text><path class="e int" d="M642,169.0 C669.0,169.0 669.0,158.4 696,158.4" marker-end="url(#f-int)"/><path class="e int" d="M642,237.0 C669.0,237.0 669.0,180.0 696,180.0" marker-end="url(#f-int)"/><path class="e int" d="M642,249.5 C669.0,249.5 669.0,321.0 696,321.0" marker-end="url(#f-int)"/><path class="e int" d="M642,305.0 C669.0,305.0 669.0,345.5 696,345.5" marker-end="url(#f-int)"/><path class="e int" d="M642,373.0 C669.0,373.0 669.0,201.60000000000002 696,201.60000000000002" marker-end="url(#f-int)"/><path class="e int" d="M642,441.0 C669.0,441.0 669.0,218.39999999999998 696,218.39999999999998" marker-end="url(#f-int)"/><path class="e int" d="M642,577.0 C669.0,577.0 669.0,234.0 696,234.0" marker-end="url(#f-int)"/><path class="e sal" d="M466,383.0 C380,418 260,440 196,437.8" marker-end="url(#f-sal)"/><text class="el" x="322.75" y="420.35" text-anchor="middle">Remote Control</text><path class="e sal" d="M642,433.5 C755.0,433.5 755.0,433.5 868,433.5" marker-end="url(#f-sal)"/><text class="el" x="811.5" y="429.5" text-anchor="middle">lee</text><path class="e sal" d="M642,509.0 C755.0,509.0 755.0,509.0 868,509.0" marker-end="url(#f-sal)"/><text class="el" x="811.5" y="505.0" text-anchor="middle">backup</text><path class="e temp" d="M642,577.0 C755.0,577.0 755.0,577.0 868,577.0" marker-end="url(#f-temp)"/><text class="el" x="811.5" y="573.0" text-anchor="middle">puente</text><g class="n"><rect x="20" y="80" width="176" height="54" rx="0"/><text class="t" x="30" y="105.0">iPhone</text><text class="s" x="30" y="121.0">Obsidian, portal, pasos</text></g><g class="n"><rect x="20" y="170" width="176" height="54" rx="0"/><text class="t" x="30" y="195.0">Mac del trabajo</text><text class="s" x="30" y="211.0">Obsidian, Claude Code</text></g><g class="n"><rect x="20" y="260" width="176" height="54" rx="0"/><text class="t" x="30" y="285.0">Lenovo</text><text class="s" x="30" y="301.0">Obsidian, Claude Code</text></g><g class="n"><rect x="20" y="400" width="176" height="54" rx="0"/><text class="t" x="30" y="425.0">Claude (Anthropic)</text><text class="s" x="30" y="441.0">app, web, Remote Control</text></g><g class="n"><rect x="256" y="150" width="150" height="70" rx="0"/><text class="t" x="266" y="183.0">Caddy</text><text class="s" x="266" y="199.0">HTTPS, login</text></g><g class="n"><rect x="256" y="290" width="150" height="54" rx="0"/><text class="t" x="266" y="315.0">SSH</text><text class="s" x="266" y="331.0">clave: root y claude</text></g><g class="n"><rect x="466" y="76" width="176" height="50" rx="0"/><text class="t" x="476" y="99.0">Portal</text><text class="s" x="476" y="115.0">paneles</text></g><g class="n"><rect x="466" y="144" width="176" height="50" rx="0"/><text class="t" x="476" y="167.0">WebDAV</text><text class="s" x="476" y="183.0">sync de Obsidian</text></g><g class="n"><rect x="466" y="212" width="176" height="50" rx="0"/><text class="t" x="476" y="235.0">MCP</text><text class="s" x="476" y="251.0">vault y Finanzas</text></g><g class="n"><rect x="466" y="280" width="176" height="50" rx="0"/><text class="t" x="476" y="303.0">Llave Finanzas</text><text class="s" x="476" y="319.0">abre la caja</text></g><g class="n"><rect x="466" y="348" width="176" height="50" rx="0"/><text class="t" x="476" y="371.0">Claude Code</text><text class="s" x="476" y="387.0">usuario claude</text></g><g class="n"><rect x="466" y="416" width="176" height="50" rx="0"/><text class="t" x="476" y="439.0">salud-sync</text><text class="s" x="476" y="455.0">10:30 y 21:30</text></g><g class="n"><rect x="466" y="484" width="176" height="50" rx="0"/><text class="t" x="476" y="507.0">Cron</text><text class="s" x="476" y="523.0">latido y backup</text></g><g class="n"><rect x="466" y="552" width="176" height="50" rx="0"/><text class="t" x="476" y="575.0">Obsidian</text><text class="s" x="476" y="591.0">puente con Sync</text></g><g class="n dato"><rect x="696" y="120" width="134" height="120" rx="14"/><text class="t" x="706" y="178.0">Vault</text><text class="s" x="706" y="194.0">fuente de verdad</text></g><g class="n dato"><rect x="696" y="300" width="134" height="70" rx="14"/><text class="t" x="706" y="333.0">Caja Finanzas</text><text class="s" x="706" y="349.0">cifrada</text></g><g class="n"><rect x="868" y="416" width="116" height="50" rx="0"/><text class="t" x="878" y="439.0">Fitbit</text><text class="s" x="878" y="455.0">datos del reloj</text></g><g class="n"><rect x="868" y="484" width="116" height="50" rx="0"/><text class="t" x="878" y="507.0">GitHub</text><text class="s" x="878" y="523.0">código y backup</text></g><g class="n"><rect x="868" y="552" width="116" height="50" rx="0"/><text class="t" x="878" y="575.0">Obsidian Sync</text><text class="s" x="878" y="591.0">hasta noviembre</text></g></svg></div>
+  <div class="ley-diag">
+    <span><i style="border-color:var(--c-tinta)"></i>HTTPS por Caddy</span>
+    <span><i style="border-color:var(--c1)"></i>SSH</span>
+    <span><i style="border-color:var(--c3);border-top-style:dashed"></i>Conexión saliente del VPS</span>
+    <span><i style="border-color:var(--c4);border-top-style:dashed"></i>Temporal (Obsidian Sync, hasta noviembre)</span>
+    <span><i style="border-color:var(--c-eje)"></i>Dentro del VPS</span>
   </div>
+  <p class="mini secundario desliza">Desliza a los lados para ver todo, o ábrelo en grande.</p>
+  <button class="boton zoom-diag" id="diag-grande" type="button">Ver en grande</button>
 
   <div class="seccion"><span class="n">07b</span><h2>Cómo llega cada uno</h2><p>Quién toca qué y por dónde.</p></div>
   <div class="tabla"><table>
@@ -172,9 +178,11 @@ function dur(s) {
 }
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 const barra = (p, alta = 85) => `<div class="barra${p >= alta ? " alta" : ""}"><i style="width:${p}%"></i></div>`;
-const cifra = (et, val, ud, nota, href, p) => `<div class="cifra"><span class="etiqueta">${et}</span><a href="${href || "#"}"><span class="valor">${val}${ud ? `<small>${ud}</small>` : ""}</span></a>${p != null ? barra(p) : ""}<span class="nota">${nota || ""}</span></div>`;
+const cifra = (et, val, ud, nota, href, p, est = "") => `<div class="cifra ${est}"><span class="etiqueta">${et}</span><a href="${href || "#"}"><span class="valor">${val}${ud ? `<small>${ud}</small>` : ""}</span></a>${p != null ? barra(p) : ""}<span class="nota">${nota || ""}</span></div>`;
 const tabla = (cab, filas, nums = []) => filas.length ? `<table><tr>${cab.map((c, i) => `<th${nums.includes(i) ? ' class="n"' : ""}>${c}</th>`).join("")}</tr>${filas.map(f => `<tr>${f.map((c, i) => `<td${nums.includes(i) ? ' class="n"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</table>` : '<p class="vacio">-</p>';
-const est = (ok, txt) => `<span class="est${ok ? "" : " mal"}">${esc(txt)}</span>`;
+const est = (ok, txt) => `<span class="est ${ok === true ? "ok" : ok === "regular" ? "regular" : "mal"}">${esc(txt)}</span>`;
+const nivel = (v, regular, mal) => v >= mal ? "mal" : v >= regular ? "regular" : "ok";  // umbrales: de "regular" y de "mal"
+const PEOR = { ok: 0, info: 0, regular: 1, mal: 2 };
 const fecha = s => { const m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(s || ""); return m ? `${m[3]}-${m[2]} ${m[4]}` : "-"; };
 
 function pintar() {
@@ -184,15 +192,25 @@ function pintar() {
   const lat = D.latido, latOk = lat.estado === "OK" && lat.edad_min != null && lat.edad_min < 25;
   const act = D.actualizaciones;
   $("res-sub").textContent = `${D.host}, kernel ${D.kernel}, encendido hace ${dur(D.uptime)}.`;
+  const E = {
+    ram: nivel(pct(usada, m.total), 75, 90), disco: nivel(pct(raiz.usado, raiz.total), 75, 90),
+    carga: nivel(D.carga[1] / D.cpus, 0.7, 1), servicios: caidos.length ? "mal" : "ok",
+    latido: latOk ? "ok" : lat.edad_min != null && lat.edad_min < 60 && lat.estado !== "-" && !/caíd|muerta|fallido/.test(lat.estado) ? "regular" : "mal",
+    ssh: "info", act: act.reinicio ? "regular" : act.paquetes.length > 10 ? "regular" : "ok",
+  };
   $("res-cifras").innerHTML = [
-    cifra("RAM usada", nf(usada / 2 ** 30, 1), "GB", `de ${nf(m.total / 2 ** 30, 1)} GB. Libres ${nf(m.disponible / 2 ** 30, 1)} GB`, "#memoria", pct(usada, m.total)),
-    cifra("Disco", pct(raiz.usado, raiz.total), "%", `${tam(raiz.libre)} libres de ${tam(raiz.total)}`, "#disco", pct(raiz.usado, raiz.total)),
-    cifra("Carga", nf(D.carga[0], 2), "", `${D.cpus} CPU. 5 min ${nf(D.carga[1], 2)}, 15 min ${nf(D.carga[2], 2)}`, "#procesos", Math.min(100, pct(D.carga[0], D.cpus))),
-    cifra("Servicios", `${D.servicios.length - caidos.length}/${D.servicios.length}`, "", caidos.length ? "Caído: " + caidos.map(s => s.nombre).join(", ") : "Todos en marcha", "#servicios"),
-    cifra("Latido", latOk ? "OK" : esc(lat.estado), "", lat.edad_min == null ? "-" : `hace ${lat.edad_min} min`, "#servicios"),
-    cifra("Sesiones SSH", D.usuarios.sesiones.length, "", `${D.usuarios.cuentas.filter(c => c.entra).length} cuentas pueden entrar`, "#usuarios"),
-    cifra("Actualizaciones", act.paquetes.length, "", act.reinicio ? "Hace falta reiniciar" : "Sin reinicio pendiente", "#servicios"),
+    cifra("RAM usada", nf(usada / 2 ** 30, 1), "GB", `de ${nf(m.total / 2 ** 30, 1)} GB. Libres ${nf(m.disponible / 2 ** 30, 1)} GB`, "#memoria", pct(usada, m.total), E.ram),
+    cifra("Disco", pct(raiz.usado, raiz.total), "%", `${tam(raiz.libre)} libres de ${tam(raiz.total)}`, "#disco", pct(raiz.usado, raiz.total), E.disco),
+    cifra("Carga", nf(D.carga[0], 2), "", `${D.cpus} CPU. 5 min ${nf(D.carga[1], 2)}, 15 min ${nf(D.carga[2], 2)}`, "#procesos", Math.min(100, pct(D.carga[0], D.cpus)), E.carga),
+    cifra("Servicios", `${D.servicios.length - caidos.length}/${D.servicios.length}`, "", caidos.length ? "Caído: " + caidos.map(s => s.nombre).join(", ") : "Todos en marcha", "#servicios", null, E.servicios),
+    cifra("Latido", latOk ? "OK" : esc(lat.estado), "", lat.edad_min == null ? "-" : `hace ${lat.edad_min} min`, "#servicios", null, E.latido),
+    cifra("Sesiones SSH", D.usuarios.sesiones.length, "", `${D.usuarios.cuentas.filter(c => c.entra).length} cuentas pueden entrar`, "#usuarios", null, E.ssh),
+    cifra("Actualizaciones", act.paquetes.length, "", act.reinicio ? "Hace falta reiniciar" : "Sin reinicio pendiente", "#servicios", null, E.act),
   ].join("");
+  const peor = Object.values(E).reduce((a, b) => PEOR[b] > PEOR[a] ? b : a, "ok");
+  const malos = Object.entries(E).filter(([, v]) => v === peor && peor !== "ok").map(([k]) => ({ ram: "RAM", disco: "disco", carga: "carga", servicios: "servicios", latido: "latido", act: "actualizaciones" })[k]);
+  $("res-general").className = "general " + peor;
+  $("res-general").innerHTML = `<b>${{ ok: "Todo bien", regular: "Revisar", mal: "Algo falla" }[peor]}</b><span>${peor === "ok" ? "Servicios en marcha, recursos holgados y latido al día." : "Mira: " + malos.join(", ") + "."}</span>`;
   const avisos = [];
   if (caidos.length) avisos.push(`Servicio parado: ${caidos.map(s => esc(s.nombre)).join(", ")}.`);
   if (!latOk) avisos.push(`El latido no está bien (${esc(lat.estado)}, ${lat.edad_min ?? "-"} min). Revisa check.sh y los contenedores.`);
@@ -215,11 +233,11 @@ function pintar() {
     D.carpetas.map(c => [esc(c.nombre), `<code>${esc(c.ruta)}</code>`, tam(c.bytes), c.bytes == null ? "-" : nf(c.bytes / raiz.total * 100, 1) + " %"]), [2, 3]);
 
   $("serv").innerHTML = tabla(["Servicio", "Unidad", "Estado", "RAM", "Desde"],
-    D.servicios.map(s => [esc(s.nombre), `<code>${esc(s.unidad)}</code>`, est(s.estado === "active", s.sub || s.estado), tam(s.memoria), esc(s.desde ? s.desde.replace(/^\w+ /, "").slice(0, 16) : "-")]), [3]);
+    D.servicios.map(s => [esc(s.nombre), `<code>${esc(s.unidad)}</code>`, est(s.estado === "active" ? true : s.estado === "activating" || s.estado === "reloading" ? "regular" : false, s.sub || s.estado), tam(s.memoria), esc(s.desde ? s.desde.replace(/^\w+ /, "").slice(0, 16) : "-")]), [3]);
   $("serv-latido").innerHTML = tabla(["Qué", "Valor"], [
     ["Latido", est(latOk, lat.estado)], ["Última vez", fecha(lat.actualizado)],
     ["Paquetes por actualizar", act.paquetes.length ? esc(act.paquetes.join(", ")) : "Ninguno"],
-    ["Reinicio pendiente", act.reinicio ? est(false, "Sí") : "No"],
+    ["Reinicio pendiente", act.reinicio ? est("regular", "Sí") : "No"],
   ]);
 
   $("usu-cuentas").innerHTML = tabla(["Cuenta", "uid", "Carpeta", "Entra"],
@@ -233,6 +251,15 @@ function pintar() {
   $("pie").textContent = `Datos de las ${D.generado}. Se actualizan solos cada 30 s.`;
 }
 
+$("diag-grande").addEventListener("click", () => {
+  const d = $("diagrama");
+  if (d.classList.contains("grande")) return;
+  d.classList.add("grande");
+  const x = document.createElement("button"); x.className = "boton cerrar"; x.textContent = "Cerrar";
+  const cerrar = () => { d.classList.remove("grande"); x.remove(); document.removeEventListener("keydown", tecla); };
+  const tecla = e => { if (e.key === "Escape") cerrar(); };
+  x.onclick = cerrar; document.addEventListener("keydown", tecla); document.body.append(x);
+});
 function vista() {
   const v = (location.hash || "#resumen").slice(1);
   const id = document.getElementById("v-" + v) ? v : "resumen";
