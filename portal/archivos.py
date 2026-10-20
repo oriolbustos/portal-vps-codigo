@@ -430,7 +430,7 @@ ul.resultados a, .atras a { color: var(--tinta-alta); text-decoration: none; } u
 def pagina(cuerpo: str, raiz: str, extra: str = "") -> str:
     titulo, icono, volver, volver_txt = TITULO[raiz]
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="referrer" content="no-referrer"><title>{titulo}</title><link rel="stylesheet" href="/estatico/estilo.css">
+<title>{titulo}</title><link rel="stylesheet" href="/estatico/estilo.css">
 <link rel="icon" href="/estatico/iconos/fav-{icono}.svg" type="image/svg+xml">{ESTILO}</head><body><div class="pagina">
 <header class="cabecera"><div class="marca"><a class="volver" href="{volver}">← {volver_txt}</a><h1><span class="sello"><i class="ico ico-{icono}"></i></span>{titulo}</h1></div>
 <div class="extra">{extra}</div></header>{cuerpo}</div></body></html>"""
