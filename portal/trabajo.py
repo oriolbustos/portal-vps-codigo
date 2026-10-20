@@ -97,39 +97,46 @@ def pagina(elegido: str = "") -> str:
     except Exception as e:
         c = {"error": str(e), "log": "", "paginas": 0, "huella": ""}
     opciones = "".join(f'<option value="{html.escape(n)}"{" selected" if n == nombre else ""}>{html.escape(n)}</option>' for n, _ in cvs)
-    cab = f"""<div class="barra-cv"><form method="get"><label class="etiqueta" for="cv">Versión</label>
+    pdf = ""
+    if not c["error"]:
+        pdf = f'<a class="boton" href="/trabajo/cv/{c["huella"]}/cv.pdf" download="{html.escape(nombre)}.pdf">Descargar PDF</a>'
+    barra = f"""<div class="barra-cv"><form method="get"><label class="etiqueta" for="cv">Versión</label>
 <select id="cv" name="cv" onchange="this.form.submit()">{opciones}</select></form>
-<a class="boton" href="/trabajo/editar?cv={quote(nombre)}">Editar</a>
-<button class="boton" type="button" id="b-nuevo" aria-expanded="false" aria-controls="nuevo-cv">Nuevo</button>"""
-    desde = "".join(f'<option value="{html.escape(n)}"{" selected" if n == nombre else ""}>{html.escape(n)}</option>' for n, _ in cvs)
-    cab += f"""<form class="nuevo-cv" id="nuevo-cv" hidden autocomplete="off">
-<label class="campo"><span class="etiqueta">Nombre del CV nuevo</span><input id="n-nombre" value="{html.escape(nombre_libre())}" maxlength="60" required></label>
-<label class="campo"><span class="etiqueta">A partir de</span><select id="n-desde">{desde}</select></label>
-<div class="fila-botones"><button class="boton fuerte">Crear y editar</button><button class="boton" type="button" id="n-cancelar">Cancelar</button><span class="mini secundario" id="n-estado"></span></div>
-<p class="mini secundario">Se guarda como <code>01 - CVs/nombre.md</code>. El original no se toca.</p></form>
+<a class="boton" href="/trabajo/editar?cv={quote(nombre)}">Editar</a>{pdf}
+<button class="boton fuerte crear" type="button" id="b-nuevo" aria-expanded="false" aria-controls="nuevo-cv">Crear CV nuevo</button></div>"""
+    form = f"""<form class="nuevo-cv" id="nuevo-cv" hidden autocomplete="off">
+<h2>Crear un CV nuevo</h2>
+<p class="secundario peq">Se hace una copia de un CV que ya tienes y se abre en el editor para cambiarla. El original no se toca.</p>
+<label class="paso"><span class="num">1</span><span class="etiqueta">De qué CV partes</span><select id="n-desde">{opciones}</select></label>
+<label class="paso"><span class="num">2</span><span class="etiqueta">Cómo se llama el nuevo</span><input id="n-nombre" value="{html.escape(nombre_libre())}" maxlength="60" required>
+<span class="mini secundario">Se guardará como <code>01 - CVs/<b id="n-vista">{html.escape(nombre_libre())}</b>.md</code></span></label>
+<div class="fila-botones"><button class="boton fuerte">Crear copia y editarla</button><button class="boton" type="button" id="n-cancelar">Cancelar</button></div>
+<p class="error" id="n-estado" role="status"></p></form>
 <script>
 (() => {{
-  const f = document.getElementById("nuevo-cv"), b = document.getElementById("b-nuevo"), est = document.getElementById("n-estado");
-  const abrir = v => {{ f.hidden = !v; b.setAttribute("aria-expanded", v); if (v) document.getElementById("n-nombre").select(); }};
-  b.onclick = () => abrir(f.hidden); document.getElementById("n-cancelar").onclick = () => abrir(false);
+  const $ = id => document.getElementById(id), f = $("nuevo-cv"), b = $("b-nuevo"), est = $("n-estado");
+  const abrir = v => {{ f.hidden = !v; b.setAttribute("aria-expanded", v); if (v) {{ $("n-desde").focus(); f.scrollIntoView({{ block: "nearest", behavior: "smooth" }}); }} }};
+  b.onclick = () => abrir(f.hidden); $("n-cancelar").onclick = () => abrir(false);
+  $("n-nombre").oninput = e => {{ $("n-vista").textContent = e.target.value.trim().replace(/\\.md$/i, "") || "-"; }};
   f.onsubmit = async e => {{
-    e.preventDefault(); est.textContent = "Creando...";
+    e.preventDefault(); est.className = "mini secundario"; est.textContent = "Creando la copia...";
     try {{
       const r = await fetch("/trabajo/nuevo", {{ method: "POST", headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{ texto: "", nombre: document.getElementById("n-nombre").value, desde: document.getElementById("n-desde").value }}) }});
+        body: JSON.stringify({{ texto: "", nombre: $("n-nombre").value, desde: $("n-desde").value }}) }});
       const d = await r.json();
-      if (d.ok) location.href = "/trabajo/editar?cv=" + encodeURIComponent(d.cv); else est.textContent = d.mensaje || "No se ha podido crear.";
-    }} catch (err) {{ est.textContent = "No se ha podido crear: sin conexión."; }}
+      if (d.ok) location.href = "/trabajo/editar?cv=" + encodeURIComponent(d.cv);
+      else {{ est.className = "error"; est.textContent = d.mensaje || "No se ha podido crear."; }}
+    }} catch (err) {{ est.className = "error"; est.textContent = "No se ha podido crear: sin conexión."; }}
   }};
 }})();
 </script>"""
+    cab = barra + form
     if c["error"]:
-        return cab + f"""</div><div class="aviso">No compila: {html.escape(c['error'])}</div>
+        return cab + f"""<div class="aviso">No compila: {html.escape(c['error'])}</div>
 <details style="margin-top:12px"><summary>Ver el final del log</summary><pre class="mono mini">{html.escape(c['log'])}</pre></details>"""
     base = f"/trabajo/cv/{c['huella']}"
     imgs = "".join(f'<img src="{base}/pagina-{i}.png" alt="CV, página {i}" loading="lazy">' for i in range(1, c["paginas"] + 1))
-    return cab + f"""<a class="boton fuerte" href="{base}/cv.pdf" download="{html.escape(nombre)}.pdf">Descargar PDF</a></div>
-<p class="mini secundario fuente">Fuente: <code>20 - Career/40 - Opportunities/01 - CVs/{html.escape(p.name)}</code></p>
+    return cab + f"""<p class="mini secundario fuente">Fuente: <code>20 - Career/40 - Opportunities/01 - CVs/{html.escape(p.name)}</code></p>
 <div class="hojas">{imgs}</div>"""
 
 

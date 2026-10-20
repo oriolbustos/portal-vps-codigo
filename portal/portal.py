@@ -379,11 +379,19 @@ def pagina_portada(cens=False):
 
 
 def pagina_trabajo(elegido="", editar=False):
-    estilo = """<style>.barra-cv { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 24px 0 8px; }
+    estilo = """<style>.barra-cv { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 24px 0 8px; }
+.barra-cv .crear { margin-left: auto; }
 .barra-cv form, .fila-botones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.nuevo-cv { border: 1px solid var(--linea); background: var(--fondo-alto); padding: 4px 16px 16px; margin: 8px 0 4px; max-width: 520px; }
-.nuevo-cv input, .nuevo-cv select { width: 100%; font: inherit; font-size: 16px; padding: 7px 10px; color: var(--tinta-alta); background: var(--fondo); border: 1px solid var(--linea); border-radius: 6px; margin-top: 4px; }
-.nuevo-cv .fila-botones { margin-top: 16px; } .nuevo-cv p { margin-top: 10px; }
+.nuevo-cv { border: 1px solid var(--linea); border-left: 3px solid var(--tinta-alta); background: var(--fondo-alto); padding: 16px 20px 18px; margin: 8px 0 20px; max-width: 560px; }
+.nuevo-cv h2 { font-family: var(--serif); font-size: var(--t-xl); font-weight: 400; line-height: 1.2; }
+.nuevo-cv > p.peq { margin: 4px 0 6px; }
+.nuevo-cv .paso { display: grid; grid-template-columns: 26px 1fr; gap: 4px 8px; align-items: center; margin-top: 16px; }
+.nuevo-cv .paso .num { grid-row: 1 / 3; align-self: start; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--linea-alta); display: grid; place-items: center; font: 400 12px var(--mono); color: var(--tinta-alta); margin-top: 1px; }
+.nuevo-cv .paso > :not(.num) { grid-column: 2; }
+.nuevo-cv input, .nuevo-cv select { width: 100%; font: inherit; font-size: 16px; padding: 7px 10px; color: var(--tinta-alta); background: var(--fondo); border: 1px solid var(--linea); border-radius: 6px; }
+.nuevo-cv .fila-botones { margin-top: 20px; padding-left: 34px; }
+.nuevo-cv .error, .nuevo-cv #n-estado { padding-left: 34px; margin-top: 8px; }
+@media (max-width: 600px) { .barra-cv .crear { margin-left: 0; } }
 .editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1px; padding: 1px; margin-top: 8px; }
 .editor > * { box-shadow: 0 0 0 1px var(--linea); background: var(--fondo); min-width: 0; }
 .editor textarea { width: 100%; height: calc(100vh - 220px); min-height: 420px; resize: vertical; border: 0; padding: 16px; font: 300 13px/1.55 var(--mono);
