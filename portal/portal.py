@@ -25,6 +25,7 @@ import censura, entreno, listas, tareas, todo, trabajo  # noqa: E402
 import apariencia, escritura  # noqa: E402  (/config/: Apariencia, Portada y Escritura)
 import entreno_sesion  # noqa: E402  (Entreno en directo, /entreno/sesion/)
 import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
+import sistema  # noqa: E402  (Sistema: estado del VPS y mapa)
 
 USUARIO = "oriol"
 CLAVE = Path(os.environ.get("PORTAL_CLAVE", "/etc/portal/clave"))
@@ -245,6 +246,7 @@ PANELES = [
     {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas},
     {"titulo": "Entreno", "ruta": "/entreno/", "desc": "Peso, nutrición, actividad y fuerza.", "estado": None},
     {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV actual.", "estado": None},
+    {"titulo": "Sistema", "ruta": "/sistema/", "desc": "Estado del servidor y cómo está montado todo.", "estado": None},
     {"titulo": "Configuración", "ruta": "/config/", "desc": "Apariencia, portada, escritura y censura.", "estado": None},  # en modo censurado, solo "Volver al modo normal"
 ]
 
@@ -598,6 +600,12 @@ class Manejador(BaseHTTPRequestHandler):
             if cens:
                 return self.no_encontrado()
             return self.enviar(pagina_estilo(), renovado=renovado)
+        if ruta in ("/sistema", "/sistema/"):
+            if ruta == "/sistema":
+                return self.redirigir("/sistema/", codigo=301)
+            return self.enviar(sistema.html(AQUI / "sistema.html"), renovado=renovado)
+        if ruta == "/sistema/datos":
+            return self.enviar_json(sistema.datos())
         if ruta in ("/tareas", "/trabajo", "/listas"):
             return self.redirigir(ruta + "/", codigo=301)
         if ruta == "/listas/":

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sistema</title>
+<link rel="stylesheet" href="/estatico/estilo.css">
+<link rel="icon" href="/estatico/iconos/fav-sistema.svg" type="image/svg+xml">
+<style>
+.vista { display: none; }
+.vista.activa { display: block; }
+.barra { height: 6px; background: var(--fondo-alto); box-shadow: inset 0 0 0 1px var(--linea); margin-top: 10px; position: relative; overflow: hidden; }
+.barra i { position: absolute; inset: 0 auto 0 0; background: var(--tinta-alta); }
+.barra i.b { background: var(--tinta-2); left: auto; }
+.barra.alta i { background: var(--acento); }
+.cifra a { color: inherit; text-decoration: none; }
+.cifra a:hover .valor { text-decoration: underline; text-underline-offset: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+th { text-align: left; font-weight: 500; color: var(--tinta-2); font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--linea); white-space: nowrap; }
+td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--linea); vertical-align: top; }
+td.n, th.n { text-align: right; font-family: var(--mono); font-weight: 300; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.cmd { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2); overflow-wrap: anywhere; }
+.est::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--tinta-2); margin-right: 8px; vertical-align: 1px; }
+.est.mal::before { background: var(--acento); }
+.est.mal { color: var(--acento); }
+.pie-panel { margin-top: 32px; font-size: var(--t-xs); color: var(--tinta-2); }
+.mapa { grid-template-columns: 1fr; }
+@media (min-width: 900px) { .mapa { grid-template-columns: 1fr 1.6fr 1fr; } }
+.col { padding: 16px; }
+@media (min-width: 768px) { .col { padding: 20px 24px; } }
+.col > .etiqueta { display: block; margin-bottom: 12px; }
+.nodo { border: 1px solid var(--linea); padding: 10px 12px; margin-bottom: 8px; background: var(--fondo); }
+.nodo b { font-weight: 550; color: var(--tinta-alta); }
+.nodo p { font-size: var(--t-xs); color: var(--tinta-2); margin-top: 4px; }
+.nodo .via { display: block; font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2); margin-top: 6px; }
+.nodo.saliente { border-style: dashed; }
+.grupo { margin-bottom: 14px; }
+.grupo > .mini { display: block; color: var(--tinta-2); margin-bottom: 6px; }
+.flujos li { margin: 6px 0; }
+.texto { max-width: 72ch; font-size: var(--t-sm); }
+.texto p, .texto ul { margin: 8px 0; }
+.texto code { font-family: var(--mono); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<div class="pagina">
+<header class="cabecera">
+  <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-sistema"></i></span>Sistema</h1></div>
+  <div class="extra"><button class="boton" id="recargar">Actualizar</button></div>
+  <nav class="nav" id="nav">
+    <a href="#resumen">Resumen</a><a href="#memoria">Memoria</a><a href="#disco">Disco</a><a href="#servicios">Servicios</a><a href="#usuarios">Usuarios</a><a href="#procesos">Procesos</a><a href="#mapa">Mapa</a>
+  </nav>
+</header>
+
+<section class="vista" id="v-resumen">
+  <div class="seccion"><span class="n">01</span><h2>Resumen</h2><p id="res-sub"></p></div>
+  <div class="rejilla cifras" id="res-cifras"></div>
+  <div id="res-avisos" style="margin-top:16px"></div>
+</section>
+
+<section class="vista" id="v-memoria">
+  <div class="seccion"><span class="n">02</span><h2>Memoria</h2><p>RAM y swap. La caché la suelta el sistema cuando hace falta, por eso cuenta como disponible.</p></div>
+  <div class="rejilla cifras" id="mem-cifras"></div>
+  <div class="seccion"><span class="n">02b</span><h2>Quién la usa</h2><p>Los 15 procesos que más RAM ocupan.</p></div>
+  <div class="tabla" id="mem-top"></div>
+</section>
+
+<section class="vista" id="v-disco">
+  <div class="seccion"><span class="n">03</span><h2>Disco</h2><p>Particiones y carpetas principales. El tamaño de las carpetas se recalcula cada 30 min.</p></div>
+  <div class="tabla" id="disco-part"></div>
+  <div class="seccion"><span class="n">03b</span><h2>Carpetas</h2><p>Un guion si el portal no tiene permiso para leerla.</p></div>
+  <div class="tabla" id="disco-carp"></div>
+</section>
+
+<section class="vista" id="v-servicios">
+  <div class="seccion"><span class="n">04</span><h2>Servicios</h2><p>Unidades de systemd del portal, los escritores del vault y Claude Code. Los contenedores los vigila el latido.</p></div>
+  <div class="tabla" id="serv"></div>
+  <div class="seccion"><span class="n">04b</span><h2>Latido y actualizaciones</h2><p>El latido lo escribe <code>check.sh</code> cada 10 min y revisa los contenedores y el conector.</p></div>
+  <div class="tabla" id="serv-latido"></div>
+</section>
+
+<section class="vista" id="v-usuarios">
+  <div class="seccion"><span class="n">05</span><h2>Usuarios</h2><p>Cuentas que pueden entrar y sesiones SSH abiertas ahora.</p></div>
+  <div class="tabla" id="usu-cuentas"></div>
+  <div class="seccion"><span class="n">05b</span><h2>Sesiones abiertas</h2><p></p></div>
+  <div class="tabla" id="usu-ses"></div>
+</section>
+
+<section class="vista" id="v-procesos">
+  <div class="seccion"><span class="n">06</span><h2>Procesos</h2><p>Ordenados por RAM. El uid 1000 es <code>claude</code> y también el contenedor de Obsidian, porque los dos son dueños del vault.</p></div>
+  <div class="tabla" id="proc"></div>
+</section>
+
+<section class="vista" id="v-mapa">
+  <div class="seccion"><span class="n">07</span><h2>Mapa</h2><p>Cómo encaja todo: dispositivos, servidor y servicios de fuera. El vault del VPS es la fuente de verdad.</p></div>
+  <div class="rejilla mapa">
+    <div class="col">
+      <span class="etiqueta">Dispositivos</span>
+      <div class="nodo"><b>iPhone</b><p>Obsidian, app de Claude y portal en el navegador. El Atajo manda los pasos a las 23:15.</p><span class="via">Obsidian Sync → Remotely Save</span></div>
+      <div class="nodo"><b>Mac del trabajo</b><p>Obsidian y Claude Code. Entra al servidor por SSH (<code>vps</code>, <code>vps-claude</code>).</p><span class="via">Obsidian Sync → Remotely Save</span></div>
+      <div class="nodo"><b>Lenovo personal</b><p>Obsidian y Claude Code.</p><span class="via">Remotely Save (WebDAV)</span></div>
+      <div class="nodo"><b>Fitbit</b><p>Sueño, HRV, FC en reposo y pasos.</p><span class="via">API de Fitbit</span></div>
+    </div>
+    <div class="col">
+      <span class="etiqueta">VPS Hetzner · testobm.duckdns.org</span>
+      <div class="grupo"><span class="mini">Entrada</span>
+        <div class="nodo"><b>Caddy</b><p>HTTPS para todo. Reparte a portal, Finanzas, WebDAV y los MCP (rutas secretas).</p></div>
+      </div>
+      <div class="grupo"><span class="mini">Datos</span>
+        <div class="nodo"><b>Vault</b><p><code>/srv/vault</code>, uid 1000. Backup horario a GitHub.</p></div>
+        <div class="nodo"><b>Caja de Finanzas</b><p>gocryptfs, se abre con su propia contraseña y se cierra a las 12 h.</p></div>
+      </div>
+      <div class="grupo"><span class="mini">Servicios</span>
+        <div class="nodo"><b>Portal</b><p>Login, To Do, Tareas, Listas, Entreno, Trabajo, Sistema. Lee el vault y escribe a través de los escritores (root).</p></div>
+        <div class="nodo"><b>WebDAV</b><p>Sync de Obsidian con Remotely Save.</p></div>
+        <div class="nodo"><b>Obsidian (contenedor)</b><p>Puente con Obsidian Sync mientras dure la suscripción.</p></div>
+        <div class="nodo"><b>MCP vault y MCP Finanzas</b><p>Conectores para Claude del móvil y la web.</p></div>
+        <div class="nodo"><b>salud-sync</b><p>Fitbit y pasos del iPhone al diario de Entreno, 10:30 y 21:30.</p></div>
+        <div class="nodo"><b>Claude Code</b><p>Usuario <code>claude</code>, siempre en marcha con Remote Control. Sin root ni secretos.</p></div>
+      </div>
+      <div class="grupo"><span class="mini">Mantenimiento</span>
+        <div class="nodo"><b>Cron</b><p>Latido cada 10 min y backup del vault.</p></div>
+      </div>
+    </div>
+    <div class="col">
+      <span class="etiqueta">Fuera</span>
+      <div class="nodo"><b>Claude (Anthropic)</b><p>App y web: usan los MCP. Claude Code: Remote Control por conexión saliente.</p></div>
+      <div class="nodo"><b>GitHub</b><p><code>portal-vps-codigo</code> (código de /opt) y el backup del vault.</p></div>
+      <div class="nodo saliente"><b>Obsidian Sync</b><p>Cancelado, termina en noviembre. Después se apaga el contenedor obsidian.</p></div>
+      <div class="nodo"><b>1Password</b><p>Claves y contraseñas. Nunca en el vault.</p></div>
+      <div class="nodo"><b>DuckDNS</b><p>Nombre del servidor.</p></div>
+    </div>
+  </div>
+
+  <div class="seccion"><span class="n">07b</span><h2>Cómo llega cada uno</h2><p>Quién toca qué y por dónde.</p></div>
+  <div class="tabla"><table>
+    <tr><th>Quién</th><th>Por dónde</th><th>Puede</th></tr>
+    <tr><td>Tú en el navegador</td><td>Portal, con login (cookie de 30 días)</td><td>Todos los paneles. Finanzas pide además su contraseña</td></tr>
+    <tr><td>Obsidian en cada dispositivo</td><td>WebDAV cada 5 min (Remotely Save)</td><td>Leer y escribir el vault</td></tr>
+    <tr><td>Claude del móvil y la web</td><td>Conectores MCP</td><td>Leer y escribir notas y Finanzas. No ejecuta comandos</td></tr>
+    <tr><td>Claude Code desde el móvil</td><td>Remote Control, entorno vps</td><td>Shell como <code>claude</code>: vault, código, reiniciar el portal</td></tr>
+    <tr><td>Claude Code en el Mac o el Lenovo</td><td>SSH con clave</td><td><code>vps-claude</code> para el día a día, <code>vps</code> (root) para administrar</td></tr>
+  </table></div>
+
+  <div class="seccion"><span class="n">07c</span><h2>Dónde está documentado</h2><p>Notas de <code>30 - Personal/00 - Sistema VPS/</code>.</p></div>
+  <div class="texto"><ul class="flujos">
+    <li><code>acceso-vps</code>: entrada única, SSH, usuarios, reglas para la IA.</li>
+    <li><code>portal</code>: cada panel y cómo escribe en el vault.</li>
+    <li><code>sync-vault</code>, <code>backup-vault</code>: sincronización y copias.</li>
+    <li><code>troubleshooting-sistema</code>: averías.</li>
+    <li><code>second-brain-improvements</code>: pendientes del sistema.</li>
+  </ul></div>
+</section>
+
+<p class="pie-panel" id="pie"></p>
+</div>
+<script id="datos" type="application/json">/*__DATOS__*/null</script>
+<script>
+let D = JSON.parse(document.getElementById("datos").textContent);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const nf = (n, d = 0) => n == null ? "-" : n.toLocaleString("es-ES", {minimumFractionDigits: d, maximumFractionDigits: d});
+function tam(b) {
+  if (b == null) return "-";
+  const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return nf(b, i >= 3 ? 1 : 0) + " " + u[i];
+}
+function dur(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return d ? `${d} d ${h} h` : h ? `${h} h ${m} min` : `${m} min`;
+}
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const barra = (p, alta = 85) => `<div class="barra${p >= alta ? " alta" : ""}"><i style="width:${p}%"></i></div>`;
+const cifra = (et, val, ud, nota, href, p) => `<div class="cifra"><span class="etiqueta">${et}</span><a href="${href || "#"}"><span class="valor">${val}${ud ? `<small>${ud}</small>` : ""}</span></a>${p != null ? barra(p) : ""}<span class="nota">${nota || ""}</span></div>`;
+const tabla = (cab, filas, nums = []) => filas.length ? `<table><tr>${cab.map((c, i) => `<th${nums.includes(i) ? ' class="n"' : ""}>${c}</th>`).join("")}</tr>${filas.map(f => `<tr>${f.map((c, i) => `<td${nums.includes(i) ? ' class="n"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</table>` : '<p class="vacio">-</p>';
+const est = (ok, txt) => `<span class="est${ok ? "" : " mal"}">${esc(txt)}</span>`;
+const fecha = s => { const m = /(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(s || ""); return m ? `${m[3]}-${m[2]} ${m[4]}` : "-"; };
+
+function pintar() {
+  const m = D.memoria, raiz = D.discos.find(d => d.punto === "/") || D.discos[0];
+  const usada = m.total - m.disponible;
+  const caidos = D.servicios.filter(s => s.estado !== "active");
+  const lat = D.latido, latOk = lat.estado === "OK" && lat.edad_min != null && lat.edad_min < 25;
+  const act = D.actualizaciones;
+  $("res-sub").textContent = `${D.host}, kernel ${D.kernel}, encendido hace ${dur(D.uptime)}.`;
+  $("res-cifras").innerHTML = [
+    cifra("RAM usada", nf(usada / 2 ** 30, 1), "GB", `de ${nf(m.total / 2 ** 30, 1)} GB. Libres ${nf(m.disponible / 2 ** 30, 1)} GB`, "#memoria", pct(usada, m.total)),
+    cifra("Disco", pct(raiz.usado, raiz.total), "%", `${tam(raiz.libre)} libres de ${tam(raiz.total)}`, "#disco", pct(raiz.usado, raiz.total)),
+    cifra("Carga", nf(D.carga[0], 2), "", `${D.cpus} CPU. 5 min ${nf(D.carga[1], 2)}, 15 min ${nf(D.carga[2], 2)}`, "#procesos", Math.min(100, pct(D.carga[0], D.cpus))),
+    cifra("Servicios", `${D.servicios.length - caidos.length}/${D.servicios.length}`, "", caidos.length ? "Caído: " + caidos.map(s => s.nombre).join(", ") : "Todos en marcha", "#servicios"),
+    cifra("Latido", latOk ? "OK" : esc(lat.estado), "", lat.edad_min == null ? "-" : `hace ${lat.edad_min} min`, "#servicios"),
+    cifra("Sesiones SSH", D.usuarios.sesiones.length, "", `${D.usuarios.cuentas.filter(c => c.entra).length} cuentas pueden entrar`, "#usuarios"),
+    cifra("Actualizaciones", act.paquetes.length, "", act.reinicio ? "Hace falta reiniciar" : "Sin reinicio pendiente", "#servicios"),
+  ].join("");
+  const avisos = [];
+  if (caidos.length) avisos.push(`Servicio parado: ${caidos.map(s => esc(s.nombre)).join(", ")}.`);
+  if (!latOk) avisos.push(`El latido no está bien (${esc(lat.estado)}, ${lat.edad_min ?? "-"} min). Revisa check.sh y los contenedores.`);
+  if (pct(raiz.usado, raiz.total) >= 85) avisos.push("Disco por encima del 85 %.");
+  if (m.disponible < 400 * 2 ** 20) avisos.push("Quedan menos de 400 MB de RAM libres.");
+  if (act.reinicio) avisos.push("Hay un reinicio pendiente: <code>ssh vps 'systemctl reboot'</code>.");
+  $("res-avisos").innerHTML = avisos.map(a => `<p class="aviso">${a}</p>`).join("");
+
+  $("mem-cifras").innerHTML = [
+    cifra("En uso", tam(usada), "", `${pct(usada, m.total)} % de ${tam(m.total)}`, null, pct(usada, m.total)),
+    cifra("Disponible", tam(m.disponible), "", `libre ${tam(m.libre)} más caché`),
+    cifra("Caché", tam(m.cache), "", "se libera sola"),
+    cifra("Swap", tam(m.swap_usado), "", `de ${tam(m.swap_total)}`, null, pct(m.swap_usado, m.swap_total)),
+  ].join("");
+  $("mem-top").innerHTML = tabla(["Proceso", "Usuario", "RAM", "%"], D.procesos.map(p => [esc(p.nombre), esc(p.usuario), tam(p.rss), nf(p.rss / m.total * 100, 1)]), [2, 3]);
+
+  $("disco-part").innerHTML = tabla(["Punto", "Tipo", "Usado", "Libre", "Total", "%"],
+    D.discos.map(d => [`<code>${esc(d.punto)}</code>`, esc(d.tipo), tam(d.usado), tam(d.libre), tam(d.total), pct(d.usado, d.total) + " %"]), [2, 3, 4, 5]);
+  $("disco-carp").innerHTML = tabla(["Carpeta", "Ruta", "Tamaño", "% del disco"],
+    D.carpetas.map(c => [esc(c.nombre), `<code>${esc(c.ruta)}</code>`, tam(c.bytes), c.bytes == null ? "-" : nf(c.bytes / raiz.total * 100, 1) + " %"]), [2, 3]);
+
+  $("serv").innerHTML = tabla(["Servicio", "Unidad", "Estado", "RAM", "Desde"],
+    D.servicios.map(s => [esc(s.nombre), `<code>${esc(s.unidad)}</code>`, est(s.estado === "active", s.sub || s.estado), tam(s.memoria), esc(s.desde ? s.desde.replace(/^\w+ /, "").slice(0, 16) : "-")]), [3]);
+  $("serv-latido").innerHTML = tabla(["Qué", "Valor"], [
+    ["Latido", est(latOk, lat.estado)], ["Última vez", fecha(lat.actualizado)],
+    ["Paquetes por actualizar", act.paquetes.length ? esc(act.paquetes.join(", ")) : "Ninguno"],
+    ["Reinicio pendiente", act.reinicio ? est(false, "Sí") : "No"],
+  ]);
+
+  $("usu-cuentas").innerHTML = tabla(["Cuenta", "uid", "Carpeta", "Entra"],
+    D.usuarios.cuentas.map(c => [esc(c.nombre), c.uid, `<code>${esc(c.carpeta)}</code>`, c.entra ? "Sí" : "No"]), [1]);
+  $("usu-ses").innerHTML = D.usuarios.sesiones.length ? tabla(["Usuario", "Terminal", "Desde", "Origen"],
+    D.usuarios.sesiones.map(s => [esc(s.usuario), esc(s.terminal), esc(s.desde), esc(s.origen)])) : '<p class="vacio">Nadie conectado por SSH ahora.</p>';
+
+  $("proc").innerHTML = tabla(["PID", "Proceso", "Usuario", "RAM", "Orden"],
+    D.procesos.map(p => [p.pid, esc(p.nombre), esc(p.usuario), tam(p.rss), `<span class="cmd">${esc(p.cmd)}</span>`]), [0, 3]);
+  document.querySelectorAll("#proc td:last-child").forEach(td => td.classList.add("cmd"));
+  $("pie").textContent = `Datos de las ${D.generado}. Se actualizan solos cada 30 s.`;
+}
+
+function vista() {
+  const v = (location.hash || "#resumen").slice(1);
+  const id = document.getElementById("v-" + v) ? v : "resumen";
+  document.querySelectorAll(".vista").forEach(s => s.classList.toggle("activa", s.id === "v-" + id));
+  for (const a of document.querySelectorAll("#nav a")) a.classList.toggle("aqui", a.getAttribute("href") === "#" + id);
+}
+async function recargar() {
+  try {
+    const r = await fetch("/sistema/datos", {cache: "no-store"});
+    if (r.ok) { D = await r.json(); pintar(); }
+  } catch (e) {}
+}
+window.addEventListener("hashchange", vista);
+$("recargar").addEventListener("click", recargar);
+setInterval(() => { if (!document.hidden) recargar(); }, 30000);
+pintar(); vista();
+</script>
+</body>
+</html>
