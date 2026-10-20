@@ -22,6 +22,7 @@ from xml.etree.ElementTree import ParseError as ET_ERROR
 
 sys.path.insert(0, str(Path(__file__).parent))
 import censura, entreno, listas, tareas, todo, trabajo  # noqa: E402
+import trabajo_vistas  # noqa: E402  (Trabajo: NTT, Carrera, Proyectos y Comparar CV)
 import apariencia, escritura  # noqa: E402  (/config/: Apariencia, Portada y Escritura)
 import entreno_sesion  # noqa: E402  (Entreno en directo, /entreno/sesion/)
 import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
@@ -272,7 +273,7 @@ PANELES = [
      "desc_censurado": "Compra y otras listas."},  # en modo censurado, si hay listas ocultas
     {"titulo": "Finanzas", "ruta": "/finanzas/", "desc": "Gastos, ingresos y patrimonio.", "estado": estado_finanzas},
     {"titulo": "Entreno", "ruta": "/entreno/", "desc": "Peso, nutrición, actividad y fuerza.", "estado": None},
-    {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV actual.", "estado": None},
+    {"titulo": "Trabajo", "ruta": "/trabajo/", "desc": "CV, NTT y proyectos.", "estado": None},
     {"titulo": "Vault", "ruta": "/vault/", "desc": "Notas de Obsidian para leer.", "estado": None},
     {"titulo": "Sistema", "ruta": "/sistema/", "desc": "Estado del servidor y cómo está montado todo.", "estado": None},
     {"titulo": "Configuración", "ruta": "/config/", "desc": "Apariencia, portada, escritura y censura.", "estado": None},  # en modo censurado, solo "Volver al modo normal"
@@ -378,7 +379,11 @@ def pagina_portada(cens=False):
 </div>""")
 
 
-def pagina_trabajo(elegido="", editar=False):
+PESTANAS_TRABAJO = [("cv", "CV", "/trabajo/"), ("ntt", "NTT", "/trabajo/ntt"), ("carrera", "Carrera", "/trabajo/carrera"),
+                    ("proyectos", "Proyectos", "/trabajo/proyectos")]
+
+
+def pagina_trabajo(elegido="", editar=False, pestana="cv", cens=False, qs=None):
     estilo = """<style>.barra-cv { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 24px 0 8px; }
 .barra-cv .crear { margin-left: auto; }
 .barra-cv form, .fila-botones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -404,10 +409,26 @@ def pagina_trabajo(elegido="", editar=False):
 .barra-cv select { font: inherit; font-size: var(--t-sm); padding: 4px 8px; background: var(--fondo-alto); color: var(--tinta-alta); border: 1px solid var(--linea); border-radius: 6px; }
 .fuente { margin-bottom: 16px; }
 .hojas img { display: block; width: 100%; max-width: 900px; margin: 0 auto 24px; background: #fff; box-shadow: 0 0 0 1px var(--linea); }</style>"""
+    qs = qs or {}
+    nav = "".join(f'<a{" class=aqui" if k == (pestana if pestana != "comparar" else "cv") else ""} href="{u}">{t}</a>'
+                  for k, t, u in PESTANAS_TRABAJO if not (cens and k == "carrera"))
+    if editar:
+        cuerpo = trabajo.editor(elegido)
+    elif pestana == "ntt":
+        cuerpo = trabajo_vistas.ntt()
+    elif pestana == "carrera":
+        cuerpo = trabajo_vistas.carrera()
+    elif pestana == "proyectos":
+        cuerpo = trabajo_vistas.proyectos()
+    elif pestana == "comparar":
+        cuerpo = trabajo_vistas.comparar(trabajo.lista(), qs.get("a", [""])[0], qs.get("b", [""])[0], qs.get("modo", ["texto"])[0])
+    else:
+        cuerpo = trabajo.pagina(elegido)
+    estilo += trabajo_vistas.ESTILO
     return pagina("Trabajo", icono="trabajo", cuerpo=f"""{estilo}<div class="pagina"><header class="cabecera">
 <div class="marca"><a class="volver" href="/">← Portal</a><h1><span class="sello"><i class="ico ico-trabajo"></i></span>Trabajo</h1></div>
-<nav class="nav"><a class="aqui" href="/trabajo/">CV</a></nav></header>
-{trabajo.editor(elegido) if editar else trabajo.pagina(elegido)}</div>""")
+<nav class="nav">{nav}</nav></header>
+{cuerpo}</div>""")
 
 
 # ---------- guía de estilo ----------
@@ -690,10 +711,15 @@ class Manejador(BaseHTTPRequestHandler):
             return self.redirigir("/tareas/", codigo=301)
         if ruta == "/trabajo/":
             elegido = parse_qs(urlsplit(self.path).query).get("cv", [""])[0]
-            return self.enviar(pagina_trabajo(elegido), renovado=renovado)
+            return self.enviar(pagina_trabajo(elegido, cens=cens), renovado=renovado)
+        if ruta in ("/trabajo/ntt", "/trabajo/carrera", "/trabajo/proyectos", "/trabajo/comparar"):
+            pestana = ruta.rsplit("/", 1)[1]
+            if cens and pestana == "carrera":  # Carrera no existe en modo censurado
+                return self.no_encontrado()
+            return self.enviar(pagina_trabajo(pestana=pestana, cens=cens, qs=parse_qs(urlsplit(self.path).query)), renovado=renovado)
         if ruta == "/trabajo/editar":
             elegido = parse_qs(urlsplit(self.path).query).get("cv", [""])[0]
-            return self.enviar(pagina_trabajo(elegido, editar=True), renovado=renovado)
+            return self.enviar(pagina_trabajo(elegido, editar=True, cens=cens), renovado=renovado)
         m = re.fullmatch(r"/trabajo/cv/([0-9a-f]{16})/([\w.-]+)", ruta)
         if m and (f := trabajo.archivo(m.group(1), m.group(2))):
             return self.enviar_archivo(f, "application/pdf" if f.suffix == ".pdf" else "image/png")

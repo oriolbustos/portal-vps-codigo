@@ -103,6 +103,7 @@ def pagina(elegido: str = "") -> str:
     barra = f"""<div class="barra-cv"><form method="get"><label class="etiqueta" for="cv">Versión</label>
 <select id="cv" name="cv" onchange="this.form.submit()">{opciones}</select></form>
 <a class="boton" href="/trabajo/editar?cv={quote(nombre)}">Editar</a>{pdf}
+<a class="boton" href="/trabajo/comparar?b={quote(nombre)}">Comparar</a>
 <button class="boton fuerte crear" type="button" id="b-nuevo" aria-expanded="false" aria-controls="nuevo-cv">Crear CV nuevo</button></div>"""
     form = f"""<form class="nuevo-cv" id="nuevo-cv" hidden autocomplete="off">
 <h2>Crear un CV nuevo</h2>
