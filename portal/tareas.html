@@ -87,6 +87,12 @@
 .leyenda .grupo { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .leyenda .grupo + .grupo { padding-left: 16px; border-left: 1px solid var(--linea); }
 .leyenda .grupo > b { font-weight: 500; color: var(--tinta-2); }
+/* la hoja común da a .leyenda i esquinas de 2 px: aquí las marcas tienen que ser iguales que en la matriz */
+.leyenda i.mk { width: 8px; height: 8px; border-radius: 50%; margin-right: 0; vertical-align: 0; }
+.leyenda i.mk.todo { width: 9px; height: 9px; }
+.leyenda i.mk.seguimiento { width: 10px; height: 9px; border-radius: 0; }
+.leyenda i.mk.tam { width: var(--s); height: var(--s); }
+.leyenda i.mk.tam.seguimiento { width: calc(var(--s) + 2px); }
 .punto-t .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .punto-t:hover { border-style: solid; color: var(--tinta-alta); }
 .punto-t.sel { border: 1px solid var(--tinta-alta); box-shadow: 0 0 0 1px var(--tinta-alta); }
