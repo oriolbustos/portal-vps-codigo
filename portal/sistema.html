@@ -28,10 +28,6 @@ td.cmd { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2)
 .cifra .etiqueta::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--est, var(--tinta-2)); margin-right: 7px; vertical-align: 1px; }
 .cifra .barra i { background: var(--est, var(--tinta-alta)); }
 .cifra.mal .valor { color: var(--c2); }
-.general { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-top: 4px; border: 1px solid var(--linea); border-left: 4px solid var(--est); background: var(--fondo-alto); }
-.general.ok { --est: var(--c3); } .general.regular { --est: var(--c4); } .general.mal { --est: var(--c2); }
-.general b { font-family: var(--serif); font-size: var(--t-xl); font-weight: 400; color: var(--tinta-alta); }
-.general span { font-size: var(--t-sm); color: var(--tinta-2); }
 .est.ok::before { background: var(--c3); } .est.regular::before { background: var(--c4); } .est.regular { color: var(--c4); }
 .diagrama { overflow: auto; border: 1px solid var(--linea); background: var(--fondo-alto); padding: 12px; margin-top: 8px; -webkit-overflow-scrolling: touch; }
 .diagrama svg { display: block; margin: 0 auto; width: 100%; min-width: 860px; height: auto; }
@@ -87,7 +83,6 @@ td.cmd { font-family: var(--mono); font-size: var(--t-xs); color: var(--tinta-2)
 
 <section class="vista" id="v-resumen">
   <div class="seccion"><span class="n">01</span><h2>Resumen</h2><p id="res-sub"></p></div>
-  <div class="general" id="res-general"></div>
   <div class="rejilla cifras" id="res-cifras"></div>
   <div id="res-avisos" style="margin-top:16px"></div>
 </section>
@@ -207,10 +202,6 @@ function pintar() {
     cifra("Sesiones SSH", D.usuarios.sesiones.length, "", `${D.usuarios.cuentas.filter(c => c.entra).length} cuentas pueden entrar`, "#usuarios", null, E.ssh),
     cifra("Actualizaciones", act.paquetes.length, "", act.reinicio ? "Hace falta reiniciar" : "Sin reinicio pendiente", "#servicios", null, E.act),
   ].join("");
-  const peor = Object.values(E).reduce((a, b) => PEOR[b] > PEOR[a] ? b : a, "ok");
-  const malos = Object.entries(E).filter(([, v]) => v === peor && peor !== "ok").map(([k]) => ({ ram: "RAM", disco: "disco", carga: "carga", servicios: "servicios", latido: "latido", act: "actualizaciones" })[k]);
-  $("res-general").className = "general " + peor;
-  $("res-general").innerHTML = `<b>${{ ok: "Todo bien", regular: "Revisar", mal: "Algo falla" }[peor]}</b><span>${peor === "ok" ? "Servicios en marcha, recursos holgados y latido al día." : "Mira: " + malos.join(", ") + "."}</span>`;
   const avisos = [];
   if (caidos.length) avisos.push(`Servicio parado: ${caidos.map(s => esc(s.nombre)).join(", ")}.`);
   if (!latOk) avisos.push(`El latido no está bien (${esc(lat.estado)}, ${lat.edad_min ?? "-"} min). Revisa check.sh y los contenedores.`);
