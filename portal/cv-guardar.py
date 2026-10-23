@@ -11,7 +11,7 @@ Resultado en /var/lib/portal/cv-resultado.json, que el portal espera para respon
 import hashlib, json, os, pwd, re, shutil, time
 from pathlib import Path
 
-CVS = Path("/srv/vault/20 - Career/40 - Opportunities/01 - CVs")
+CVS = Path("/srv/vault/20 - Career/Opportunities/CVs")
 PENDIENTE = Path("/var/lib/portal/cv-pendiente")
 RESULTADO = Path("/var/lib/portal/cv-resultado.json")
 
