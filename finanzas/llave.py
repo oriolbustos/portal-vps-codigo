@@ -12,13 +12,13 @@ import html, json, os, subprocess, threading, time
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlsplit
 
 CIFRADO = Path("/srv/finanzas-cifrado")
 ABIERTO = Path("/srv/finanzas/abierto")
 REPO = ABIERTO / "panel-finanzas"
 HORAS = 12
-DOMINIO = "testobm.duckdns.org"
+DOMINIOS = {"testobm.duckdns.org", "zac2zac.com", "www.zac2zac.com"}
 VIGILAR = ["data", "fin", "inbox", "ajustes.yaml", "categorias.yaml", "reglas.yaml"]
 
 estado = {"hasta": None, "huella": None, "error": ""}
@@ -255,7 +255,7 @@ class Manejador(BaseHTTPRequestHandler):
 
     def do_POST(self):
         origen = self.headers.get("Origin") or self.headers.get("Referer") or ""
-        if origen and DOMINIO not in origen:
+        if origen and urlsplit(origen).hostname not in DOMINIOS:
             return self.enviar("Origen no permitido", 403)
         largo = min(int(self.headers.get("Content-Length") or 0), 4096)
         campos = parse_qs(self.rfile.read(largo).decode("utf-8", "replace"))
