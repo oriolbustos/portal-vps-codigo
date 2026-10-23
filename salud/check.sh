@@ -1,5 +1,7 @@
 #!/bin/bash
-DOMAIN="testobm.duckdns.org"
+MCP_HOST="mcp.zac2zac.com"; DAV_HOST="dav.zac2zac.com"
+# Directo al Caddy local: por Cloudflare el WAF solo deja pasar a Anthropic
+LOCAL=(--resolve "$MCP_HOST:443:127.0.0.1" --resolve "$DAV_HOST:443:127.0.0.1")
 TOKEN=$(grep ^MCP_VAULT_RUTA= /opt/salud/.env | cut -d= -f2)   # ruta secreta del MCP, en el .env
 LOG="/srv/vault/70 - System/status.md"
 HC_URL=""   # se rellena en el paso 3
@@ -18,15 +20,15 @@ done
 # La app Obsidian vive de verdad dentro del contenedor (no solo el contenedor "Up")
 docker exec salud-obsidian-1 pgrep -f /opt/obsidian/obsidian >/dev/null 2>&1 || FALLOS="$FALLOS obsidian-app:muerta"
 
-# El conector responde por la URL pública (el mismo camino que usa Claude)
-code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST "https://$DOMAIN/$TOKEN/mcp" \
+# El conector responde por su host (mcp.zac2zac.com) vía el Caddy local
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X POST "https://$MCP_HOST/$TOKEN/mcp" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}')
 if [ "$code" != "200" ]; then
   docker compose -f /opt/salud/docker-compose.yml restart mcp
   sleep 20
-  code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST "https://$DOMAIN/$TOKEN/mcp" \
+  code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X POST "https://$MCP_HOST/$TOKEN/mcp" \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json, text/event-stream' \
     --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}')
@@ -38,12 +40,12 @@ if [ "$code" != "200" ]; then
 fi
 
 # WebDAV (rclone, lo usa Remotely Save): sin credenciales debe contestar 401 (vivo y exigiendo login)
-code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -X PROPFIND "https://$DOMAIN/webdav/")
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X PROPFIND "https://$DAV_HOST/webdav/")
 [ "$code" = "401" ] || FALLOS="$FALLOS webdav-http:$code"
 
-# MCP de finanzas por la URL pública (ruta secreta FIN_MCP_TOKEN, en el .env)
+# MCP de finanzas por su host (ruta secreta FIN_MCP_TOKEN, en el .env)
 FIN_TOKEN=$(grep ^FIN_MCP_TOKEN= /opt/salud/.env | cut -d= -f2)
-code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST "https://$DOMAIN/$FIN_TOKEN/mcp" \
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X POST "https://$MCP_HOST/$FIN_TOKEN/mcp" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}')
