@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Pestañas de Trabajo además del CV: NTT, Carrera, Proyectos y Comparar CV. Solo leen el vault.
 
-- NTT: secciones de 10 - NTT Data/_system/recent-context.md y las carpetas de proyecto.
-- Carrera: 40 - Opportunities/_system/recent-context.md y las carpetas de cada proceso (2025/, 2026/...).
+- NTT: secciones Goals / Current state / Open threads de 10 - NTT Data/_context.md, lo último fechado
+  de _history.md y las carpetas de proyecto.
+- Carrera: lo mismo de 20 - Career/Opportunities/_context.md y las carpetas de cada proceso (2025/, 2026/...).
   En modo censurado no existe (lo decide portal.py).
-- Proyectos: 50 - Projects y 30 - Education de 20 - Career (cursos, libros, vídeos, eventos...).
+- Proyectos: Projects y Education de 20 - Career (cursos, libros, vídeos, eventos...).
+Los archivos y carpetas que empiezan por "_" son de sistema del vault: no salen en los listados.
 - Comparar: diferencias entre dos CV (LaTeX), por líneas y con las palabras cambiadas marcadas.
 El Markdown se pinta con archivos.markdown y los enlaces abren la nota en el panel Vault.
 """
@@ -16,7 +18,7 @@ import archivos
 VAULT = Path("/srv/vault")
 NTT = VAULT / "10 - NTT Data"
 CARRERA = VAULT / "20 - Career"
-OPORT = CARRERA / "40 - Opportunities"
+OPORT = CARRERA / "Opportunities"
 VIEJO = 14  # días: a partir de aquí una nota de contexto se marca como sin actualizar
 
 
@@ -52,6 +54,20 @@ def secciones(p: Path) -> tuple:
         elif actual is not None and l.strip() != "---":
             out[actual].append(l)
     return {k: v for k, v in out.items() if not k.lower().startswith("how this file")}, fm
+
+
+def ultimos(p: Path, n: int = 6) -> list:
+    """Viñetas fechadas ("- 2026-10-23: ..." o "- **2026-10-23** ...") de un _history.md → las n más recientes."""
+    try:
+        texto = p.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    items = []
+    for l in texto.splitlines():
+        m = re.match(r"^- \*{0,2}(\d{4}-\d{2}-\d{2})", l)
+        if m:
+            items.append((m.group(1), len(items), l))
+    return [l for _, _, l in sorted(items, key=lambda x: (x[0], x[1]), reverse=True)[:n]]
 
 
 def bloque(titulo: str, lineas: list, desde: str, n: str, sub: str = "", max_items: int = 0) -> str:
@@ -93,7 +109,10 @@ def carpetas(base: Path, excluir=(), solo_dirs=False) -> list:
         if h.name.startswith((".", "_")) or h.name in excluir or (solo_dirs and not h.is_dir()):
             continue
         if h.is_dir():
-            mds = [Path(r) / a for r, _, fs in os.walk(h) for a in fs if a.endswith(".md")]
+            mds = []
+            for r, ds, fs in os.walk(h):
+                ds[:] = [x for x in ds if not x.startswith((".", "_"))]
+                mds += [Path(r) / a for a in fs if a.endswith(".md") and not a.startswith("_")]
             if not mds:
                 continue
             ult = max(mds, key=lambda x: x.stat().st_mtime)
@@ -116,21 +135,23 @@ def tabla_carpetas(filas: list, cab="Proyecto") -> str:
 
 # ---------- pestañas ----------
 def ntt() -> str:
-    p = NTT / "_system" / "recent-context.md"
+    p = NTT / "_context.md"
     s, fm = secciones(p)
     d = rel(p)
     get = lambda *ks: next((v for k, v in s.items() if any(k.lower().startswith(x) for x in ks)), [])
     proyectos = carpetas(NTT, excluir=("Cerrado", "Otros", "Cosas", "Entrevistas", "Puesto", "Reuniones"), solo_dirs=True)
+    hist = NTT / "_history.md"
     return (aviso_fecha(fm, p)
-            + bloque("Ahora", get("current"), d, "01", "Qué tienes entre manos.")
-            + bloque("Hilos abiertos", get("open"), d, "02", "Lo pendiente de cerrar o de respuesta.")
-            + bloque("Último", get("recent"), d, "03", "Lo más reciente, de nuevo a viejo. Solo los 6 últimos.", max_items=6)
-            + '<div class="seccion"><span class="n">04</span><h2>Proyectos</h2><p>Carpetas de 10 - NTT Data, por último cambio. Las cerradas están en Cerrado.</p></div>'
+            + bloque("Objetivos", get("goals"), d, "01", "Lo que persigues ahora en NTT.")
+            + bloque("Ahora", get("current"), d, "02", "Qué tienes entre manos.")
+            + bloque("Hilos abiertos", get("open"), d, "03", "Lo pendiente de cerrar o de respuesta.")
+            + bloque("Último", ultimos(hist), rel(hist), "04", "Lo más reciente de _history.md, de nuevo a viejo. Solo los 6 últimos.")
+            + '<div class="seccion"><span class="n">05</span><h2>Proyectos</h2><p>Carpetas de 10 - NTT Data, por último cambio. Las cerradas están en Cerrado.</p></div>'
             + tabla_carpetas(proyectos))
 
 
 def carrera() -> str:
-    p = OPORT / "_system" / "recent-context.md"
+    p = OPORT / "_context.md"
     s, fm = secciones(p)
     d = rel(p)
     get = lambda *ks: next((v for k, v in s.items() if any(k.lower().startswith(x) for x in ks)), [])
@@ -141,17 +162,17 @@ def carrera() -> str:
             procesos.append(f)
     procesos.sort(key=lambda x: -x["cambio"])
     return (aviso_fecha(fm, p)
-            + bloque("Activos", get("active"), d, "01", "Procesos en marcha y en qué punto están.")
-            + bloque("En pausa", get("dormant"), d, "02")
+            + bloque("Objetivos", get("goals"), d, "01", "Qué buscas en la búsqueda de trabajo.")
+            + bloque("Procesos", get("current"), d, "02", "Procesos en marcha, en pausa y en qué punto están.")
             + bloque("Hilos abiertos", get("open"), d, "03", "Lo siguiente que toca hacer.")
             + '<div class="seccion"><span class="n">04</span><h2>Carpetas</h2><p>Una por proceso, por último cambio.</p></div>'
             + tabla_carpetas(procesos, "Proceso"))
 
 
 def proyectos() -> str:
-    edu = CARRERA / "30 - Education"
-    out = ('<div class="seccion"><span class="n">01</span><h2>Proyectos</h2><p>Proyectos personales de 50 - Projects, por último cambio.</p></div>'
-           + tabla_carpetas(carpetas(CARRERA / "50 - Projects", excluir=("Legacy",))))
+    edu = CARRERA / "Education"
+    out = ('<div class="seccion"><span class="n">01</span><h2>Proyectos</h2><p>Proyectos personales de Projects, por último cambio.</p></div>'
+           + tabla_carpetas(carpetas(CARRERA / "Projects", excluir=("Legacy",))))
     nombres = {"courses": "Cursos", "books": "Libros", "videos": "Vídeos", "events": "Eventos", "papers": "Papers",
                "master": "Máster", "subjects": "Asignaturas", "software": "Software", "Guides": "Guías", "Concepts": "Conceptos"}
     grupos = []
@@ -161,9 +182,9 @@ def proyectos() -> str:
             grupos.append((t, filas))
     grupos.sort(key=lambda g: -g[1][0]["cambio"])
     for n, (t, filas) in enumerate(grupos, 2):
-        out += (f'<div class="seccion"><span class="n">{n:02d}</span><h2>{t}</h2><p>De 30 - Education/, por último cambio.</p></div>'
+        out += (f'<div class="seccion"><span class="n">{n:02d}</span><h2>{t}</h2><p>De Education/, por último cambio.</p></div>'
                 + tabla_carpetas(filas[:12], t[:-1] if t.endswith("s") else t))
-    legado = carpetas(CARRERA / "50 - Projects" / "Legacy")
+    legado = carpetas(CARRERA / "Projects" / "Legacy")
     if legado:
         out += (f'<details class="legado"><summary>Proyectos antiguos ({len(legado)})</summary>{tabla_carpetas(legado)}</details>')
     return out

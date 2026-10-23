@@ -9,7 +9,7 @@ import hashlib, html, json, os, re, secrets, shutil, subprocess, threading, time
 from pathlib import Path
 from urllib.parse import quote
 
-CVS =Path("/srv/vault/20 - Career/40 - Opportunities/01 - CVs")
+CVS = Path("/srv/vault/20 - Career/Opportunities/CVs")
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 CACHE = ESTADO / "cv"
 # Guardar: el portal no puede escribir en el vault (systemd lo deja en solo lectura). Deja la
@@ -23,6 +23,8 @@ def lista() -> list:
     """CV en LaTeX, el más reciente primero (por la fecha AA-MM del nombre)."""
     out = []
     for p in CVS.glob("*.md"):
+        if p.name.startswith("_"):  # archivos de sistema del vault
+            continue
         try:
             if "\\documentclass" not in p.read_text(encoding="utf-8", errors="replace")[:4000]:
                 continue
@@ -110,7 +112,7 @@ def pagina(elegido: str = "") -> str:
 <p class="secundario peq">Se hace una copia de un CV que ya tienes y se abre en el editor para cambiarla. El original no se toca.</p>
 <label class="paso"><span class="num">1</span><span class="etiqueta">De qué CV partes</span><select id="n-desde">{opciones}</select></label>
 <label class="paso"><span class="num">2</span><span class="etiqueta">Cómo se llama el nuevo</span><input id="n-nombre" value="{html.escape(nombre_libre())}" maxlength="60" required>
-<span class="mini secundario">Se guardará como <code>01 - CVs/<b id="n-vista">{html.escape(nombre_libre())}</b>.md</code></span></label>
+<span class="mini secundario">Se guardará como <code>CVs/<b id="n-vista">{html.escape(nombre_libre())}</b>.md</code></span></label>
 <div class="fila-botones"><button class="boton fuerte">Crear copia y editarla</button><button class="boton" type="button" id="n-cancelar">Cancelar</button></div>
 <p class="error" id="n-estado" role="status"></p></form>
 <script>
@@ -137,7 +139,7 @@ def pagina(elegido: str = "") -> str:
 <details style="margin-top:12px"><summary>Ver el final del log</summary><pre class="mono mini">{html.escape(c['log'])}</pre></details>"""
     base = f"/trabajo/cv/{c['huella']}"
     imgs = "".join(f'<img src="{base}/pagina-{i}.png" alt="CV, página {i}" loading="lazy">' for i in range(1, c["paginas"] + 1))
-    return cab + f"""<p class="mini secundario fuente">Fuente: <code>20 - Career/40 - Opportunities/01 - CVs/{html.escape(p.name)}</code></p>
+    return cab + f"""<p class="mini secundario fuente">Fuente: <code>20 - Career/Opportunities/CVs/{html.escape(p.name)}</code></p>
 <div class="hojas">{imgs}</div>"""
 
 
