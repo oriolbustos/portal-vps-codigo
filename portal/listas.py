@@ -24,7 +24,7 @@ ARCHIVO = "Archivado"
 
 
 def notas() -> list:
-    ps = [p for p in CARPETA.glob("*.md") if p.is_file()]
+    ps = [p for p in CARPETA.glob("*.md") if p.is_file() and not p.name.startswith("_")]
     return sorted(ps, key=lambda p: (ORDEN.index(p.stem) if p.stem in ORDEN else 99, p.stem.lower()))
 
 

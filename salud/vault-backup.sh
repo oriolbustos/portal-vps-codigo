@@ -8,6 +8,7 @@ cp /var/lib/portal/config.json /srv/vault/.portal-estado/ 2>/dev/null || true  #
 cp /var/lib/portal/apariencia.json /srv/vault/.portal-estado/ 2>/dev/null || true  # apariencia y portada (/config/)
 rm -rf /srv/vault/.portal-estado/apariencia; cp -r /var/lib/portal/apariencia /srv/vault/.portal-estado/ 2>/dev/null || true  # iconos y fuentes subidos
 chown -R 1000:1000 /srv/vault/.portal-estado
+export GIT_DIR=/srv/vault-backup.git GIT_WORK_TREE=/srv/vault
 cd /srv/vault
 git add -A
 git diff --cached --quiet || git commit -q -m "auto: $(date '+%Y-%m-%d %H:%M')"
