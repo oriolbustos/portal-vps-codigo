@@ -1072,8 +1072,9 @@ class Manejador(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(d)))
             self.end_headers()
             self.wfile.write(d)
-        ip = self.ip()
-        if bloqueado(ip):
+        # Freno propio (una sola cuenta "pasos", sin tocar el global del login): esta ruta queda
+        # fuera de Cloudflare Access, así que no puede servir para cerrarle el login a Oriol.
+        if bloqueado("pasos"):
             return texto("demasiados intentos", 429)
         try:
             esperado = PASOS_TOKEN.read_text().strip()
@@ -1081,7 +1082,9 @@ class Manejador(BaseHTTPRequestHandler):
             return texto("sin token en el servidor", 503)
         dado = (self.headers.get("Authorization") or "").removeprefix("Bearer").strip()
         if not esperado or not secrets.compare_digest(dado, esperado):
-            apuntar_fallo(ip)
+            with cerrojo:
+                fallos_ip.setdefault("pasos", []).append(time.time())
+            log(f"portal: token de pasos incorrecto desde {self.ip()}")
             return texto("token incorrecto", 401)
         largo = min(int(self.headers.get("Content-Length") or 0), 16384)
         nuevos = leer_pasos_texto(self.rfile.read(largo).decode("utf-8", "replace"))
