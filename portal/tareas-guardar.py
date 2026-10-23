@@ -9,7 +9,7 @@ nadie las ha cambiado desde que el portal las leyó (base = sha256). Resultado e
 import hashlib, json, os, pwd, shutil
 from pathlib import Path
 
-AMBITOS = Path("/srv/vault/30 - Personal/30 - Plan/Ámbitos")
+AMBITOS = Path("/srv/vault/40 - Life/areas")
 PENDIENTE = Path("/var/lib/portal/tareas-pendiente")
 RESULTADO = Path("/var/lib/portal/tareas-resultado.json")
 

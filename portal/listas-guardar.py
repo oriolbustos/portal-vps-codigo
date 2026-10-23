@@ -12,7 +12,7 @@ Si la línea ya no está como se vio en el panel, no hace nada y avisa.
 import json, os, pwd, re, time
 from pathlib import Path
 
-CARPETA = Path("/srv/vault/30 - Personal/10 - Listas")
+CARPETA = Path("/srv/vault/60 - Lists")
 PENDIENTE = Path("/var/lib/portal/listas-pendiente")
 RESULTADO = Path("/var/lib/portal/listas-resultado.json")
 CASILLA = re.compile(r"^(\s*)- \[([ xX])\] (.*)$")

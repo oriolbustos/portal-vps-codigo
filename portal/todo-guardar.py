@@ -9,7 +9,7 @@ Resultado en /var/lib/portal/todo-resultado.json.
 import hashlib, json, os, pwd, shutil
 from pathlib import Path
 
-NOTA = Path("/srv/vault/30 - Personal/30 - Plan/To Do.md")
+NOTA = Path("/srv/vault/40 - Life/To Do.md")
 PENDIENTE = Path("/var/lib/portal/todo-pendiente")
 RESULTADO = Path("/var/lib/portal/todo-resultado.json")
 
