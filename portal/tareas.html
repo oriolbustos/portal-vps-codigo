@@ -566,7 +566,7 @@ function pintar() {
   sa.replaceChildren(...D.ambitos.map(a => el("option", { value: a }, a)));
   sa.value = (unAmbito() && F.ambitos[0]) || (D.ambitos.includes(previo) ? previo : D.ambitos[0]);
   v === "matriz" ? matriz() : porAmbito();
-  $("pie").textContent = `${D.tareas.length} tareas de ${D.ambitos.length} ámbitos, leídas de 30 - Plan a las ${D.generado.slice(11)}` + (D.avisos.length ? `. Avisos: ${D.avisos.join(", ")}` : "");
+  $("pie").textContent = `${D.tareas.length} tareas de ${D.ambitos.length} ámbitos, leídas de 40 - Life a las ${D.generado.slice(11)}` + (D.avisos.length ? `. Avisos: ${D.avisos.join(", ")}` : "");
   rellenar();
 }
 

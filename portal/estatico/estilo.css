@@ -1,6 +1,6 @@
 /* Estilo del portal — basado en The Component Gallery (component.gallery, Iain Bean).
    Fuente única para todos los paneles: se enlaza como /estatico/estilo.css.
-   Referencia viva y reglas: /estilo/ · reglas escritas: vault "30 - Personal/00 - Sistema VPS/estilo-frontend.md".
+   Referencia viva y reglas: /estilo/ · reglas escritas: vault "70 - System/estilo-frontend.md".
    Fuentes (licencia OFL): Instrument Serif, Instrument Sans, JetBrains Mono. */
 
 @font-face { font-family: "Instrument Sans"; src: url("fuentes/instrument-sans.woff2") format("woff2"); font-weight: 400 700; font-stretch: 75% 100%; font-display: swap; }

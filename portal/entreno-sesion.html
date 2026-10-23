@@ -188,7 +188,7 @@ function ampliar(e, m) {
 }
 function bloqueMusculos(e) {
   const m = musculosDe(e), c = el("div", { class: "musc" }), tx = el("div", { class: "tx" });
-  if (!m) { tx.append(el("p", { class: "peq" }, "Sin mapear. Añádelo en 10-referencia/musculos.md.")); c.append(tx); return c; }
+  if (!m) { tx.append(el("p", { class: "peq" }, "Sin mapear. Añádelo en reference/musculos.md.")); c.append(tx); return c; }
   const figs = muneco(m); figs.title = "Ver en grande"; figs.setAttribute("role", "button"); figs.tabIndex = 0;
   figs.onclick = ev => { ev.stopPropagation(); ampliar(e, m); };
   figs.onkeydown = ev => { if (ev.key === "Enter") ampliar(e, m); };

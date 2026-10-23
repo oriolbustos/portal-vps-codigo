@@ -1,7 +1,7 @@
 """Entreno: perímetros (check-ins) y fotos de progreso, para las secciones Perímetros y Fotos del panel.
 
-Perímetros: las notas de check-in del vault, 40 - Entreno/30-checkins/AAAA-MM-DD.md (frontmatter: peso, cuello,
-hombros, pecho, cintura, cadera, brazo, brazo_flex, muslo; reglas en 40 - Entreno/00-sistema/mod-checkin.md). Los ratios
+Perímetros: las notas de check-in del vault, 30 - Training/checkins/AAAA-MM-DD.md (frontmatter: peso, cuello,
+hombros, pecho, cintura, cadera, brazo, brazo_flex, muslo; reglas en 30 - Training/_system/mod-checkin.md). Los ratios
 (hombros/cintura, cintura/altura, cintura/cadera, pecho/cintura, % grasa Navy) se calculan aquí, no se guardan.
 Fotos: /srv/entreno-fotos/AAAA-MM-DD/<pose>.jpg, fuera del vault (no van a Obsidian ni a GitHub). Llegan ya
 reducidas del navegador (1600 px, JPEG, sin EXIF). Se sirven solo con sesión.
@@ -20,10 +20,11 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import entreno
+import rutas
 
-CHECKINS = entreno.DIARIO.parent / "30-checkins"
-PLANTILLA = entreno.DIARIO.parent / "00-sistema" / "plantillas" / "checkin.md"
-CONSTANTES = entreno.DIARIO.parent / "10-referencia" / "datos-y-constantes.md"
+CHECKINS = rutas.CHECKINS
+PLANTILLA = rutas.PLANTILLA_CHECKIN
+CONSTANTES = rutas.CONSTANTES
 FOTOS = Path("/srv/entreno-fotos")
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 PENDIENTE = ESTADO / "medidas-pendiente"

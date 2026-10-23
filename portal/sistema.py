@@ -8,7 +8,9 @@ Lo caro (tamaño de carpetas, actualizaciones) se guarda en memoria unos minutos
 import json, os, re, shutil, subprocess, threading, time
 from pathlib import Path
 
-LATIDO = Path("/srv/vault/30 - Personal/estado-sistema.md")
+import rutas
+
+LATIDO = rutas.LATIDO
 SERVICIOS = [  # (unidad, qué es)
     ("portal.service", "Portal web"),
     ("finanzas-llave.service", "Caja de Finanzas"),

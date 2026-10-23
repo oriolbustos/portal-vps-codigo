@@ -9,7 +9,7 @@ Resultado en /var/lib/portal/estilo-resultado.json.
 import hashlib, json, os, pwd, shutil
 from pathlib import Path
 
-NOTA = Path("/srv/vault/30 - Personal/00 - Sistema VPS/estilo-frontend.md")
+NOTA = Path("/srv/vault/70 - System/estilo-frontend.md")
 PENDIENTE = Path("/var/lib/portal/estilo-pendiente")
 RESULTADO = Path("/var/lib/portal/estilo-resultado.json")
 

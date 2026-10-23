@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Panel To Do (/todo/): una copia de Microsoft To Do sobre una nota del vault ("30 - Plan/To Do.md").
+"""Panel To Do (/todo/): una copia de Microsoft To Do sobre una nota del vault ("40 - Life/To Do.md").
 
 Formato de la nota (se puede editar a mano en Obsidian):
   ### Tareas                       una lista ("### "); las tareas sin título encima también van a "Tareas"
@@ -19,7 +19,9 @@ la nota no ha cambiado desde que se leyó (base = sha256).
 import hashlib, json, os, re, secrets, time
 from pathlib import Path
 
-NOTA = Path("/srv/vault/30 - Personal/30 - Plan/To Do.md")
+import rutas
+
+NOTA = rutas.TODO
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 PENDIENTE = ESTADO / "todo-pendiente"
 RESULTADO = ESTADO / "todo-resultado.json"

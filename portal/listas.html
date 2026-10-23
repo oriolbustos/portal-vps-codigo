@@ -123,7 +123,7 @@ function pintar() {
     const d = el("details", { class: "archivo" }); d.append(el("summary", {}, `Archivado (${arch.items.length})`));
     const r = el("div", { class: "rejilla" }); r.append(seccion({ ...l, enArchivo: true }, arch, "")); d.append(r); cont.append(d);
   }
-  document.getElementById("pie").textContent = `${l.archivo} en 30 - Personal/10 - Listas. Leída a las ${D.generado}.`;
+  document.getElementById("pie").textContent = `${l.archivo} en 60 - Lists. Leída a las ${D.generado}.`;
 }
 
 let avisoT;

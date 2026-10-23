@@ -27,6 +27,7 @@ import apariencia, escritura  # noqa: E402  (/config/: Apariencia, Portada y Esc
 import entreno_sesion  # noqa: E402  (Entreno en directo, /entreno/sesion/)
 import medidas  # noqa: E402  (Entreno: Perímetros y Fotos)
 import sistema  # noqa: E402  (Sistema: estado del VPS y mapa)
+import rutas  # noqa: E402  (todas las rutas del vault)
 import archivos  # noqa: E402  (Vault y archivos del VPS: exploradores con su propia contraseña)
 
 USUARIO = "oriol"
@@ -37,7 +38,7 @@ PANEL_ENTRENO = ESTADO / "entreno.html"
 PANEL_ENTRENO_CLASICO = ESTADO / "entreno-clasico.html"
 AQUI = Path(__file__).parent
 ESTATICO = AQUI / "estatico"
-ESTILO_NOTA = Path("/srv/vault/30 - Personal/00 - Sistema VPS/estilo-frontend.md")
+ESTILO_NOTA = rutas.ESTILO
 TIPOS = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2", ".svg": "image/svg+xml", ".png": "image/png"}
 PUERTO = int(os.environ.get("PORTAL_PUERTO", "8791"))
 DOMINIO = os.environ.get("PORTAL_DOMINIO", "testobm.duckdns.org")
@@ -216,9 +217,11 @@ estado_entreno = {"firma": None, "error": "", "ultimo": None}
 def firma_diario():
     n, m = 0, 0.0
     for p in entreno.DIARIO.glob("*/*/*.md"):
+        if not rutas.visible(p):
+            continue
         n += 1
         m = max(m, p.stat().st_mtime)
-    for p in [entreno.PLAN_NUTRICION, *entreno.HISTORICO.glob("*.md")]:  # objetivos y "Estado actual" (sección Hoy)
+    for p in [entreno.PLAN_NUTRICION, *filter(rutas.visible, entreno.HISTORICO.glob("*.md"))]:  # objetivos y "Estado actual" (sección Hoy)
         try:
             m = max(m, p.stat().st_mtime)
         except OSError:

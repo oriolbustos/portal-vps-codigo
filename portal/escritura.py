@@ -9,7 +9,9 @@ cambió desde que se leyó. De fábrica = la sección guardada en /opt/portal/es
 import hashlib, json, os, secrets, time
 from pathlib import Path
 
-NOTA = Path("/srv/vault/30 - Personal/00 - Sistema VPS/estilo-frontend.md")
+import rutas
+
+NOTA = rutas.ESTILO
 FABRICA = Path(__file__).parent / "estilo-fabrica.md"
 SECCION = "Forma de escribir"
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))

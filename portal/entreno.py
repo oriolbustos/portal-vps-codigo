@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Panel de entreno: lee las notas diarias del vault y genera un HTML autocontenido.
 
-Fuente: /srv/vault/40 - Entreno/20-diario/AAAA/MM/AAAA-MM-DD.md (frontmatter + tablas
+Fuente: /srv/vault/30 - Training/diary/AAAA/MM/AAAA-MM-DD.md (frontmatter + tablas
 "Comidas", "Entreno" y "Deporte y gasto"). Solo lee; nunca escribe en el vault.
 
 El parseo es tolerante: reps "?", "10 + 6", "30 s"; pesos "4.5 → 2.3", "6+6",
@@ -13,10 +13,12 @@ import json, re, sys, unicodedata
 from datetime import date, datetime
 from pathlib import Path
 
-DIARIO = Path("/srv/vault/40 - Entreno/20-diario")
-PLAN_NUTRICION = DIARIO.parent / "10-referencia" / "plan-nutricion.md"
-HISTORICO = DIARIO.parent / "40 - historico" / "entreno"   # push.md, pull.md, pierna.md: "Estado actual"
-TIPOS = ("push", "pierna", "pull")                          # rotación (40 - Entreno/_context.md, Current state)
+import rutas
+
+DIARIO = rutas.DIARIO
+PLAN_NUTRICION = rutas.PLAN_NUTRICION
+HISTORICO = rutas.PROGRESO   # push.md, pull.md, pierna.md: "Estado actual"
+TIPOS = ("push", "pierna", "pull")                          # rotación (30 - Training/_context.md, Current state)
 NOMBRE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})\.md$")
 NUM = re.compile(r"[-−–]?\d+(?:[.,]\d+)?")
 
@@ -335,7 +337,7 @@ def objetivos() -> dict:
 
 
 def estado_sesiones() -> dict:
-    """De 40 - historico/entreno/<tipo>.md: tabla "Estado actual", notas de esa sección, avisos y última fecha."""
+    """De 30 - Training/progress/<tipo>.md: tabla "Estado actual", notas de esa sección, avisos y última fecha."""
     out = {}
     for tipo in TIPOS:
         try:

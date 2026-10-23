@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Panel Tareas: las tareas de cada ámbito del vault, con su matriz de Eisenhower. Se leen y se editan aquí.
 
-Fuente: "30 - Personal/30 - Plan/Panel.md" da los ámbitos ([[Identity]], [[Work]]...); de cada nota de
+Fuente: "40 - Life/Panel.md" da los ámbitos ([[Identity]], [[Work]]...); de cada nota de
 ámbito se usa la sección "## Plan": "### Doing", "### To Do" y "### Monitoring", una tarea por viñeta.
 Formato de una tarea (se puede escribir a mano en Obsidian):
   - Certi AWS [imp:: 4] [urg:: 2] [esf:: 3]   importancia, urgencia y esfuerzo de 0 a 5 (sin ellas = sin puntuar)
@@ -19,9 +19,11 @@ solo si la nota no ha cambiado desde que se leyó (base = sha256).
 import hashlib, json, os, re, secrets, time
 from pathlib import Path
 
-PLAN = Path("/srv/vault/30 - Personal/30 - Plan")
-PANEL = PLAN / "Panel.md"
-AMBITOS = PLAN / "Ámbitos"
+import rutas
+
+PLAN = rutas.VIDA
+PANEL = rutas.PANEL
+AMBITOS = rutas.AMBITOS
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 PENDIENTE = ESTADO / "tareas-pendiente"
 RESULTADO = ESTADO / "tareas-resultado.json"
@@ -51,7 +53,7 @@ def ambitos() -> list:
             nombres.append(n)
     out = []
     for n in nombres:
-        ruta = next(iter(sorted(AMBITOS.rglob(f"{n}.md"))), None)
+        ruta = next(iter(sorted(p for p in AMBITOS.rglob(f"{n}.md") if all(map(rutas.visible, p.relative_to(AMBITOS).parts)))), None)
         if ruta:
             out.append((n, ruta))
     return out

@@ -1,7 +1,7 @@
 #!/bin/bash
 DOMAIN="testobm.duckdns.org"
 TOKEN=$(grep ^MCP_VAULT_RUTA= /opt/salud/.env | cut -d= -f2)   # ruta secreta del MCP, en el .env
-LOG="/srv/vault/30 - Personal/estado-sistema.md"
+LOG="/srv/vault/70 - System/status.md"
 HC_URL=""   # se rellena en el paso 3
 
 FALLOS=""

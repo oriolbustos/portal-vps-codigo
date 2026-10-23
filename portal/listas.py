@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Panel Listas: las notas de "30 - Personal/10 - Listas/" (compra, regalos, deseos, ver, viajes).
+"""Panel Listas: las notas de "60 - Lists/" (compra, regalos, deseos, ver, viajes).
 
 Lee cada nota (solo las de la carpeta, no las de iPhone/ ni Mac/). Dos formatos:
 - con casillas ("- [ ] Pan", "- [x] Pan ✅ 2026-05-19"): se marca y desmarca como en Obsidian;
@@ -12,7 +12,9 @@ listas-guardar.path → /opt/portal/listas-guardar.py (root) la aplica línea a 
 import hashlib, json, os, re, secrets, time
 from pathlib import Path
 
-CARPETA = Path("/srv/vault/30 - Personal/10 - Listas")
+import rutas
+
+CARPETA = rutas.LISTAS
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 PENDIENTE = ESTADO / "listas-pendiente"
 RESULTADO = ESTADO / "listas-resultado.json"
@@ -24,7 +26,7 @@ ARCHIVO = "Archivado"
 
 
 def notas() -> list:
-    ps = [p for p in CARPETA.glob("*.md") if p.is_file() and not p.name.startswith("_")]
+    ps = [p for p in CARPETA.glob("*.md") if p.is_file() and rutas.visible(p)]
     return sorted(ps, key=lambda p: (ORDEN.index(p.stem) if p.stem in ORDEN else 99, p.stem.lower()))
 
 

@@ -3,7 +3,7 @@
 
 El portal no puede escribir en el vault ni en /srv. Deja cada petición en /var/lib/portal/medidas-pendiente/<id>.json
 y medidas-guardar.path lanza esto (root). Resultado en /var/lib/portal/medidas-resultado.json.
-- {op: checkin, fecha, base, texto}: escribe 40 - Entreno/30-checkins/<fecha>.md. base = sha256 de la nota que leyó
+- {op: checkin, fecha, base, texto}: escribe 30 - Training/checkins/<fecha>.md. base = sha256 de la nota que leyó
   el portal; "" = nota nueva (solo si no existe). Escribe en el sitio para conservar el dueño (1000).
 - {op: foto, fecha, pose} + <id>.jpg: la deja en /srv/entreno-fotos/<fecha>/<pose>.jpg (root:portal, 640).
   Si ya había una, la vieja se queda como <pose>-antes-AAAAMMDD-HHMMSS.jpg: nunca se borra nada.
@@ -16,7 +16,7 @@ import hashlib, json, os, pwd, re, shutil, sys, time
 from datetime import datetime
 from pathlib import Path
 
-CHECKINS = Path(os.environ.get("MEDIDAS_CHECKINS", "/srv/vault/40 - Entreno/30-checkins"))
+CHECKINS = Path(os.environ.get("MEDIDAS_CHECKINS", "/srv/vault/30 - Training/checkins"))
 FOTOS = Path(os.environ.get("MEDIDAS_FOTOS", "/srv/entreno-fotos"))
 PENDIENTE = Path(os.environ.get("MEDIDAS_PENDIENTE", "/var/lib/portal/medidas-pendiente"))
 RESULTADO = PENDIENTE.parent / "medidas-resultado.json"

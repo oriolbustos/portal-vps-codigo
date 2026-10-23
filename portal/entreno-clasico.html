@@ -474,7 +474,7 @@ function avisos() {
   const ul = document.getElementById("avisos"); let n = 0;
   for (const d of D.dias.slice().reverse()) for (const a of d.avisos || []) { ul.append(el("li", {}, `${d.fecha}: ${a}`)); n++; }
   document.getElementById("avisos-sum").textContent = `Datos que no se han podido leer (${n})`;
-  document.getElementById("pie").textContent = `${D.dias.length} notas diarias · generado ${D.generado} · fuente: 40 - Entreno/20-diario`;
+  document.getElementById("pie").textContent = `${D.dias.length} notas diarias · generado ${D.generado} · fuente: 30 - Training/diary`;
 }
 
 for (const b of document.querySelectorAll("#filtros button")) {

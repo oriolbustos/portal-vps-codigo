@@ -176,7 +176,7 @@ tr.total td { font-weight: 500; color: var(--tinta-alta); border-top: 1px solid 
 </section>
 
 <section class="vista" id="v-perimetros" hidden>
-  <div class="seccion"><span class="n">07</span><h2>Perímetros</h2><p>Check-ins de 40 - Entreno/30-checkins, en cm. Brazo izquierdo y muslo derecho. Los ratios se calculan aquí. Cómo medir: 10-referencia/protocolo-medidas.md.</p></div>
+  <div class="seccion"><span class="n">07</span><h2>Perímetros</h2><p>Check-ins de 30 - Training/checkins, en cm. Brazo izquierdo y muslo derecho. Los ratios se calculan aquí. Cómo medir: reference/protocolo-medidas.md.</p></div>
   <div class="rejilla cifras" id="cifras-perimetros"></div>
   <div class="rejilla"><div class="celda"><h3>Apuntar check-in</h3><p class="sub" id="ck-sub">Rellena solo lo que hayas medido. Si ya hay check-in de esa fecha, se completa sin borrar nada.</p>
     <form id="ck-form" autocomplete="off">
@@ -666,7 +666,7 @@ async function guardarCheckin(ev) {
     if (!d.ok) { pintarPerimetros(); estadoForm("ck-estado", d.mensaje || "No se ha guardado.", true); return; }
     document.getElementById("ck-sens").value = "";
     pintarPerimetros();
-    estadoForm("ck-estado", (d.nuevo ? "Check-in creado: " : "Check-in actualizado: ") + `30-checkins/${f}.md`);
+    estadoForm("ck-estado", (d.nuevo ? "Check-in creado: " : "Check-in actualizado: ") + `checkins/${f}.md`);
   } catch (e) { estadoForm("ck-estado", "No se ha podido guardar: " + e.message + ". Prueba otra vez.", true); }
   finally { b.disabled = false; }
 }
@@ -1147,7 +1147,7 @@ for (const b of document.querySelectorAll("#filtros button")) {
   const ul = document.getElementById("avisos"); let n = 0;
   for (const d of D.dias.slice().reverse()) for (const a of d.avisos || []) { ul.append(el("li", {}, `${d.fecha}: ${a}`)); n++; }
   document.getElementById("avisos-sum").textContent = `Datos que no se han podido leer (${n})`;
-  document.getElementById("pie").textContent = `${D.dias.length} notas diarias · generado ${D.generado} desde 40 - Entreno/20-diario. `;
+  document.getElementById("pie").textContent = `${D.dias.length} notas diarias · generado ${D.generado} desde 30 - Training/diary. `;
   const a = el("a", { href: "/entreno/clasico/", class: "enlace" }, "versión anterior"); document.getElementById("pie").append(a);
 })();
 pintar();
