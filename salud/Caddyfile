@@ -28,7 +28,39 @@ testobm.duckdns.org {
 }
 
 
-# portal (mismo que testobm, dominio definitivo)
+# portal en dominio definitivo (detrás de Cloudflare Access)
 zac2zac.com, www.zac2zac.com {
-    reverse_proxy 172.18.0.1:8791
+    redir /finanzas /finanzas/
+    handle /finanzas/* {
+        route {
+            forward_auth 172.18.0.1:8791 {
+                uri /_auth
+                copy_headers X-Portal-Censura  # modo censurado del portal (1/0), lo lee la llave
+            }
+            uri strip_prefix /finanzas
+            reverse_proxy 172.18.0.1:8790
+        }
+    }
+    handle {
+        reverse_proxy 172.18.0.1:8791
+    }
+}
+
+# WebDAV para Remotely Save (Cloudflare sin Access; auth propia de rclone)
+dav.zac2zac.com {
+    handle /webdav/* {
+        reverse_proxy webdav:8080
+    }
+    respond 404
+}
+
+# MCP de vault y finanzas (Cloudflare sin Access; protegidos por ruta secreta)
+mcp.zac2zac.com {
+    handle_path /{$MCP_VAULT_RUTA}/* {
+        reverse_proxy mcp:8000
+    }
+    handle_path /{$FIN_MCP_TOKEN}/* {
+        reverse_proxy mcp-finanzas:8000
+    }
+    respond 404
 }
