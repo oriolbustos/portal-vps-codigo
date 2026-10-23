@@ -13,4 +13,4 @@ Las unidades systemd están aquí y `/etc/systemd/system/` tiene enlaces a ellas
 Los secretos están en `/opt/salud/.env`, `/etc/portal/` y `/etc/salud-sync/`, fuera del repo.
 Los datos están en el vault (`/srv/vault`) y en `/var/lib/portal`.
 
-Documentación completa: nota `acceso-vps` del vault.
+Documentación completa: `70 - System/_context.md` del vault.

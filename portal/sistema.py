@@ -2,7 +2,7 @@
 """Panel Sistema: estado del VPS (Resumen, Memoria, Disco, Servicios, Usuarios, Procesos) y mapa de cómo está montado todo.
 
 Solo lee: /proc, /etc/passwd, `who`, `systemctl show`, `apt list --upgradable` y el latido del vault
-(estado-sistema.md, lo escribe /opt/salud/check.sh, que es quien ve los contenedores: el portal no tiene Docker).
+(70 - System/status.md, lo escribe /opt/salud/check.sh, que es quien ve los contenedores: el portal no tiene Docker).
 Lo caro (tamaño de carpetas, actualizaciones) se guarda en memoria unos minutos.
 """
 import json, os, re, shutil, subprocess, threading, time
