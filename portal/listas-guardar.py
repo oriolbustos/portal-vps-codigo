@@ -2,7 +2,7 @@
 """Aplica en el vault los cambios hechos en el panel Listas del portal (/listas/).
 
 El portal deja cada operación en /var/lib/portal/listas-pendiente/<id>.json y listas-guardar.path lanza
-esto (root). Solo toca notas .md de "30 - Personal/10 - Listas/" (no subcarpetas) y trabaja línea a
+esto (root). Solo toca notas .md de "60 - Lists/" (no subcarpetas) y trabaja línea a
 línea sobre la nota actual, así que no pisa lo que se haya editado a la vez en Obsidian:
 - anadir: una línea nueva al final de la sección elegida ("- [ ] x" si la lista usa casillas).
 - marcar: "- [ ] x" <-> "- [x] x ✅ AAAA-MM-DD", como el plugin Tasks de Obsidian.
