@@ -53,7 +53,7 @@ def ambitos() -> list:
             nombres.append(n)
     out = []
     for n in nombres:
-        ruta = next(iter(sorted(p for p in AMBITOS.rglob(f"{n}.md") if all(map(rutas.visible, p.relative_to(AMBITOS).parts)))), None)
+        ruta = next(iter(sorted(p for p in AMBITOS.rglob(f"{n}.md") if not any(s.startswith("_") for s in p.relative_to(AMBITOS).parts))), None)
         if ruta:
             out.append((n, ruta))
     return out
