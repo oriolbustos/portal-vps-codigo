@@ -41,7 +41,7 @@ ESTATICO = AQUI / "estatico"
 ESTILO_NOTA = rutas.ESTILO
 TIPOS = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2", ".svg": "image/svg+xml", ".png": "image/png"}
 PUERTO = int(os.environ.get("PORTAL_PUERTO", "8791"))
-DOMINIO = os.environ.get("PORTAL_DOMINIO", "testobm.duckdns.org")
+DOMINIOS = set(os.environ.get("PORTAL_DOMINIOS", "testobm.duckdns.org,zac2zac.com,www.zac2zac.com").split(","))
 COOKIE = "portal_sesion"
 DURACION = 30 * 86400          # la sesión recuerda el dispositivo 30 días
 RENOVAR = 15 * 86400           # si queda menos de esto, se renueva al usarla
@@ -772,7 +772,7 @@ class Manejador(BaseHTTPRequestHandler):
         if urlsplit(self.path).path == "/api/pasos":
             return self.api_pasos()
         origen = self.headers.get("Origin") or self.headers.get("Referer") or ""
-        if origen and urlsplit(origen).hostname != DOMINIO:
+        if origen and urlsplit(origen).hostname not in DOMINIOS:
             return self.enviar("Origen no permitido", 403)
         if censurado(self.token()) and (censura.panel_oculto(urlsplit(self.path).path, censura.leer())
                                          or urlsplit(self.path).path.startswith("/entreno/fotos/")):  # fotos: nunca
