@@ -11,7 +11,7 @@ de hoy entera (la página es dueña de esa tabla) y deja la nota completa en
 la escribe solo si la nota no ha cambiado desde que se leyó (base = sha256) o, si no existía, la crea
 desde la plantilla 00-sistema/plantillas/diario.md.
 
-Formato de la tabla (instructions.md §2.3):
+Formato de la tabla (40 - Entreno/00-sistema/mod-log-strength-session.md):
   | Ejercicio | Serie | Reps | Peso (kg) | RIR | Agarre / altura | Notas | Descanso |
 Descanso = lo descansado después de esa serie (m:ss), si se guardó con el temporizador.
 Las notas antiguas, sin columnas RIR ni Agarre, llevan el RIR en Notas ("RIR 2"): al reescribir la tabla
@@ -193,7 +193,7 @@ def datos(f: str = None) -> dict:
     ejercicios = entreno.resumen_ejercicios(dias)
     estado = entreno.estado_sesiones()
 
-    # qué toca: si hoy ya hay series, el tipo de hoy; si no, el siguiente de la rotación (instructions.md §2.1)
+    # qué toca: si hoy ya hay series, el tipo de hoy; si no, el siguiente de la rotación (40 - Entreno/_context.md, Current state)
     hoy_d = next((d for d in dias if d["fecha"] == f), None)
     previas = [d for d in dias if d["fecha"] < f and d.get("sesiones")]
     ultima = previas[-1] if previas else None

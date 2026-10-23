@@ -16,7 +16,7 @@ from pathlib import Path
 DIARIO = Path("/srv/vault/40 - Entreno/20-diario")
 PLAN_NUTRICION = DIARIO.parent / "10-referencia" / "plan-nutricion.md"
 HISTORICO = DIARIO.parent / "40 - historico" / "entreno"   # push.md, pull.md, pierna.md: "Estado actual"
-TIPOS = ("push", "pierna", "pull")                          # rotación (instructions.md §2.1)
+TIPOS = ("push", "pierna", "pull")                          # rotación (40 - Entreno/_context.md, Current state)
 NOMBRE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})\.md$")
 NUM = re.compile(r"[-−–]?\d+(?:[.,]\d+)?")
 
