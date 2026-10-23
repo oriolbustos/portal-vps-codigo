@@ -13,6 +13,8 @@ NTT = VAULT / "10 - NTT Data"
 CARRERA = VAULT / "20 - Career"
 OPORTUNIDADES = CARRERA / "Opportunities"
 CVS = OPORTUNIDADES / "CVs"
+EDUCACION = CARRERA / "Education"
+PROYECTOS = CARRERA / "Projects"
 
 # 30 - Training (Entreno)
 ENTRENO = VAULT / "30 - Training"

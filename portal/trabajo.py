@@ -9,7 +9,8 @@ import hashlib, html, json, os, re, secrets, shutil, subprocess, threading, time
 from pathlib import Path
 from urllib.parse import quote
 
-CVS = Path("/srv/vault/20 - Career/Opportunities/CVs")
+from rutas import CVS
+
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 CACHE = ESTADO / "cv"
 # Guardar: el portal no puede escribir en el vault (systemd lo deja en solo lectura). Deja la

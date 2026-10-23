@@ -14,11 +14,7 @@ import difflib, html, os, re, time
 from pathlib import Path
 
 import archivos
-
-VAULT = Path("/srv/vault")
-NTT = VAULT / "10 - NTT Data"
-CARRERA = VAULT / "20 - Career"
-OPORT = CARRERA / "Opportunities"
+from rutas import VAULT, NTT, CARRERA, OPORTUNIDADES as OPORT, EDUCACION, PROYECTOS
 VIEJO = 14  # días: a partir de aquí una nota de contexto se marca como sin actualizar
 
 
@@ -170,9 +166,9 @@ def carrera() -> str:
 
 
 def proyectos() -> str:
-    edu = CARRERA / "Education"
+    edu = EDUCACION
     out = ('<div class="seccion"><span class="n">01</span><h2>Proyectos</h2><p>Proyectos personales de Projects, por último cambio.</p></div>'
-           + tabla_carpetas(carpetas(CARRERA / "Projects", excluir=("Legacy",))))
+           + tabla_carpetas(carpetas(PROYECTOS, excluir=("Legacy",))))
     nombres = {"courses": "Cursos", "books": "Libros", "videos": "Vídeos", "events": "Eventos", "papers": "Papers",
                "master": "Máster", "subjects": "Asignaturas", "software": "Software", "Guides": "Guías", "Concepts": "Conceptos"}
     grupos = []
@@ -184,7 +180,7 @@ def proyectos() -> str:
     for n, (t, filas) in enumerate(grupos, 2):
         out += (f'<div class="seccion"><span class="n">{n:02d}</span><h2>{t}</h2><p>De Education/, por último cambio.</p></div>'
                 + tabla_carpetas(filas[:12], t[:-1] if t.endswith("s") else t))
-    legado = carpetas(CARRERA / "Projects" / "Legacy")
+    legado = carpetas(PROYECTOS / "Legacy")
     if legado:
         out += (f'<details class="legado"><summary>Proyectos antiguos ({len(legado)})</summary>{tabla_carpetas(legado)}</details>')
     return out
