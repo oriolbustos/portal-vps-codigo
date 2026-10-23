@@ -7,7 +7,7 @@ HC_URL=""   # se rellena en el paso 3
 FALLOS=""
 
 # Contenedores vivos (y reintento de arranque si alguno cayó)
-for c in mcp caddy obsidian; do
+for c in mcp mcp-finanzas webdav caddy obsidian; do
   estado=$(docker inspect -f '{{.State.Status}}' salud-$c-1 2>/dev/null)
   if [ "$estado" != "running" ]; then
     FALLOS="$FALLOS $c:caído"
@@ -36,6 +36,18 @@ if [ "$code" != "200" ]; then
     FALLOS="$FALLOS mcp:auto-relevantado"
   fi
 fi
+
+# WebDAV (rclone, lo usa Remotely Save): sin credenciales debe contestar 401 (vivo y exigiendo login)
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -X PROPFIND "https://$DOMAIN/webdav/")
+[ "$code" = "401" ] || FALLOS="$FALLOS webdav-http:$code"
+
+# MCP de finanzas por la URL pública (ruta secreta FIN_MCP_TOKEN, en el .env)
+FIN_TOKEN=$(grep ^FIN_MCP_TOKEN= /opt/salud/.env | cut -d= -f2)
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST "https://$DOMAIN/$FIN_TOKEN/mcp" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}')
+[ "$code" = "200" ] || FALLOS="$FALLOS mcp-finanzas-http:$code"
 
 # Disco
 uso=$(df / --output=pcent | tail -1 | tr -dc '0-9')
