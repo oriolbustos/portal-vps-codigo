@@ -51,6 +51,37 @@ services:
           propagation: rslave
     restart: unless-stopped
 
+  # Login OAuth (Google, solo obm167@gmail.com) delante de cada MCP. Caddy les pasa el tráfico.
+  mcp-auth:
+    image: ghcr.io/sigbit/mcp-auth-proxy:v2.10.2
+    command: http://mcp:8000
+    environment:
+      - EXTERNAL_URL=https://mcp.zac2zac.com
+      - NO_AUTO_TLS=true
+      - LISTEN=:80
+      - DATA_PATH=/data
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_ALLOWED_USERS=obm167@gmail.com
+    volumes:
+      - mcp_auth_data:/data
+    restart: unless-stopped
+
+  mcp-fin-auth:
+    image: ghcr.io/sigbit/mcp-auth-proxy:v2.10.2
+    command: http://mcp-finanzas:8000
+    environment:
+      - EXTERNAL_URL=https://mcp-fin.zac2zac.com
+      - NO_AUTO_TLS=true
+      - LISTEN=:80
+      - DATA_PATH=/data
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_ALLOWED_USERS=obm167@gmail.com
+    volumes:
+      - mcp_fin_auth_data:/data
+    restart: unless-stopped
+
   caddy:
     image: caddy:latest
     environment:   # rutas secretas de los MCP (en .env, fuera de git)
@@ -92,3 +123,5 @@ services:
 
 volumes:
   caddy_data:
+  mcp_auth_data:
+  mcp_fin_auth_data:
