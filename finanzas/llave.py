@@ -17,7 +17,7 @@ from urllib.parse import parse_qs, urlsplit
 CIFRADO = Path("/srv/finanzas-cifrado")
 ABIERTO = Path("/srv/finanzas/abierto")
 REPO = ABIERTO / "panel-finanzas"
-HORAS = 12
+HORAS = 1
 DOMINIOS = {"testobm.duckdns.org", "zac2zac.com", "www.zac2zac.com"}
 VIGILAR = ["data", "fin", "inbox", "ajustes.yaml", "categorias.yaml", "reglas.yaml"]
 
