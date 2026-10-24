@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copia completa del servidor para guardar en los discos de Oriol (Z:).
 # Escribe un .tar.gz por la salida estándar; no deja nada en el disco del VPS.
-# Lo lanza el PC: Z:\oriol\personal\backups\hacer-backup.bat (ssh vps /opt/salud/backup-local.sh > ...).
+# Lo lanza el PC: Z:\oriol\personal\backupspsackup-vps.bat (ssh vps /opt/salud/backup-local.sh > ...).
 # Qué entra y por qué: "70 - System/backup-local.md" del vault. Si añades algo aquí, apúntalo allí.
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "ejecutar como root" >&2; exit 1; }
