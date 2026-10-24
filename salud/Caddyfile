@@ -36,16 +36,17 @@ dav.zac2zac.com {
     }
 }
 
-# MCP de vault y finanzas (Cloudflare sin Access; protegidos por ruta secreta)
+# MCP de vault y finanzas: login OAuth (Google) en mcp-auth / mcp-fin-auth
 mcp.zac2zac.com {
     route {
         import origen
-        handle_path /{$MCP_VAULT_RUTA}/* {
-            reverse_proxy mcp:8000
-        }
-        handle_path /{$FIN_MCP_TOKEN}/* {
-            reverse_proxy mcp-finanzas:8000
-        }
-        respond 404
+        reverse_proxy mcp-auth:80
+    }
+}
+
+mcp-fin.zac2zac.com {
+    route {
+        import origen
+        reverse_proxy mcp-fin-auth:80
     }
 }
