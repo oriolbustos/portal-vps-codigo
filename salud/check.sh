@@ -1,7 +1,8 @@
 #!/bin/bash
 MCP_HOST="mcp.zac2zac.com"; DAV_HOST="dav.zac2zac.com"
 # Directo al Caddy local: por Cloudflare el WAF solo deja pasar a Anthropic
-LOCAL=(--resolve "$MCP_HOST:443:127.0.0.1" --resolve "$DAV_HOST:443:127.0.0.1")
+SECRETO=$(grep ^ORIGEN_SECRETO= /opt/salud/.env | cut -d= -f2)   # Caddy exige la cabecera que pone Cloudflare
+LOCAL=(--resolve "$MCP_HOST:443:127.0.0.1" --resolve "$DAV_HOST:443:127.0.0.1" -H "X-Origen-Secreto: $SECRETO")
 TOKEN=$(grep ^MCP_VAULT_RUTA= /opt/salud/.env | cut -d= -f2)   # ruta secreta del MCP, en el .env
 LOG="/srv/vault/70 - System/status.md"
 HC_URL=""   # se rellena en el paso 3

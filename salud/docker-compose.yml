@@ -57,6 +57,7 @@ services:
       - MCP_VAULT_RUTA=${MCP_VAULT_RUTA}
       - MCP_JUDIT_RUTA=${MCP_JUDIT_RUTA}
       - FIN_MCP_TOKEN=${FIN_MCP_TOKEN}
+      - ORIGEN_SECRETO=${ORIGEN_SECRETO}   # cabecera que añade Cloudflare; sin ella Caddy rechaza
     ports:
       - 80:80
       - 443:443
