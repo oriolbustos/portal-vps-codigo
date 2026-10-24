@@ -1,27 +1,3 @@
-testobm.duckdns.org {
-    handle /webdav/* {
-        reverse_proxy webdav:8080
-    }
-    handle_path /{$MCP_JUDIT_RUTA}/* {
-        reverse_proxy mcp-judit:8000
-    }
-    redir /finanzas /finanzas/
-    handle /finanzas/* {
-        route {
-            forward_auth 172.18.0.1:8791 {
-                uri /_auth
-                copy_headers X-Portal-Censura  # modo censurado del portal (1/0), lo lee la llave
-            }
-            uri strip_prefix /finanzas
-            reverse_proxy 172.18.0.1:8790
-        }
-    }
-    handle {
-        reverse_proxy 172.18.0.1:8791
-    }
-}
-
-
 # portal en dominio definitivo (detrás de Cloudflare Access)
 zac2zac.com, www.zac2zac.com {
     redir /finanzas /finanzas/
