@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 CRED = Path("/etc/salud-sync/google.json")
-DIARIO = Path("/srv/vault/30 - Training/diary")
+DIARIO = Path("/srv/vault/30 - Health/diary")
 ESTADO = Path("/var/lib/salud-sync/estado.json")
 LOG = Path("/var/log/salud-sync.log")
 PASOS_IPHONE = Path("/var/lib/portal/pasos-iphone.json")  # lo escribe el portal (/api/pasos, Atajo de iOS)

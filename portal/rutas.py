@@ -16,8 +16,9 @@ CVS = OPORTUNIDADES / "CVs"
 EDUCACION = CARRERA / "Education"
 PROYECTOS = CARRERA / "Projects"
 
-# 30 - Training (Entreno)
-ENTRENO = VAULT / "30 - Training"
+# 30 - Health (Entreno; medical/ y appearance/ guardan además las notas de ámbito Health y Aspecto de Tareas)
+SALUD = VAULT / "30 - Health"
+ENTRENO = SALUD
 DIARIO = ENTRENO / "diary"                                   # AAAA/MM/AAAA-MM-DD.md (+ _mes.md)
 CHECKINS = ENTRENO / "checkins"                              # AAAA-MM-DD.md
 REFERENCIA = ENTRENO / "reference"
@@ -33,6 +34,9 @@ PLANTILLA_CHECKIN = PLANTILLAS_ENTRENO / "checkin.md"
 VIDA = VAULT / "40 - Life"
 PANEL = VIDA / "Panel.md"
 AMBITOS = VIDA / "areas"
+# Dónde busca tareas.py las notas de ámbito que enlaza Panel.md ([[Health]], [[Aspecto]]...), por orden.
+# Copia en tareas-guardar.py (root): si cambias esto, cambia también allí.
+RAICES_AMBITOS = (AMBITOS, SALUD / "medical", SALUD / "appearance")
 TODO = VIDA / "To Do.md"
 
 # 60 - Lists (Listas)

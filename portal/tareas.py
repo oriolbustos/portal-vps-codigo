@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Panel Tareas: las tareas de cada ámbito del vault, con su matriz de Eisenhower. Se leen y se editan aquí.
 
-Fuente: "40 - Life/Panel.md" da los ámbitos ([[Identity]], [[Work]]...); de cada nota de
+Fuente: "40 - Life/Panel.md" da los ámbitos ([[Identity]], [[Work]]...); cada nota se busca por nombre en
+rutas.RAICES_AMBITOS (40 - Life/areas, 30 - Health/medical, 30 - Health/appearance); de cada nota de
 ámbito se usa la sección "## Plan": "### Doing", "### To Do" y "### Monitoring", una tarea por viñeta.
 Formato de una tarea (se puede escribir a mano en Obsidian):
   - Certi AWS [imp:: 4] [urg:: 2] [esf:: 3]   importancia, urgencia y esfuerzo de 0 a 5 (sin ellas = sin puntuar)
@@ -24,6 +25,7 @@ import rutas
 PLAN = rutas.VIDA
 PANEL = rutas.PANEL
 AMBITOS = rutas.AMBITOS
+RAICES = rutas.RAICES_AMBITOS
 ESTADO = Path(os.environ.get("STATE_DIRECTORY", "/var/lib/portal"))
 PENDIENTE = ESTADO / "tareas-pendiente"
 RESULTADO = ESTADO / "tareas-resultado.json"
@@ -53,10 +55,19 @@ def ambitos() -> list:
             nombres.append(n)
     out = []
     for n in nombres:
-        ruta = next(iter(sorted(p for p in AMBITOS.rglob(f"{n}.md") if not any(s.startswith("_") for s in p.relative_to(AMBITOS).parts))), None)
+        ruta = _buscar(n)
         if ruta:
             out.append((n, ruta))
     return out
+
+
+def _buscar(nombre: str):
+    """Primera nota <nombre>.md en RAICES (por orden de raíz; sin carpetas "_") o None."""
+    for r in RAICES:
+        ps = sorted(p for p in r.rglob(f"{nombre}.md") if not any(s.startswith("_") for s in p.relative_to(r).parts))
+        if ps:
+            return ps[0]
+    return None
 
 
 def ruta_de(ambito: str) -> Path:
@@ -301,7 +312,7 @@ def guardar(ruta: Path, base: str, texto: str):
     pid = secrets.token_hex(8)
     PENDIENTE.mkdir(exist_ok=True)
     tmp = ESTADO / f"tareas-{pid}.tmp"
-    tmp.write_text(json.dumps({"id": pid, "ruta": str(ruta.relative_to(AMBITOS)), "base": base, "texto": texto}, ensure_ascii=False), encoding="utf-8")
+    tmp.write_text(json.dumps({"id": pid, "ruta": str(ruta.relative_to(rutas.VAULT)), "base": base, "texto": texto}, ensure_ascii=False), encoding="utf-8")
     tmp.replace(PENDIENTE / f"{pid}.json")
     for _ in range(50):  # tareas-guardar.path lo recoge en menos de un segundo
         time.sleep(0.1)

@@ -3,7 +3,7 @@
 
 El portal no puede escribir en el vault. Deja cada cambio como /var/lib/portal/entreno-sesion-pendiente/<id>.json
 ({id, fecha, base, crear, texto}: texto = la nota entera con la tabla "Entreno" ya reescrita) y
-entreno-sesion-guardar.path lanza esto (root). Solo escribe 30 - Training/diary/AAAA/MM/AAAA-MM-DD.md:
+entreno-sesion-guardar.path lanza esto (root). Solo escribe 30 - Health/diary/AAAA/MM/AAAA-MM-DD.md:
 - si existe, solo si nadie la ha cambiado desde que el portal la leyó (base = sha256), en el sitio (conserva dueño);
 - si no existe y crear = true, la crea (y la carpeta del mes) con dueño 1000. Nunca pisa una nota que ya exista.
 Resultado en /var/lib/portal/entreno-sesion-resultado.json.
@@ -11,7 +11,7 @@ Resultado en /var/lib/portal/entreno-sesion-resultado.json.
 import hashlib, json, os, pwd, re, shutil, sys
 from pathlib import Path
 
-DIARIO = Path(os.environ.get("ENTRENO_DIARIO", "/srv/vault/30 - Training/diary"))
+DIARIO = Path(os.environ.get("ENTRENO_DIARIO", "/srv/vault/30 - Health/diary"))
 ESTADO = Path(os.environ.get("ENTRENO_ESTADO", "/var/lib/portal"))
 PENDIENTE = ESTADO / "entreno-sesion-pendiente"
 RESULTADO = ESTADO / "entreno-sesion-resultado.json"

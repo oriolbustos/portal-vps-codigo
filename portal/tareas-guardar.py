@@ -2,14 +2,16 @@
 """Escribe en el vault una nota de ámbito cuando se edita desde el portal (/tareas/).
 
 El portal no puede escribir en el vault. Deja cada cambio como /var/lib/portal/tareas-pendiente/<id>.json
-({id, ruta, base, texto}: ruta relativa a "30 - Plan/Ámbitos", texto = la nota entera ya editada) y
-tareas-guardar.path lanza esto (root). Solo escribe notas .md que ya existen dentro de Ámbitos, y solo si
+({id, ruta, base, texto}: ruta relativa a /srv/vault, texto = la nota entera ya editada) y
+tareas-guardar.path lanza esto (root). Solo escribe notas .md que ya existen dentro de RAICES, y solo si
 nadie las ha cambiado desde que el portal las leyó (base = sha256). Resultado en /var/lib/portal/tareas-resultado.json.
 """
 import hashlib, json, os, pwd, shutil
 from pathlib import Path
 
-AMBITOS = Path("/srv/vault/40 - Life/areas")
+VAULT = Path("/srv/vault")
+# = rutas.RAICES_AMBITOS (portal): dónde viven las notas de ámbito que enlaza Panel.md
+RAICES = (VAULT / "40 - Life" / "areas", VAULT / "30 - Health" / "medical", VAULT / "30 - Health" / "appearance")
 PENDIENTE = Path("/var/lib/portal/tareas-pendiente")
 RESULTADO = Path("/var/lib/portal/tareas-resultado.json")
 
@@ -31,9 +33,9 @@ def procesar(f: Path):
         base, texto, rel = d["base"], d["texto"], d["ruta"]
         if not isinstance(texto, str) or len(texto) > 500_000 or not isinstance(rel, str):
             raise ValueError("petición no válida")
-        nota = AMBITOS / rel
-        if nota.suffix != ".md" or nota.is_symlink() or not nota.is_file() or not nota.resolve().is_relative_to(AMBITOS.resolve()):
-            raise ValueError("esa nota no es de Ámbitos")
+        nota = VAULT / rel
+        if nota.suffix != ".md" or nota.is_symlink() or not nota.is_file() or not any(nota.resolve().is_relative_to(r.resolve()) for r in RAICES):
+            raise ValueError("esa nota no es de un ámbito")
         if hashlib.sha256(nota.read_bytes()).hexdigest() != base:
             raise ValueError("la nota ha cambiado en el vault; recarga")
         with open(nota, "w", encoding="utf-8", newline="") as w:  # en el sitio: conserva dueño (1000) y permisos

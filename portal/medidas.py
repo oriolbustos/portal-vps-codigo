@@ -1,7 +1,7 @@
 """Entreno: perímetros (check-ins) y fotos de progreso, para las secciones Perímetros y Fotos del panel.
 
-Perímetros: las notas de check-in del vault, 30 - Training/checkins/AAAA-MM-DD.md (frontmatter: peso, cuello,
-hombros, pecho, cintura, cadera, brazo, brazo_flex, muslo; reglas en 30 - Training/_system/mod-checkin.md). Los ratios
+Perímetros: las notas de check-in del vault, 30 - Health/checkins/AAAA-MM-DD.md (frontmatter: peso, cuello,
+hombros, pecho, cintura, cadera, brazo, brazo_flex, muslo; reglas en 30 - Health/_system/mod-checkin.md). Los ratios
 (hombros/cintura, cintura/altura, cintura/cadera, pecho/cintura, % grasa Navy) se calculan aquí, no se guardan.
 Fotos: /srv/entreno-fotos/AAAA-MM-DD/<pose>.jpg, fuera del vault (no van a Obsidian ni a GitHub). Llegan ya
 reducidas del navegador (1600 px, JPEG, sin EXIF). Se sirven solo con sesión.

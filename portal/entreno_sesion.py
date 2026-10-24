@@ -2,7 +2,7 @@
 """Entreno en directo (/entreno/sesion/): hacer la sesión en el gimnasio y apuntarla serie a serie.
 
 Lee (con las funciones de entreno.py) qué toca por la rotación push → pierna → pull, los ejercicios
-propuestos de la tabla "Estado actual" de 30 - Training/progress/<tipo>.md (en su "Orden fijo", con
+propuestos de la tabla "Estado actual" de 30 - Health/progress/<tipo>.md (en su "Orden fijo", con
 "Siguiente paso" y "Descanso") y lo apuntado hoy en la tabla "Entreno" de la nota diaria.
 
 Escribir: el portal no puede tocar el vault. Cada serie apuntada reescribe la tabla "Entreno" de la nota
@@ -11,7 +11,7 @@ de hoy entera (la página es dueña de esa tabla) y deja la nota completa en
 la escribe solo si la nota no ha cambiado desde que se leyó (base = sha256) o, si no existía, la crea
 desde la plantilla _system/templates/diario.md.
 
-Formato de la tabla (30 - Training/_system/mod-log-strength-session.md):
+Formato de la tabla (30 - Health/_system/mod-log-strength-session.md):
   | Ejercicio | Serie | Reps | Peso (kg) | RIR | Agarre / altura | Notas | Descanso |
 Descanso = lo descansado después de esa serie (m:ss), si se guardó con el temporizador.
 Las notas antiguas, sin columnas RIR ni Agarre, llevan el RIR en Notas ("RIR 2"): al reescribir la tabla
@@ -194,7 +194,7 @@ def datos(f: str = None) -> dict:
     ejercicios = entreno.resumen_ejercicios(dias)
     estado = entreno.estado_sesiones()
 
-    # qué toca: si hoy ya hay series, el tipo de hoy; si no, el siguiente de la rotación (30 - Training/_context.md, Current state)
+    # qué toca: si hoy ya hay series, el tipo de hoy; si no, el siguiente de la rotación (30 - Health/_context.md, Current state)
     hoy_d = next((d for d in dias if d["fecha"] == f), None)
     previas = [d for d in dias if d["fecha"] < f and d.get("sesiones")]
     ultima = previas[-1] if previas else None
