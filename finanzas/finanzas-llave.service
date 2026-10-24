@@ -1,5 +1,5 @@
 [Unit]
-Description=Llave de la caja de finanzas (gocryptfs, cierre a 12 h, panel)
+Description=Llave de la caja de finanzas (gocryptfs, cierre a 1 h, panel)
 After=network-online.target docker.service
 
 [Service]
