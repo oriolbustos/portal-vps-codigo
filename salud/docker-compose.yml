@@ -62,7 +62,7 @@ services:
       - DATA_PATH=/data
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_ALLOWED_USERS=obm167@gmail.com
+      - GOOGLE_ALLOWED_USERS=obm167@gmail.com,oriol.bustos2002@gmail.com
     volumes:
       - mcp_auth_data:/data
     restart: unless-stopped
@@ -77,7 +77,7 @@ services:
       - DATA_PATH=/data
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_ALLOWED_USERS=obm167@gmail.com
+      - GOOGLE_ALLOWED_USERS=obm167@gmail.com,oriol.bustos2002@gmail.com
     volumes:
       - mcp_fin_auth_data:/data
     restart: unless-stopped
