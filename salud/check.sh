@@ -1,16 +1,23 @@
 #!/bin/bash
 MCP_HOST="mcp.zac2zac.com"; DAV_HOST="dav.zac2zac.com"
-# Directo al Caddy local: por Cloudflare el WAF solo deja pasar a Anthropic
+# Directo al Caddy local (no por Cloudflare)
 SECRETO=$(grep ^ORIGEN_SECRETO= /opt/salud/.env | cut -d= -f2)   # Caddy exige la cabecera que pone Cloudflare
-LOCAL=(--resolve "$MCP_HOST:443:127.0.0.1" --resolve "$DAV_HOST:443:127.0.0.1" -H "X-Origen-Secreto: $SECRETO")
-TOKEN=$(grep ^MCP_VAULT_RUTA= /opt/salud/.env | cut -d= -f2)   # ruta secreta del MCP, en el .env
+LOCAL=(--resolve "$MCP_HOST:443:127.0.0.1" --resolve "mcp-fin.zac2zac.com:443:127.0.0.1" --resolve "$DAV_HOST:443:127.0.0.1" -H "X-Origen-Secreto: $SECRETO")
+# Los MCP van detrás del login OAuth: se prueban por dentro, directos al contenedor (sin login)
+mcp_init() {  # $1 = contenedor; imprime el código HTTP
+  ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' salud-$1-1 2>/dev/null)
+  curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST "http://$ip:8000/mcp" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}'
+}
 LOG="/srv/vault/70 - System/status.md"
 HC_URL=""   # se rellena en el paso 3
 
 FALLOS=""
 
 # Contenedores vivos (y reintento de arranque si alguno cayó)
-for c in mcp mcp-finanzas webdav caddy obsidian; do
+for c in mcp mcp-finanzas mcp-auth mcp-fin-auth webdav caddy obsidian; do
   estado=$(docker inspect -f '{{.State.Status}}' salud-$c-1 2>/dev/null)
   if [ "$estado" != "running" ]; then
     FALLOS="$FALLOS $c:caído"
@@ -21,18 +28,12 @@ done
 # La app Obsidian vive de verdad dentro del contenedor (no solo el contenedor "Up")
 docker exec salud-obsidian-1 pgrep -f /opt/obsidian/obsidian >/dev/null 2>&1 || FALLOS="$FALLOS obsidian-app:muerta"
 
-# El conector responde por su host (mcp.zac2zac.com) vía el Caddy local
-code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X POST "https://$MCP_HOST/$TOKEN/mcp" \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}')
+# El MCP del vault responde
+code=$(mcp_init mcp)
 if [ "$code" != "200" ]; then
   docker compose -f /opt/salud/docker-compose.yml restart mcp
   sleep 20
-  code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X POST "https://$MCP_HOST/$TOKEN/mcp" \
-    -H 'Content-Type: application/json' \
-    -H 'Accept: application/json, text/event-stream' \
-    --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}')
+  code=$(mcp_init mcp)
   if [ "$code" != "200" ]; then
     FALLOS="$FALLOS conector-http:$code(reinicio-fallido)"
   else
@@ -44,13 +45,15 @@ fi
 code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X PROPFIND "https://$DAV_HOST/webdav/")
 [ "$code" = "401" ] || FALLOS="$FALLOS webdav-http:$code"
 
-# MCP de finanzas por su host (ruta secreta FIN_MCP_TOKEN, en el .env)
-FIN_TOKEN=$(grep ^FIN_MCP_TOKEN= /opt/salud/.env | cut -d= -f2)
-code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X POST "https://$MCP_HOST/$FIN_TOKEN/mcp" \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}')
+# MCP de finanzas responde
+code=$(mcp_init mcp-finanzas)
 [ "$code" = "200" ] || FALLOS="$FALLOS mcp-finanzas-http:$code"
+
+# Los logins OAuth están delante: sin token deben contestar 401 (vivos y exigiendo login)
+for h in mcp mcp-fin; do
+  code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${LOCAL[@]}" -X POST "https://$h.zac2zac.com/mcp")
+  [ "$code" = "401" ] || FALLOS="$FALLOS $h-auth-http:$code"
+done
 
 # Disco
 uso=$(df / --output=pcent | tail -1 | tr -dc '0-9')
